@@ -1,0 +1,381 @@
+@import "tailwindcss";
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Design-Tokens (§4). Exakte Werte, Kontraste nach WCAG 2.1 berechnet.
+   Tailwind referenziert ausschließlich diese Variablen (siehe @theme inline).
+   ────────────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg-base: #0b0d10; /* Seitenhintergrund */
+  --bg-surface: #14171c; /* Karten, Panels */
+  --bg-elevated: #1c2027; /* Modal, Drawer, Popover */
+  --text-primary: #f2f4f7; /* 17,66:1 auf base — AAA */
+  --text-muted: #9aa3ae; /*  7,03:1 auf surface — AAA */
+  --gold: #d6a756; /*  8,14:1 auf surface — AAA */
+  --gold-strong: #e3bc77; /* 10,86:1 auf base — Hover + Fokusring */
+  --on-gold: #0b0d10; /*  8,82:1 auf gold — Text auf goldener Fläche */
+  --teal: #4fd1c5; /*  9,63:1 — Sekundärakzent, Info, Demo-Badge */
+  --success: #6ee7b7; /* 11,78:1 */
+  --warning: #fbbf24; /* 10,76:1 */
+  --danger: #fca5a5; /*  9,46:1 — bewusst hell; #EF4444 fällt unter 4,5:1 */
+  --border-subtle: #2a2f38; /*  1,34:1 auf surface — REIN DEKORATIV, nie alleinige Markierung.
+                               Das Konzept nannte 1,45:1; im Browser nachgemessen sind es 1,34:1.
+                               Ohne Folgen, weil dieser Ton nie die einzige Markierung trägt. */
+  --border-control: #646c7a; /*  3,39:1 — Eingabefelder, Umriss-Buttons (WCAG 1.4.11) */
+
+  /* Radien 8 / 14 / 20 / 999 */
+  --radius-control: 8px;
+  --radius-card: 14px;
+  --radius-modal: 20px;
+  --radius-pill: 999px;
+
+  /* Zwei niedrigdeckende Schattenstufen */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.25);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.35);
+
+  /* Bewegung: 120 ms Zustandswechsel, 200 ms Ein-/Ausblenden, 320 ms Drawer/Modal, ease-out */
+  --dur-state: 120ms;
+  --dur-fade: 200ms;
+  --dur-sheet: 320ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Typografie-Skala (rem) */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 3rem;
+
+  --measure: 68ch;
+  --touch-target: 44px;
+  --header-height: 64px;
+  --bottom-nav-height: 64px;
+  --demo-stripe-height: 32px;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-primary: var(--text-primary);
+  --color-muted: var(--text-muted);
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-on-gold: var(--on-gold);
+  --color-teal: var(--teal);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-control: var(--border-control);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --radius-*: initial;
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+  --radius-modal: var(--radius-modal);
+  --radius-pill: var(--radius-pill);
+
+  --shadow-*: initial;
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+
+  --text-*: initial;
+  --text-xs: var(--text-xs);
+  --text-xs--line-height: 1.5;
+  --text-sm: var(--text-sm);
+  --text-sm--line-height: 1.5;
+  --text-base: var(--text-base);
+  --text-base--line-height: 1.5;
+  --text-md: var(--text-md);
+  --text-md--line-height: 1.5;
+  --text-lg: var(--text-lg);
+  --text-lg--line-height: 1.25;
+  --text-xl: var(--text-xl);
+  --text-xl--line-height: 1.15;
+  --text-2xl: var(--text-2xl);
+  --text-2xl--line-height: 1.15;
+  --text-3xl: var(--text-3xl);
+  --text-3xl--line-height: 1.15;
+
+  --breakpoint-xs: 360px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  --ease-out: var(--ease-out);
+}
+
+/* ─── Basis ────────────────────────────────────────────────────────────────────
+   WICHTIG: Diese Regeln stehen in @layer base. Ungelayertes CSS würde Tailwind-
+   Utilities schlagen — `button { color: inherit }` hätte z. B. `text-on-gold`
+   überschrieben und den Primärbutton auf 2,0:1 Kontrast gedrückt.
+   ──────────────────────────────────────────────────────────────────────────── */
+@layer base {
+html {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-height) + var(--demo-stripe-height) + 8px);
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* Display-Schrift nur an großen Stellen; nie in Fließtext oder Bedienelementen. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variation-settings: "SOFT" 100, "WONK" 0;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* Tabellarische Ziffern für alles mit Geldbezug */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.measure {
+  max-width: var(--measure);
+}
+
+}
+
+/* ─── Fokus: durchgängig sichtbar, nie entfernt ────────────────────────────── */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--gold-strong);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+/* Auf goldenen Flächen verschwindet Gold auf Gold → auf text-primary umstellen */
+.on-gold-surface:focus-visible,
+[data-surface="gold"] :focus-visible {
+  outline-color: var(--text-primary);
+}
+
+/* ─── Signaturlinie: 1 px Gold an tragenden Flächen ────────────────────────── */
+.signature-top {
+  box-shadow: inset 0 1px 0 0 var(--gold);
+}
+.signature-bottom {
+  box-shadow: inset 0 -1px 0 0 var(--gold);
+}
+
+/* ─── Glas nur auf Header und Bottom-Nav, mit deckendem Fallback ───────────── */
+.glass {
+  background-color: var(--bg-base);
+}
+@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .glass {
+    background-color: color-mix(in srgb, var(--bg-base) 82%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* ─── Bewegung ─────────────────────────────────────────────────────────────── */
+.transition-state {
+  transition-property: color, background-color, border-color, outline-color, opacity, transform, box-shadow;
+  transition-duration: var(--dur-state);
+  transition-timing-function: var(--ease-out);
+}
+.transition-fade {
+  transition-property: opacity, transform;
+  transition-duration: var(--dur-fade);
+  transition-timing-function: var(--ease-out);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes sheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes sheet-side {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes reel-spin {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+.anim-fade-in { animation: fade-in var(--dur-fade) var(--ease-out) both; }
+.anim-rise-in { animation: rise-in var(--dur-fade) var(--ease-out) both; }
+.anim-sheet-up { animation: sheet-up var(--dur-sheet) var(--ease-out) both; }
+.anim-sheet-side { animation: sheet-side var(--dur-sheet) var(--ease-out) both; }
+.anim-skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; }
+.anim-reel { animation: reel-spin 0.35s linear infinite; }
+
+/* Bei reduced motion bleiben Deckkraftwechsel, Transformationen entfallen. */
+@media (prefers-reduced-motion: reduce) {
+  .transition-state,
+  .transition-fade {
+    transition-property: color, background-color, border-color, outline-color, opacity, box-shadow;
+  }
+  .anim-rise-in,
+  .anim-sheet-up,
+  .anim-sheet-side {
+    animation-name: fade-in;
+  }
+  .anim-reel {
+    animation: skeleton-pulse 0.6s ease-in-out infinite;
+  }
+  .anim-skeleton {
+    animation: none;
+    opacity: 0.7;
+  }
+  .hover-lift:hover {
+    transform: none;
+  }
+}
+
+/* Karte im Hover: Signaturlinie erscheint, leichter Lift (nur ohne reduced motion) */
+.hover-lift {
+  transition: transform var(--dur-state) var(--ease-out), box-shadow var(--dur-state) var(--ease-out);
+}
+@media (hover: hover) {
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-1), inset 0 1px 0 0 var(--gold);
+  }
+}
+/* Muss NACH der .hover-lift-Definition stehen: gleiche Spezifität, spätere Regel gewinnt. */
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift {
+    transition-property: box-shadow;
+  }
+  .hover-lift:hover {
+    transform: none;
+    box-shadow: var(--shadow-1), inset 0 1px 0 0 var(--gold);
+  }
+}
+
+/* ─── Native <dialog> als Modal/Drawer ─────────────────────────────────────── */
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+@supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  dialog::backdrop {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+}
+dialog[open] {
+  animation: fade-in var(--dur-fade) var(--ease-out) both;
+}
+
+/* ─── Formularelemente ─────────────────────────────────────────────────────── */
+@layer base {
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+select {
+  background-color: var(--bg-surface);
+}
+select option {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+}
+
+/* ─── Karussell mit sichtbarer Kante ───────────────────────────────────────── */
+.carousel {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 1rem;
+  padding-inline: 1rem;
+  padding-block: 4px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-control) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.carousel > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+.carousel-mask {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 1rem, black calc(100% - 2.5rem), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 1rem, black calc(100% - 2.5rem), transparent 100%);
+}
+
+/* ─── Sichtbar nur für Screenreader ────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip-Link */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -100px;
+  z-index: 100;
+  padding: 8px 12px;
+  background: var(--gold);
+  color: var(--on-gold);
+  border-radius: var(--radius-control);
+  font-weight: 600;
+}
+.skip-link:focus-visible {
+  top: 8px;
+  outline-color: var(--text-primary);
+}
