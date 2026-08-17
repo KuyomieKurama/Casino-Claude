@@ -22,6 +22,42 @@
                                Ohne Folgen, weil dieser Ton nie die einzige Markierung trägt. */
   --border-control: #646c7a; /*  3,39:1 — Eingabefelder, Umriss-Buttons (WCAG 1.4.11) */
 
+  /* ─── Tiefe, Licht, Interaktion (Ergänzung) ────────────────────────────────
+     Leitidee "Der Tisch als Lichtquelle": eine ruhige, weit gestreute
+     Lichtquelle liegt über der Seite. Erhabene Flächen fangen dieses Licht an
+     ihrer Oberkante als feine Haarlinie ein — Tiefe entsteht über Licht und
+     Schatten, nicht über zusätzliche Farben. Alle Werte hier sind entweder
+     reine Deckkraft-/Schattenkompositionen (REIN DEKORATIV, nie alleinige
+     Markierung, siehe app/design-tokens.test.ts) oder Wiederverwendungen
+     bereits geprüfter Farbtokens bei reduzierter Deckkraft. */
+
+  /* Kanten-Licht: die Haarlinie, die das Umgebungslicht an der Oberkante
+     erhabener Flächen sichtbar macht (Kern der Leitidee). Als inset-Schatten,
+     damit er sich mit Elevation-Schatten in einer box-shadow-Liste kombinieren
+     lässt (siehe .hover-elevate). REIN DEKORATIV, extrem geringe Deckkraft. */
+  --edge-light: inset 0 1px 0 0 rgb(255 255 255 / 0.07); /* REIN DEKORATIV, nie alleinige Markierung */
+
+  /* Umgebungslicht: sehr dezenter radialer Verlauf für den Seitenhintergrund.
+     Setzt auf --bg-base auf (siehe .bg-ambient), ersetzt es nie. Die Deckkraft
+     (0,035) liegt weit unterhalb jeder Schwelle, die Textkontrast beeinflusst.
+     REIN DEKORATIV. */
+  --ambient-glow: radial-gradient(ellipse 140% 60% at 50% -12%, rgb(255 255 255 / 0.035), transparent 60%); /* REIN DEKORATIV, nie alleinige Markierung */
+
+  /* Glow-Tokens: nur für Fokus-/Hover-Zustände, nie als Dauerzustand. Beide
+     nutzen die RGB-Werte bereits kontrastgeprüfter Farbtokens (--gold-strong,
+     --teal) bei reduzierter Deckkraft — sie ersetzen nie den sichtbaren
+     :focus-visible-Outline, sondern ergänzen ihn additiv. REIN DEKORATIV. */
+  --glow-gold: 0 0 0 3px rgb(227 188 119 / 0.28), 0 0 20px rgb(227 188 119 / 0.35); /* aus --gold-strong, REIN DEKORATIV, nie alleinige Markierung */
+  --glow-teal: 0 0 0 3px rgb(79 209 197 / 0.22), 0 0 18px rgb(79 209 197 / 0.28); /* aus --teal, REIN DEKORATIV, nie alleinige Markierung */
+
+  /* Metall-Akzent: kaum wahrnehmbare Aufhellung zur Oberkante der EINEN
+     goldenen Fläche pro Bildschirm (Start-Button) — kein flächiger
+     Goldverlauf, die Aufhellung endet bereits bei 45% Höhe. Da nur Richtung
+     Weiß aufgehellt wird, steigt der Kontrast zu --on-gold gegenüber reinem
+     --gold nur, er sinkt nie (rechnerisch belegt in design-tokens.test.ts).
+     REIN DEKORATIV, "Gold bleibt knapp" bleibt einhaltbar. */
+  --metal-sheen: linear-gradient(180deg, color-mix(in srgb, var(--gold) 85%, white 15%) 0%, var(--gold) 45%); /* REIN DEKORATIV, nie alleinige Markierung */
+
   /* Radien 8 / 14 / 20 / 999 */
   --radius-control: 8px;
   --radius-card: 14px;
@@ -31,6 +67,13 @@
   /* Zwei niedrigdeckende Schattenstufen */
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.25);
   --shadow-2: 0 4px 12px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.35);
+
+  /* Elevation-Stufen (Ergänzung): --shadow-1/--shadow-2 bleiben unverändert
+     und reichen für einen einzelnen Zustandswechsel; für Ruhe-, Hover- und
+     Anheben-Zustände von Karten/Panels ergänzen diese drei Stufen sie. */
+  --shadow-rest: var(--shadow-1); /* Ruhe: identisch zu --shadow-1, neuer Name für die Stufenfolge. REIN DEKORATIV. */
+  --shadow-hover: 0 3px 8px rgb(0 0 0 / 0.38), 0 10px 24px rgb(0 0 0 / 0.3); /* Hover: Zwischenstufe zwischen --shadow-1 und --shadow-2. REIN DEKORATIV. */
+  --shadow-raised: 0 10px 24px rgb(0 0 0 / 0.45), 0 24px 56px rgb(0 0 0 / 0.4); /* Angehoben: stärker als --shadow-2, für aktiv gezogene/geöffnete Flächen. REIN DEKORATIV. */
 
   /* Bewegung: 120 ms Zustandswechsel, 200 ms Ein-/Ausblenden, 320 ms Drawer/Modal, ease-out */
   --dur-state: 120ms;
@@ -47,6 +90,18 @@
   --text-xl: 1.75rem;
   --text-2xl: 2.25rem;
   --text-3xl: 3rem;
+
+  /* Abstands-Skala (Ergänzung): großzügige, konsistente Abstände für Karten
+     und Panels, gleiches Namensschema wie --text-*. Ergänzt Tailwinds
+     numerische Standard-Skala (p-4, gap-6, …), ersetzt sie nicht — beide
+     bleiben nebeneinander nutzbar. */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1.25rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
 
   --measure: 68ch;
   --touch-target: 44px;
@@ -88,6 +143,9 @@
   --shadow-*: initial;
   --shadow-1: var(--shadow-1);
   --shadow-2: var(--shadow-2);
+  --shadow-rest: var(--shadow-rest);
+  --shadow-hover: var(--shadow-hover);
+  --shadow-raised: var(--shadow-raised);
 
   --text-*: initial;
   --text-xs: var(--text-xs);
@@ -113,6 +171,16 @@
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
+
+  /* Abstands-Skala als Tailwind-Utilities (p-xs, gap-lg, m-2xl, …), zusätzlich
+     zur weiterhin verfügbaren numerischen Standard-Skala. */
+  --spacing-xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+  --spacing-3xl: var(--space-3xl);
 
   --ease-out: var(--ease-out);
 }
@@ -174,12 +242,42 @@ body {
   outline-color: var(--text-primary);
 }
 
+/* Fokusring mit Gold-Glow (Ergänzung): rein additiver Schimmer zum bereits
+   sichtbaren :focus-visible-Outline oben — der Outline bleibt die eigentliche,
+   kontrastgeprüfte Fokusmarkierung, .focus-glow fügt nur zusätzliche Tiefe
+   hinzu. Wirkt nur bei Tastaturfokus, kein Dauerzustand. */
+.focus-glow:focus-visible {
+  box-shadow: var(--glow-gold);
+}
+
 /* ─── Signaturlinie: 1 px Gold an tragenden Flächen ────────────────────────── */
 .signature-top {
   box-shadow: inset 0 1px 0 0 var(--gold);
 }
 .signature-bottom {
   box-shadow: inset 0 -1px 0 0 var(--gold);
+}
+
+/* ─── Kanten-Licht: Haarlinie an Oberkanten erhabener Flächen ──────────────── */
+/* Eigenständige Utility für ruhende Flächen (Modal, Panel), die ohne Hover
+   bereits das Umgebungslicht an der Oberkante zeigen sollen. */
+.edge-light {
+  box-shadow: var(--edge-light);
+}
+
+/* ─── Metall-Akzent: die eine goldene Fläche pro Bildschirm ────────────────── */
+/* Ersetzt bewusst keine bestehende Klasse — nur zur gezielten Verwendung auf
+   der EINEN goldenen Fläche/Screen (Start-Button), nie flächig auf mehreren
+   Elementen gleichzeitig ("Gold bleibt knapp"). */
+.metal-sheen {
+  background-image: var(--metal-sheen);
+}
+
+/* ─── Umgebungslicht: dezenter Verlauf über dem Seitenhintergrund ──────────── */
+/* Setzt --bg-base weiterhin als Grundfarbe, legt nur den Verlauf darüber. */
+.bg-ambient {
+  background-color: var(--bg-base);
+  background-image: var(--ambient-glow);
 }
 
 /* ─── Glas nur auf Header und Bottom-Nav, mit deckendem Fallback ───────────── */
@@ -230,6 +328,12 @@ body {
   from { transform: translateY(0); }
   to { transform: translateY(-50%); }
 }
+/* Sanfter Panel-Auftritt (Ergänzung): kürzerer Weg und minimales Skalieren
+   als bei .anim-rise-in — für Panels/Karten, die ruhiger einsetzen sollen. */
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .anim-fade-in { animation: fade-in var(--dur-fade) var(--ease-out) both; }
 .anim-rise-in { animation: rise-in var(--dur-fade) var(--ease-out) both; }
@@ -237,6 +341,7 @@ body {
 .anim-sheet-side { animation: sheet-side var(--dur-sheet) var(--ease-out) both; }
 .anim-skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; }
 .anim-reel { animation: reel-spin 0.35s linear infinite; }
+.anim-panel-in { animation: panel-in var(--dur-fade) var(--ease-out) both; }
 
 /* Bei reduced motion bleiben Deckkraftwechsel, Transformationen entfallen. */
 @media (prefers-reduced-motion: reduce) {
@@ -246,7 +351,8 @@ body {
   }
   .anim-rise-in,
   .anim-sheet-up,
-  .anim-sheet-side {
+  .anim-sheet-side,
+  .anim-panel-in {
     animation-name: fade-in;
   }
   .anim-reel {
@@ -271,7 +377,24 @@ body {
     box-shadow: var(--shadow-1), inset 0 1px 0 0 var(--gold);
   }
 }
-/* Muss NACH der .hover-lift-Definition stehen: gleiche Spezifität, spätere Regel gewinnt. */
+
+/* Karten-Hover mit Anheben und Kantenlicht (Ergänzung): stärkerer Lift als
+   .hover-lift, kombiniert mit der Elevation-Stufenfolge und der Haarlinie aus
+   --edge-light statt der goldenen Signaturlinie — für Flächen, die Tiefe rein
+   über Licht zeigen sollen, ohne zusätzliche Farbe. */
+.hover-elevate {
+  transition: transform var(--dur-state) var(--ease-out), box-shadow var(--dur-state) var(--ease-out);
+  box-shadow: var(--shadow-rest);
+}
+@media (hover: hover) {
+  .hover-elevate:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover), var(--edge-light);
+  }
+}
+
+/* Muss NACH den .hover-lift-/.hover-elevate-Definitionen stehen: gleiche
+   Spezifität, spätere Regel gewinnt. */
 @media (prefers-reduced-motion: reduce) {
   .hover-lift {
     transition-property: box-shadow;
@@ -279,6 +402,13 @@ body {
   .hover-lift:hover {
     transform: none;
     box-shadow: var(--shadow-1), inset 0 1px 0 0 var(--gold);
+  }
+  .hover-elevate {
+    transition-property: box-shadow;
+  }
+  .hover-elevate:hover {
+    transform: none;
+    box-shadow: var(--shadow-hover), var(--edge-light);
   }
 }
 
