@@ -2,6 +2,21 @@ import type { CreditsMinor } from "@/types/money";
 import type { Transaction, TransactionType } from "@/types/transaction";
 import type { Wallet } from "@/types/wallet";
 import { MAX_BALANCE_MINOR, START_BALANCE_MINOR } from "@/lib/constants";
+import {
+  availableMinor,
+  checkFreeSpinAvailable,
+  checkFundsAvailable,
+  checkMaxBalanceAfterCredit,
+  checkRaiseAllowed,
+  checkRgNotBlocked,
+  checkRoundNotInFlight,
+  checkSettleReturnOverride,
+  checkStakeRange,
+  computeRaisedMaxReturn,
+  resolveRoundMaxReturn,
+  splitStakeAcrossBalances,
+  type WalletRejectionCode,
+} from "@/lib/wallet-policy";
 
 /**
  * Wallet-Reducer. Hier — und nur hier — gelten die Invarianten aus §6:
@@ -10,19 +25,14 @@ import { MAX_BALANCE_MINOR, START_BALANCE_MINOR } from "@/lib/constants";
  *  3. balanceAfterMinor entspricht immer dem Guthaben nach dem Vorgang.
  *  4. Bei roundInFlight === true wird keine zweite Runde angenommen.
  *  5. Bei aktiver Selbstsperre oder Pause werden alle einsatzbezogenen Aktionen abgelehnt.
- * Die UI prüft nichts davon selbst; sie zeigt nur lastRejection an.
+ * Die Entscheidungsregeln selbst stehen in lib/wallet-policy.ts (rein, ohne React/State) — hier
+ * werden nur noch Zustandsübergänge vollzogen und Transaktionen gebucht. Die UI prüft nichts
+ * davon selbst; sie zeigt nur lastRejection an.
  */
 
-export type WalletRejectionCode =
-  | "INSUFFICIENT_FUNDS"
-  | "ROUND_IN_FLIGHT"
-  | "RG_BLOCKED"
-  | "INVALID_STAKE"
-  | "NO_PENDING_ROUND"
-  | "MAX_BALANCE"
-  | "NO_FREE_SPINS"
-  | "RETURN_OUT_OF_RANGE"
-  | "RAISE_NOT_ALLOWED";
+// Re-Export, damit bestehende Importe aus state/wallet-reducer unverändert funktionieren.
+export type { WalletRejectionCode } from "@/lib/wallet-policy";
+export { availableMinor } from "@/lib/wallet-policy";
 
 export type WalletRejection = { code: WalletRejectionCode; message: string; at: string };
 
@@ -107,11 +117,6 @@ export function createInitialWalletState(seedTransactions: readonly Transaction[
     pendingRound: null,
     lastRejection: null,
   };
-}
-
-/** Verfügbares Guthaben für Einsätze: Demo- plus Bonusguthaben (additiv, ohne Bedingungen). */
-export function availableMinor(w: Wallet): CreditsMinor {
-  return w.demoBalanceMinor + w.bonusBalanceMinor;
 }
 
 const messages: Record<WalletRejectionCode, string> = {
@@ -241,15 +246,12 @@ function settle(state: WalletState, ctx: WalletCtx, override?: CreditsMinor): Wa
   if (!round) return reject(state, "NO_PENDING_ROUND", ctx.now);
 
   // Nicht-interaktive Runden schließen immer mit dem beim Start festgelegten Ergebnis ab.
-  // Interaktive Runden dürfen ein abweichendes Ergebnis liefern — aber nur ganzzahlig, nicht
-  // negativ und höchstens bis zur beim Start deklarierten Obergrenze.
+  // Interaktive Runden dürfen ein abweichendes Ergebnis liefern — die Grenzen dafür prüft die Policy.
   let returnMinor = round.returnMinor;
   if (override !== undefined) {
-    if (!round.interactive) return reject(state, "RETURN_OUT_OF_RANGE", ctx.now);
-    if (!Number.isInteger(override) || override < 0 || override > round.maxReturnMinor) {
-      return reject(state, "RETURN_OUT_OF_RANGE", ctx.now);
-    }
-    returnMinor = override;
+    const overrideCheck = checkSettleReturnOverride(round, override);
+    if (!overrideCheck.ok) return reject(state, overrideCheck.code, ctx.now);
+    returnMinor = overrideCheck.value;
   }
 
   const wallet: Wallet = {
@@ -301,14 +303,16 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
     case "TOP_UP": {
       const { amountMinor, ctx } = action;
       if (!Number.isInteger(amountMinor) || amountMinor <= 0) return reject(state, "INVALID_STAKE", ctx.now);
-      if (state.wallet.demoBalanceMinor + amountMinor > MAX_BALANCE_MINOR) return reject(state, "MAX_BALANCE", ctx.now);
+      const maxBalanceCheck = checkMaxBalanceAfterCredit(state.wallet.demoBalanceMinor, amountMinor);
+      if (!maxBalanceCheck.ok) return reject(state, maxBalanceCheck.code, ctx.now);
       const wallet: Wallet = { ...state.wallet, demoBalanceMinor: state.wallet.demoBalanceMinor + amountMinor };
       return book(state, wallet, { type: "demo_credit", amountMinor }, ctx);
     }
 
     case "RESET": {
       const { ctx } = action;
-      if (state.wallet.roundInFlight) return reject(state, "ROUND_IN_FLIGHT", ctx.now);
+      const inFlightCheck = checkRoundNotInFlight(state.wallet.roundInFlight);
+      if (!inFlightCheck.ok) return reject(state, inFlightCheck.code, ctx.now);
       const wallet: Wallet = { ...initialWallet };
       // Die Bewegung ist die Differenz zum bisherigen Gesamtguthaben — so bleibt die Kette prüfbar.
       const amountMinor = availableMinor(wallet) - availableMinor(state.wallet);
@@ -332,25 +336,21 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
 
     case "START_ROUND": {
       const { input, ctx } = action;
-      if (ctx.rgBlocked) return reject(state, "RG_BLOCKED", ctx.now);
-      if (state.wallet.roundInFlight || state.pendingRound) return reject(state, "ROUND_IN_FLIGHT", ctx.now);
+      const rgCheck = checkRgNotBlocked(ctx.rgBlocked);
+      if (!rgCheck.ok) return reject(state, rgCheck.code, ctx.now);
+      const inFlightCheck = checkRoundNotInFlight(state.wallet.roundInFlight || state.pendingRound !== null);
+      if (!inFlightCheck.ok) return reject(state, inFlightCheck.code, ctx.now);
       const { stakeMinor } = input;
-      if (
-        !Number.isInteger(stakeMinor) ||
-        stakeMinor < input.minStakeMinor ||
-        stakeMinor > input.maxStakeMinor ||
-        stakeMinor <= 0
-      ) {
-        return reject(state, "INVALID_STAKE", ctx.now);
-      }
+      const stakeRangeCheck = checkStakeRange(stakeMinor, input.minStakeMinor, input.maxStakeMinor);
+      if (!stakeRangeCheck.ok) return reject(state, stakeRangeCheck.code, ctx.now);
       if (!Number.isInteger(input.returnMinor) || input.returnMinor < 0) return reject(state, "INVALID_STAKE", ctx.now);
-      const maxReturnMinor = input.interactive ? (input.maxReturnMinor ?? -1) : input.returnMinor;
-      if (input.interactive && (!Number.isInteger(maxReturnMinor) || maxReturnMinor < input.returnMinor)) {
-        return reject(state, "RETURN_OUT_OF_RANGE", ctx.now);
-      }
+      const maxReturnCheck = resolveRoundMaxReturn(input.interactive === true, input.returnMinor, input.maxReturnMinor);
+      if (!maxReturnCheck.ok) return reject(state, maxReturnCheck.code, ctx.now);
+      const maxReturnMinor = maxReturnCheck.value;
 
       if (input.useFreeSpin) {
-        if (state.wallet.freeSpins <= 0) return reject(state, "NO_FREE_SPINS", ctx.now);
+        const freeSpinCheck = checkFreeSpinAvailable(state.wallet.freeSpins);
+        if (!freeSpinCheck.ok) return reject(state, freeSpinCheck.code, ctx.now);
         const wallet: Wallet = { ...state.wallet, freeSpins: state.wallet.freeSpins - 1, roundInFlight: true };
         const next = book(state, wallet, { type: "free_spin", amountMinor: 0, gameId: input.gameId, roundId: input.roundId }, ctx);
         return {
@@ -371,11 +371,11 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
         };
       }
 
-      if (availableMinor(state.wallet) < stakeMinor) return reject(state, "INSUFFICIENT_FUNDS", ctx.now);
+      const fundsCheck = checkFundsAvailable(state.wallet, stakeMinor);
+      if (!fundsCheck.ok) return reject(state, fundsCheck.code, ctx.now);
 
       // Bonusguthaben zuerst, dann Demo-Guthaben; beides bleibt ≥ 0.
-      const fromBonus = Math.min(state.wallet.bonusBalanceMinor, stakeMinor);
-      const fromDemo = stakeMinor - fromBonus;
+      const { fromBonus, fromDemo } = splitStakeAcrossBalances(state.wallet, stakeMinor);
       const wallet: Wallet = {
         ...state.wallet,
         bonusBalanceMinor: state.wallet.bonusBalanceMinor - fromBonus,
@@ -412,30 +412,24 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
       const { roundId, additionalMinor, ctx } = action;
       const round = state.pendingRound;
       if (!round || round.roundId !== roundId) return reject(state, "NO_PENDING_ROUND", ctx.now);
-      if (!round.interactive) return reject(state, "RAISE_NOT_ALLOWED", ctx.now);
-      if (!Number.isInteger(additionalMinor) || additionalMinor <= 0) return reject(state, "INVALID_STAKE", ctx.now);
-      // Höchstens so viel zusätzlich, wie die Runde ursprünglich gekostet hat, und nur bis zum
-      // Dreifachen des Grundeinsatzes (Teilen plus Verdoppeln auf beiden Händen).
-      if (round.usedFreeSpin) return reject(state, "RAISE_NOT_ALLOWED", ctx.now);
-      const baseStake = round.baseStakeMinor;
-      if (round.stakeMinor + additionalMinor > baseStake * 4) return reject(state, "RAISE_NOT_ALLOWED", ctx.now);
-      if (availableMinor(state.wallet) < additionalMinor) return reject(state, "INSUFFICIENT_FUNDS", ctx.now);
+      const raiseCheck = checkRaiseAllowed(round, additionalMinor);
+      if (!raiseCheck.ok) return reject(state, raiseCheck.code, ctx.now);
+      const fundsCheck = checkFundsAvailable(state.wallet, additionalMinor);
+      if (!fundsCheck.ok) return reject(state, fundsCheck.code, ctx.now);
 
-      const fromBonus = Math.min(state.wallet.bonusBalanceMinor, additionalMinor);
-      const fromDemo = additionalMinor - fromBonus;
+      const { fromBonus, fromDemo } = splitStakeAcrossBalances(state.wallet, additionalMinor);
       const wallet: Wallet = {
         ...state.wallet,
         bonusBalanceMinor: state.wallet.bonusBalanceMinor - fromBonus,
         demoBalanceMinor: state.wallet.demoBalanceMinor - fromDemo,
       };
       const next = book(state, wallet, { type: "demo_bet", amountMinor: -additionalMinor, gameId: round.gameId, roundId: round.roundId }, ctx);
-      const factor = (round.stakeMinor + additionalMinor) / round.stakeMinor;
       return {
         ...next,
         pendingRound: {
           ...round,
           stakeMinor: round.stakeMinor + additionalMinor,
-          maxReturnMinor: Math.round(round.maxReturnMinor * factor),
+          maxReturnMinor: computeRaisedMaxReturn(round, additionalMinor),
         },
       };
     }
