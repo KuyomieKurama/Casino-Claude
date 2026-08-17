@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Game } from "@/types/game";
@@ -10,6 +10,7 @@ import { PlinkoGame } from "./PlinkoGame";
 import { MinesGame } from "./MinesGame";
 import { DiceGame } from "./DiceGame";
 import { WheelGame } from "./WheelGame";
+import { minePositions, MINES_DEFAULT_COUNT } from "./mines-logic";
 
 /**
  * Rauchtest der vier Oberflächen: Verdrahtung mit useRound und GameShell, nicht das Aussehen.
@@ -22,6 +23,30 @@ function gameById(id: string): Game {
   const game = games.find((g) => g.id === id);
   if (!game) throw new Error(`Spiel ${id} fehlt im Katalog`);
   return game;
+}
+
+/**
+ * Erster Seed, dessen Minenlayout das zuerst geprüfte Feld (Zeile 1, Spalte 1 = Index 0) frei
+ * lässt. Der Rundenseed ist sonst zufällig (createSeed() in lib/rng.ts), wodurch das im Test
+ * zuerst aufgedeckte Feld je nach Lauf eine Mine treffen konnte — dann erscheint der Text
+ * „Mine getroffen" an mehreren Stellen im DOM (Statuszeile, Ergebniszeile, Rundenhistorie) und
+ * getByText(/Mine getroffen/) wird mehrdeutig. Gleicher Seed erzeugt laut ENGINE-BRIEF.md
+ * immer dasselbe Ergebnis, also lässt sich ein garantiert sicheres erstes Feld vorab bestimmen,
+ * statt sich auf den Zufall zu verlassen (analog zu PLAYABLE_SEED in BlackjackGame.test.tsx).
+ */
+const MINES_SAFE_SEED = (() => {
+  for (let seed = 1; seed < 10_000; seed++) {
+    if (!minePositions(seed, MINES_DEFAULT_COUNT).includes(0)) return seed;
+  }
+  throw new Error("Kein Seed mit sicherem ersten Feld gefunden.");
+})();
+
+/** Macht createSeed() deterministisch — gleiches Muster wie BlackjackGame.test.tsx. */
+function fixSeed(seed: number) {
+  vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementation(((array: ArrayBufferView) => {
+    new Uint32Array(array.buffer)[0] = seed;
+    return array;
+  }) as typeof globalThis.crypto.getRandomValues);
 }
 
 async function tick(ms: number) {
@@ -41,6 +66,11 @@ describe("Arcade-Oberflächen", () => {
     __resetStorageForTests();
     window.localStorage.removeItem(STORAGE_KEY);
     vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    // Stellt crypto.getRandomValues() wieder her, falls fixSeed() im Mines-Test gespiegelt hat.
+    vi.restoreAllMocks();
   });
 
   it("Plinko: eine Runde läuft durch und zeigt Fach und Weg", async () => {
@@ -93,6 +123,8 @@ describe("Arcade-Oberflächen", () => {
 
   it("Mines: Runde starten, Feld aufdecken, auszahlen — der Betrag bleibt in der Obergrenze", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    // Deterministischer Seed statt zufälligem Startseed (Begründung: siehe MINES_SAFE_SEED oben).
+    fixSeed(MINES_SAFE_SEED);
     render(
       <AppProviders>
         <MinesGame game={gameById("g-mines-demo")} />
@@ -119,6 +151,10 @@ describe("Arcade-Oberflächen", () => {
       if (label.includes("frei")) revealedSafe = true;
       else break; // Mine — die Runde ist beendet
     }
+
+    // MINES_SAFE_SEED garantiert ein freies erstes Feld — bricht der Test hier ab, ist die
+    // Determinismus-Annahme (gleicher Seed ⇒ gleiche Minenpositionen) verletzt.
+    expect(revealedSafe).toBe(true);
 
     if (revealedSafe) {
       const cashOut = screen.getByRole("button", { name: /Auszahlen — Rückgabe/ });
