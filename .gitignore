@@ -5,3 +5,7 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# Verbindungsdaten und Geheimnisse (siehe lib/env.ts, .env.example) — nie einchecken.
+.env*
+!.env.example

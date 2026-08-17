@@ -1,0 +1,27 @@
+# Lokale PostgreSQL-Instanz für die Entwicklung (Phase 0). Zugangsdaten kommen ausschließlich
+# aus .env (docker compose liest diese Datei automatisch, wenn sie im selben Verzeichnis liegt)
+# — hier stehen bewusst keine Klartext-Secrets. Siehe .env.example für die benötigten Variablen
+# und lib/env.ts für die Validierung der resultierenden DATABASE_URL in der Anwendung.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # Fester Port für eine vorhersehbare lokale DATABASE_URL (siehe .env.example).
+    ports:
+      - "5432:5432"
+    volumes:
+      - velora_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  # Benanntes Volume statt eines Bind-Mounts: übersteht `docker compose down` (ohne `-v`),
+  # ist plattformunabhängig und verschmutzt das Repository-Verzeichnis nicht.
+  velora_postgres_data:

@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
   // Der Prototyp lädt keine externen Bilder; die Bildoptimierung wird nicht benötigt.
   // Für den statischen Export ist sie ohnehin nicht verfügbar.
   images: { unoptimized: true },
+  // `pg` bringt natives/optionales Bindings-Gepäck mit, das nicht ins Server-Bundle gehört —
+  // Next lädt es stattdessen zur Laufzeit regulär über require() (server/db/client.ts, Phase 0).
+  serverExternalPackages: ["pg"],
   ...(isExport
     ? {
         output: "export" as const,
