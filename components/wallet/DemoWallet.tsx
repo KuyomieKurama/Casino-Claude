@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, RotateCcw, Sparkles, Ticket } from "lucide-react";
+import { Info, Plus, RotateCcw, Sparkles, Ticket } from "lucide-react";
 import { useWallet } from "@/state/WalletContext";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
@@ -107,6 +107,14 @@ export function DemoWallet({ className, compact }: DemoWalletProps) {
             Zurücksetzen
           </Button>
         </div>
+        {/* Ehrlichkeitshinweis (Auftrag): Es gibt noch keinen Server-Endpunkt für Aufstocken/
+            Zurücksetzen (siehe Kommentar in WalletPage.tsx und state/WalletContext.tsx) — der
+            gebuchte Betrag lebt nur in diesem Tab. Beim nächsten Laden überschreibt
+            applyServerWallet() ihn wieder mit dem zuletzt bekannten Serverstand. */}
+        <p className="flex items-start gap-1.5 text-xs text-muted">
+          <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          <span>Wirkt sofort, aber nur in diesem Tab: Nach einem Neuladen zeigt die Seite wieder den zuletzt bekannten Stand, da es dafür noch keinen Server-Endpunkt gibt.</span>
+        </p>
       </div>
 
       <Modal

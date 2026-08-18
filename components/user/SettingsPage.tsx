@@ -7,6 +7,7 @@ import { useSession } from "@/state/SessionContext";
 import { useLogout } from "@/components/auth/useLogout";
 import { useToast } from "@/components/ui/Toast";
 import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -30,15 +31,19 @@ export function SettingsPage() {
   const [confirmClear, setConfirmClear] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="anim-panel-in space-y-6">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Einstellungen</h1>
       </header>
 
       <Card as="section" aria-labelledby="profile-title" className="space-y-4">
         <h2 id="profile-title" className="text-md font-semibold text-primary">
-          Profil
+          Profil <Badge tone="neutral" className="ml-1">Nur lesbar</Badge>
         </h2>
+        {/* Ehrlichkeitshinweis (Auftrag): macht den bisher nur im Code-Kommentar festgehaltenen
+            Grund für die Autoren sichtbar — die Serversitzung ist die Quelle der Wahrheit, ein
+            Bearbeiten ohne Server-Gegenstück wäre irreführend. */}
+        <p className="measure text-sm text-muted">Diese Angaben kommen aus deiner Serversitzung. Es gibt keinen serverseitigen Weg, sie hier zu ändern — ein bearbeitbares Feld ohne wirkende Gegenstelle würde nur vortäuschen, dass sich etwas speichern ließe.</p>
         <div className="flex flex-col gap-3 sm:max-w-md">
           <Input label="Anzeigename" value={user?.displayName ?? ""} readOnly hint="Wird beim Anmelden aus deinem Konto übernommen." />
           <Input label="E-Mail" value={user?.email ?? ""} readOnly hint="Die E-Mail dient nur zur Wiedererkennung des Kontos." />

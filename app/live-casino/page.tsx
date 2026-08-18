@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Live-Casino-Demos" };
 
 export default function LiveCasinoPage() {
   return (
-    <div className="space-y-6 pt-6">
+    <div className="anim-panel-in space-y-6 pt-6">
       <header className="space-y-2">
         <h1 className="font-display flex items-center gap-2 text-2xl text-primary sm:text-3xl">
           <Radio className="size-6 text-teal" aria-hidden="true" /> Live-Casino-Demos

@@ -35,4 +35,13 @@ describe("UserShell", () => {
     );
     expect(container.querySelector("[aria-busy]")).toBeNull();
   });
+
+  it("markiert den aktiven Eintrag ohne Gold — Kontoverwaltung bleibt golden-frei (§4)", () => {
+    const { container } = render(
+      <UserShell>
+        <p>Seiteninhalt</p>
+      </UserShell>,
+    );
+    expect(container.querySelectorAll('[class*="bg-gold"], [class*="text-gold"]').length).toBe(0);
+  });
 });

@@ -42,8 +42,10 @@ export function UserShell({ children }: { children: ReactNode }) {
                     active ? "bg-surface text-primary" : "text-muted hover:bg-surface hover:text-primary",
                   )}
                 >
-                  {active ? <span aria-hidden="true" className="absolute inset-x-3 bottom-0 h-px bg-gold md:inset-x-auto md:inset-y-2 md:left-0 md:h-auto md:w-px" /> : null}
-                  <Icon className={cn("size-4", active && "text-gold")} aria-hidden="true" />
+                  {/* Kontoverwaltung bleibt bewusst golden: Gold ist dem Spiel vorbehalten (§4).
+                      Der aktive Zustand markiert sich über Fläche, Text und diese Teal-Kante. */}
+                  {active ? <span aria-hidden="true" className="absolute inset-x-3 bottom-0 h-px bg-teal md:inset-x-auto md:inset-y-2 md:left-0 md:h-auto md:w-px" /> : null}
+                  <Icon className={cn("size-4", active && "text-teal")} aria-hidden="true" />
                   {label}
                 </Link>
               </li>

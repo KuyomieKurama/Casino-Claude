@@ -16,7 +16,7 @@ export type WalletPageProps = {
 /** Wallet (§11): eigene Seite mobil, zweispaltig ab Tablet, Seitenpanel plus Historie auf Desktop. */
 export function WalletPage({ recentEntries }: WalletPageProps) {
   return (
-    <div className="space-y-6">
+    <div className="anim-panel-in space-y-6">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Wallet</h1>
         <p className="mt-1 text-sm text-muted">Demo-Guthaben verwalten. Jede Änderung wird als Transaktion protokolliert.</p>

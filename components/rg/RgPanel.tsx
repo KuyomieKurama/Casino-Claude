@@ -30,8 +30,9 @@ export function RgPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Status */}
-      <Card signature as="section" aria-labelledby="rg-status-title" className="space-y-4">
+      {/* Status: bewusst OHNE Card signature (goldene Haarlinie) — Responsible Gaming ist eine
+          Schutzfunktion und bleibt frei von der Verkaufsästhetik des Spiels (Auftrag). */}
+      <Card as="section" aria-labelledby="rg-status-title" className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="rg-status-title" className="flex items-center gap-2 text-md font-semibold text-primary">

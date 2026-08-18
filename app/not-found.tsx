@@ -5,8 +5,9 @@ import { NotFoundSearch } from "@/components/feedback/NotFoundSearch";
 
 export default function NotFound() {
   return (
-    <div className="mx-auto max-w-xl pt-12">
+    <div className="anim-panel-in mx-auto max-w-xl pt-12">
       <EmptyState
+        className="edge-light"
         icon={<Compass aria-hidden="true" />}
         headingLevel={1}
         title="Diese Seite gibt es nicht."

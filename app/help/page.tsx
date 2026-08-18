@@ -45,7 +45,7 @@ const faq = [
 
 export default function HelpPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-8 pt-6">
+    <div className="anim-panel-in mx-auto max-w-3xl space-y-8 pt-6">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Hilfe & FAQ</h1>
         <p className="mt-1 text-sm text-muted">Antworten auf die häufigsten Fragen zum Prototyp.</p>

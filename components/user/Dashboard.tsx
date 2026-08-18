@@ -41,7 +41,7 @@ export function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="anim-panel-in space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl text-primary sm:text-3xl">Hallo, {user.displayName}</h1>

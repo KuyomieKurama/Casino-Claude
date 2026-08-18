@@ -1,6 +1,6 @@
 "use client";
 
-import { Gift } from "lucide-react";
+import { Gift, Info } from "lucide-react";
 import { useWallet } from "@/state/WalletContext";
 import { promotions } from "@/data/promotions";
 import { formatCredits, formatDateTime } from "@/lib/formatters";
@@ -14,10 +14,17 @@ export function BonusesPage() {
   const { hydrated, wallet, transactions } = useWallet();
   const grants = transactions.filter((t) => t.type === "bonus_grant").sort((a, b) => b.seq - a.seq);
   return (
-    <div className="space-y-6">
-      <header>
+    <div className="anim-panel-in space-y-6">
+      <header className="space-y-2">
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Boni</h1>
-        <p className="mt-1 text-sm text-muted">Bonus-Credits und Freirunden sind additiv und ohne Umsatzbedingungen. Es gibt nichts freizuspielen.</p>
+        <p className="text-sm text-muted">Bonus-Credits und Freirunden sind additiv und ohne Umsatzbedingungen. Es gibt nichts freizuspielen.</p>
+        {/* Ehrlichkeitshinweis (Auftrag): grantBonus() bucht nur lokal (state/WalletContext.tsx) —
+            ohne Server-Endpunkt für Boni überschreibt applyServerWallet() den Stand beim nächsten
+            Laden wieder mit dem Serverwert. Anschauungsmaterial ohne dauerhafte Wirkung. */}
+        <p className="flex items-start gap-1.5 text-xs text-muted">
+          <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          <span>Anschauungsmaterial: Eine Aktivierung wirkt sofort in diesem Tab, aber nur dort. Nach einem Neuladen zeigt die Seite wieder den zuletzt bekannten Stand, da es dafür noch keinen Server-Endpunkt gibt.</span>
+        </p>
       </header>
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>

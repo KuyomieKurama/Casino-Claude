@@ -15,7 +15,7 @@ const statusLabel: Record<Promotion["status"], { label: string; tone: "teal" | "
 export function PromoCard({ promo, className, compact }: { promo: Promotion; className?: string; compact?: boolean }) {
   const s = statusLabel[promo.status];
   return (
-    <Card as="article" className={cn("flex h-full flex-col gap-3", className)}>
+    <Card as="article" className={cn("hover-elevate flex h-full flex-col gap-3", className)}>
       <div className="flex items-center justify-between gap-2">
         <Badge tone={s.tone}>{s.label}</Badge>
         <Gift className="size-5 text-gold" aria-hidden="true" />

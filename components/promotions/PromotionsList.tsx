@@ -40,7 +40,7 @@ export function PromotionsList() {
           const claimed = alreadyClaimed(p);
           return (
             <li key={p.id} id={p.slug} className="scroll-mt-32">
-              <Card as="article" className="flex h-full flex-col gap-3">
+              <Card as="article" className="hover-elevate flex h-full flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
                   <Badge tone={s.tone}>{s.label}</Badge>
                   <Gift className="size-5 text-gold" aria-hidden="true" />
