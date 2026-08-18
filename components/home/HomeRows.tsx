@@ -24,7 +24,7 @@ export function HomeRows() {
 
   if (!hydrated) {
     return (
-      <div className="space-y-10" aria-busy="true">
+      <div className="space-y-lg" aria-busy="true">
         <Skeleton className="h-[280px] w-full rounded-card" />
         {[0, 1, 2].map((i) => (
           <div key={i} className="space-y-3">
@@ -41,7 +41,7 @@ export function HomeRows() {
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-xl sm:space-y-2xl">
       {featured ? (
         <section aria-labelledby="featured-title">
           <h2 id="featured-title" className="sr-only">

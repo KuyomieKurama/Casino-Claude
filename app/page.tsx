@@ -1,35 +1,36 @@
 import Link from "next/link";
-import { ArrowRight, Play, ShieldCheck } from "lucide-react";
-import { HERO_TEXT, PRODUCT_NAME, RG_NOTICE } from "@/lib/constants";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import { HERO_TEXT, RG_NOTICE } from "@/lib/constants";
 import { LinkButton } from "@/components/ui/Button";
 import { HomeRows } from "@/components/home/HomeRows";
 import { PromoCard } from "@/components/promotions/PromoCard";
 import { promotions } from "@/data/promotions";
 
+/**
+ * Startseite: Der Einstieg bleibt bewusst schmal (drei Zeilen, keine eigene goldene Aktion),
+ * damit das hervorgehobene Spiel in HomeRows — mit der einen goldenen Fläche des Bildschirms
+ * ("Demo spielen") — bereits im ersten sichtbaren Bereich steht, statt von einer zusätzlichen
+ * Marketingfläche nach unten verdrängt zu werden (Auftrag §2). Der frühere zweite goldene Button
+ * hier ("Demo starten") entfiel deshalb ersatzlos — er duplizierte nur die Aktion der Spielkarte.
+ */
 export default function HomePage() {
   return (
-    <div className="space-y-12 pt-6 sm:pt-10">
-      {/* Hero: ruhige Fläche, Signaturlinie, genau eine goldene Aktion */}
-      <section aria-labelledby="hero-title" className="signature-top rounded-card border border-border-subtle bg-surface px-5 py-10 sm:px-10 sm:py-14">
-        <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-teal">Demo-Prototyp</p>
-        <h1 id="hero-title" className="font-display measure text-2xl text-primary sm:text-3xl">
+    <div className="space-y-xl pt-4 sm:space-y-2xl sm:pt-6">
+      <section aria-labelledby="hero-title">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal">Demo-Prototyp</p>
+        <h1 id="hero-title" className="font-display measure mt-2 text-xl text-primary sm:text-2xl">
           {HERO_TEXT}
         </h1>
-        <p className="measure mt-4 text-base text-muted">
-          {PRODUCT_NAME} zeigt Lobby, Spielkarten, Demo-Wallet und einen vollständig spielbaren Slot — mit dokumentierter Zufallslogik und einsehbarer Auszahlungstabelle.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <LinkButton href="/game/neon-nights" variant="primary" size="lg" iconLeft={<Play className="size-4" aria-hidden="true" />}>
-            Demo starten
-          </LinkButton>
-          <LinkButton href="/casino" variant="outline" size="lg" iconRight={<ArrowRight className="size-4" aria-hidden="true" />}>
-            Spiele entdecken
-          </LinkButton>
+        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <p className="inline-flex items-center gap-2 text-sm text-muted">
+            <ShieldCheck className="size-4 shrink-0 text-teal" aria-hidden="true" />
+            Kein Echtgeldspiel. Keine Auszahlungen. Keine Einzahlungen.
+          </p>
+          <Link href="/casino" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-gold transition-state hover:text-gold-strong">
+            Alle Spiele entdecken
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
         </div>
-        <p className="mt-5 inline-flex items-center gap-2 text-sm text-muted">
-          <ShieldCheck className="size-4 text-teal" aria-hidden="true" />
-          Kein Echtgeldspiel. Keine Auszahlungen. Keine Einzahlungen.
-        </p>
       </section>
 
       <HomeRows />
@@ -53,7 +54,7 @@ export default function HomePage() {
         </ul>
       </section>
 
-      <section aria-labelledby="rg-title" className="rounded-card border border-teal/40 bg-surface p-5 sm:p-6">
+      <section aria-labelledby="rg-title" className="edge-light rounded-card border border-teal/40 bg-surface p-5 sm:p-6">
         <h2 id="rg-title" className="flex items-center gap-2 text-md font-semibold text-primary">
           <ShieldCheck className="size-5 text-teal" aria-hidden="true" />
           Responsible Gaming
