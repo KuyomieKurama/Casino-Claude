@@ -13,18 +13,16 @@ import { eq } from "drizzle-orm";
 import { createTestDatabase, seedMinimalCatalog, type TestDatabase } from "@/server/db/test-harness";
 import { user } from "@/server/db/auth-schema";
 import { wallet as walletTable } from "@/server/db/schema";
-import { createGuestAccount, upgradeGuestToEmailAccount } from "@/server/auth/guests";
 import { PgGameModeRepository } from "@/server/repositories/game-mode-repository";
 import { findWallet, debitForStake } from "@/server/repositories/wallet-repository";
 import { sumLedgerAmountForUser, listLedgerEntries } from "@/server/repositories/ledger-repository";
 import { findByIdempotencyKey } from "@/server/repositories/game-round-repository";
 import { resolveDice } from "@/components/game/engine/arcade/dice-logic";
+import { START_BALANCE_MINOR } from "@/lib/constants";
 import { resolveNonInteractiveOutcome } from "./engine-resolvers";
 import { startNonInteractiveRound, type StartRoundInput } from "./round-service";
 
 vi.mock("server-only", () => ({}));
-
-const START_BALANCE_MINOR = 100_000;
 
 async function seedMode(db: TestDatabase, overrides: { id?: string; engineKey?: "dice" | "roulette" | "slot"; minBetMinor?: number; maxBetMinor?: number } = {}) {
   const { gameId } = await seedMinimalCatalog(db);
@@ -193,29 +191,40 @@ describe("startNonInteractiveRound", () => {
     if (replay.ok) expect(replay.outcome.returnMinor).toBe(result.data.returnMinor);
   });
 
-  test("Gastkonto: Runde ohne Anmeldung möglich, nach Anmeldung bleiben Guthaben und Historie erhalten", async () => {
+  /**
+   * Mehrfaches An-/Abmelden darf das Startguthaben nicht wiederholt gutschreiben (Auftrag §7):
+   * die Gutschrift ist an die WALLET-ANLAGE gebunden (insertWalletIfMissing, „created: true"),
+   * nicht an das Zustandekommen einer Sitzung. Dieser Test simuliert mehrere „Logins" (mehrere,
+   * voneinander unabhängige Rundenstart-Aufrufe für denselben Nutzer, so wie sie nach jeweils
+   * neuer Anmeldung entstünden) und beweist, dass nur der ERSTE eine demo_credit-Buchung erzeugt.
+   */
+  test("mehrfaches An- und Abmelden erhöht das Guthaben nicht — die Startguthaben-Buchung bleibt einmalig", async () => {
     const db = await createTestDatabase();
     const modeId = await seedMode(db);
-    const guest = await createGuestAccount(db);
+    const userId = await seedUser(db, "u1");
 
-    const asGuest = await startNonInteractiveRound(db, { userId: guest.userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k1" });
-    expect(asGuest.ok).toBe(true);
+    // Drei „Sitzungen" nacheinander: jede startet (mindestens) eine Runde, so wie ein Nutzer, der
+    // sich anmeldet, spielt, sich abmeldet, sich erneut anmeldet und wieder spielt.
+    const first = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "session-1-round-1" });
+    expect(first.ok).toBe(true);
+    const second = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "session-2-round-1" });
+    expect(second.ok).toBe(true);
+    const third = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "session-3-round-1" });
+    expect(third.ok).toBe(true);
 
-    const { userId: upgradedId } = await upgradeGuestToEmailAccount(db, {
-      guestUserId: guest.userId,
-      email: "spieler@example.com",
-      password: "ein-sicheres-passwort",
-      name: "Spieler",
-    });
-    expect(upgradedId).toBe(guest.userId);
+    const entries = await listLedgerEntries(db, userId, 20);
+    const creditEntries = entries.filter((e) => e.type === "demo_credit");
+    // Genau EINE Startguthaben-Buchung über die gesamte „Kontolebensdauer" — unabhängig davon,
+    // wie oft sich der Nutzer zwischenzeitlich an- und abgemeldet hat.
+    expect(creditEntries).toHaveLength(1);
+    expect(creditEntries[0]?.amountMinor).toBe(START_BALANCE_MINOR);
 
-    const walletAfterUpgrade = await findWallet(db, upgradedId);
-    const ledgerAfterUpgrade = await listLedgerEntries(db, upgradedId, 10);
-    expect(walletAfterUpgrade).not.toBeNull();
-    expect(ledgerAfterUpgrade.length).toBeGreaterThan(0);
-
-    const asMember = await startNonInteractiveRound(db, { userId: upgradedId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k2" });
-    expect(asMember.ok).toBe(true);
+    // Zusätzlich: das Wallet selbst legt bei jedem weiteren Aufruf nichts erneut an (dieselbe
+    // Prüfung wie server/repositories/wallet-repository.test.ts, hier über den vollen
+    // Rundenstart-Pfad statt isoliert auf Repository-Ebene).
+    const { insertWalletIfMissing } = await import("@/server/repositories/wallet-repository");
+    const { created } = await insertWalletIfMissing(db, userId, START_BALANCE_MINOR);
+    expect(created).toBe(false);
   });
 
   test("lehnt Modi ab, die serverseitig nicht aufgelöst werden (interaktive Engines wie Blackjack)", async () => {

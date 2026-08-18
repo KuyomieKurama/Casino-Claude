@@ -42,6 +42,18 @@ describe("POST /api/rg/self-exclusion", () => {
     getSessionMock.mockReset();
   });
 
+  // Wie app/api/rg/settings/route.test.ts: kein Gastkonto mehr, ohne Sitzung wird mit 401 und
+  // UNAUTHENTICATED abgelehnt.
+  test("ohne Sitzung wird mit 401 und UNAUTHENTICATED abgelehnt", async () => {
+    getSessionMock.mockResolvedValueOnce(null);
+
+    const response = await POST(postRequest({ action: "activate" }));
+
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as { success: boolean; error?: string };
+    expect(body).toEqual({ success: false, error: "UNAUTHENTICATED" });
+  });
+
   test("activate wirkt sofort mit einem einzigen Aufruf", async () => {
     await db.insert(user).values({ id: "member-1", name: "Mitglied", email: "member@example.com" });
     getSessionMock.mockResolvedValueOnce(sessionFor("member-1"));

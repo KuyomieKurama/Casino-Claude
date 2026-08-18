@@ -1,9 +1,8 @@
 /**
  * Sitzungsdauern, aus server/auth/create-auth.ts ausgelagert: eigenständige Datei ohne
- * Abhängigkeit von lib/env.ts, damit server/auth/guests.ts (Sitzungsdauer für neu angelegte
- * Gastkonten) diese Werte nutzen kann, ohne beim Import zwangsläufig die volle
- * Umgebungsvalidierung (DATABASE_URL, BETTER_AUTH_SECRET, …) auszulösen, die create-auth.ts
- * durch seinen `lib/env`-Import mitbringt.
+ * Abhängigkeit von lib/env.ts, damit sie ohne die volle Umgebungsvalidierung (DATABASE_URL,
+ * BETTER_AUTH_SECRET, …) importierbar bleibt, die create-auth.ts durch seinen `lib/env`-Import
+ * mitbringt.
  *
  * 1 Stunde ist eine bewährte Sitzungsdauer. Kein Import von wo anders: Die ESLint-Schichtregel
  * verbietet `server/**` den Import aus `state/**` (server/ kennt keinen Browser-Zustand).

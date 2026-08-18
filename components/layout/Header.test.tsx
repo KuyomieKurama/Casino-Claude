@@ -97,6 +97,13 @@ describe("Header — Guthabenanzeige", () => {
     renderHeader("/", player);
     expect(screen.getByText("DEMO")).toBeInTheDocument();
   });
+
+  // Auftrag „Spielen nur angemeldet": ohne Sitzung existiert kein Wallet, die Anzeige eines
+  // hypothetischen Guthabens wäre irreführend (components/wallet/BalanceDisplay.tsx).
+  test("zeigt keine Guthabenanzeige für abgemeldete Besucher", () => {
+    renderHeader("/", null);
+    expect(screen.queryByText("DEMO")).not.toBeInTheDocument();
+  });
 });
 
 describe("Header — Responsible Gaming jederzeit erreichbar", () => {

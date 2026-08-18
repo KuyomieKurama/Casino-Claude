@@ -34,7 +34,16 @@ export const user = pgTable(
     /**
      * Projekteigene Erweiterungen (Auftrag §4), über `user.additionalFields` in
      * server/auth/index.ts an better-auth angebunden. `role`/`status` steuern
-     * server/auth/guards.ts; `isGuest` markiert Gastkonten (server/auth/guests.ts).
+     * server/auth/guards.ts.
+     *
+     * `isGuest`: historisches Feld einer früheren, inzwischen entfernten anonymen
+     * Gastkonto-Mechanik (Auftrag „Spielen nur angemeldet" — Registrierung/Login sind jetzt
+     * Voraussetzung fürs Spielen, es gibt keinen Anlage-Pfad für neue Gastkonten mehr). Bewusst
+     * NICHT per Migration entfernt: Bestehende Zeilen mit `is_guest = true` (aus der Zeit vor
+     * dieser Umstellung) bleiben unverändert erhalten — keine Löschung, kein Datenverlust — und
+     * das Feld dient admin-seitig (components/admin/UsersTable.tsx) weiterhin als Hinweis, welche
+     * Konten aus der alten anonymen Mechanik stammen. Für jedes neue Konto ist der Wert ab jetzt
+     * dauerhaft `false` (Standardwert), da kein Code-Pfad ihn mehr auf `true` setzt.
      */
     role: text("role", { enum: USER_ROLE_VALUES }).notNull().default("user"),
     status: text("status", { enum: USER_STATUS_VALUES }).notNull().default("active"),

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { auth } from "@/server/auth";
 import { getSession } from "@/server/auth/guards";
-import { startGuestSession } from "@/server/rounds/guest-session";
 import { rgSelfExclusionRequestSchema } from "@/server/rg/schemas";
 import { activateSelfExclusionAction, confirmLiftSelfExclusionAction, requestLiftSelfExclusionAction } from "@/server/rg/rg-settings-service";
 import { nowIso } from "@/lib/ids";
@@ -19,17 +17,16 @@ import type { ResponsibleGaming } from "@/types/responsible-gaming";
  * unter Umgehung des Zwei-Schritt-Dialogs (components/rg/LimitDialog.tsx).
  *
  * Autorisierung wie app/api/rg/settings/route.ts: userId ausschließlich aus der geprüften
- * Sitzung oder einem hier frisch angelegten Gastkonto — niemals aus dem Request-Body.
+ * Sitzung — niemals aus dem Request-Body. Ohne Sitzung wird abgelehnt (401, UNAUTHENTICATED);
+ * die frühere Gastspiel-Mechanik ist mit „Spielen nur angemeldet" entfallen.
  */
 export const runtime = "nodejs";
 
-type SelfExclusionErrorCode = "INVALID_INPUT" | "LIFT_NOT_CONFIRMABLE" | "SERVER_ERROR";
+type SelfExclusionErrorCode = "INVALID_INPUT" | "UNAUTHENTICATED" | "LIFT_NOT_CONFIRMABLE" | "SERVER_ERROR";
 type SelfExclusionResponse = { success: true; data: { rg: ResponsibleGaming } } | { success: false; error: SelfExclusionErrorCode };
 
-function jsonWithCookie(body: SelfExclusionResponse, status: number, setCookieHeader: string | null): NextResponse {
-  const response = NextResponse.json(body, { status });
-  if (setCookieHeader) response.headers.append("set-cookie", setCookieHeader);
-  return response;
+function json(body: SelfExclusionResponse, status: number): NextResponse {
+  return NextResponse.json(body, { status });
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -37,40 +34,35 @@ export async function POST(request: Request): Promise<Response> {
   try {
     rawBody = await request.json();
   } catch {
-    return jsonWithCookie({ success: false, error: "INVALID_INPUT" }, 400, null);
+    return json({ success: false, error: "INVALID_INPUT" }, 400);
   }
 
   const parsed = rgSelfExclusionRequestSchema.safeParse(rawBody);
-  if (!parsed.success) return jsonWithCookie({ success: false, error: "INVALID_INPUT" }, 400, null);
+  if (!parsed.success) return json({ success: false, error: "INVALID_INPUT" }, 400);
 
-  let userId: string;
-  let setCookieHeader: string | null = null;
   const session = await getSession();
-  if (session) {
-    userId = session.user.id;
-  } else {
-    const guest = await startGuestSession(db, auth);
-    userId = guest.userId;
-    setCookieHeader = guest.setCookieHeader;
+  if (!session) {
+    return json({ success: false, error: "UNAUTHENTICATED" }, 401);
   }
+  const userId = session.user.id;
 
   try {
     const now = nowIso();
     const action = parsed.data;
     if (action.action === "activate") {
       const rg = await activateSelfExclusionAction(db, userId, now);
-      return jsonWithCookie({ success: true, data: { rg } }, 200, setCookieHeader);
+      return json({ success: true, data: { rg } }, 200);
     }
     const result = action.action === "requestLift" ? await requestLiftSelfExclusionAction(db, userId, now) : await confirmLiftSelfExclusionAction(db, userId, now);
     if (!result.ok) {
       // Kein Fachfehler wie RG_BLOCKED (WalletRejectionCode) — dieser Code beschreibt einen
       // eigenständigen Zustand: „diese Aufhebungsanfrage lässt sich gerade nicht bestätigen"
       // (keine bestehende Sperre, kein vorheriger requestLift, oder das Zeitfenster ist abgelaufen).
-      return jsonWithCookie({ success: false, error: "LIFT_NOT_CONFIRMABLE" }, 200, setCookieHeader);
+      return json({ success: false, error: "LIFT_NOT_CONFIRMABLE" }, 200);
     }
-    return jsonWithCookie({ success: true, data: { rg: result.rg } }, 200, setCookieHeader);
+    return json({ success: true, data: { rg: result.rg } }, 200);
   } catch (error: unknown) {
     console.error("[api/rg/self-exclusion] unerwarteter Fehler:", error);
-    return jsonWithCookie({ success: false, error: "SERVER_ERROR" }, 500, setCookieHeader);
+    return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

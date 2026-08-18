@@ -6,10 +6,13 @@ import { AppProviders } from "@/state/AppProviders";
 import { games } from "@/data/games";
 import type { GameModeSummary } from "@/types/game-mode";
 import type { GameEngineViewProps } from "@/types/engine";
+import type { User } from "@/types/user";
 import { GameDetail } from "./GameDetail";
 
+const usePathnameMock = vi.fn(() => "/game/european-roulette");
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => usePathnameMock(),
 }));
 
 // `vi.mock`-Fabriken werden an den Dateianfang gehoben — `engineForMock` muss deshalb über
@@ -55,9 +58,21 @@ const neonNightsModes: GameModeSummary[] = [
 // jsdom implementiert scrollIntoView nicht — GameDetail ruft es beim Öffnen der Spielfläche auf.
 Element.prototype.scrollIntoView = vi.fn();
 
-function renderDetail(game = european, siblingModes: readonly GameModeSummary[] = rouletteModes, titleLabel = "Roulette") {
+const player: User = { id: "u-1", displayName: "Spielerin", email: "p@example.com", role: "user", isGuest: false };
+
+/**
+ * Standardmäßig ANGEMELDET (`player`): die bestehenden Tests unten prüfen den Rundenablauf und
+ * die Modusauswahl, nicht die Anmeldepflicht selbst — die hat einen eigenen describe-Block unten,
+ * der gezielt `user: null` übergibt.
+ */
+function renderDetail(
+  game = european,
+  siblingModes: readonly GameModeSummary[] = rouletteModes,
+  titleLabel = "Roulette",
+  user: User | null = player,
+) {
   return render(
-    <AppProviders>
+    <AppProviders user={user}>
       <GameDetail game={game} siblingModes={siblingModes} titleLabel={titleLabel} />
     </AppProviders>,
   );
@@ -91,5 +106,42 @@ describe("GameDetail — Moduswechsel (Auftrag §3)", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/nicht möglich/);
+  });
+});
+
+describe("GameDetail — Anmeldepflicht (Auftrag „Spielen nur angemeldet“)", () => {
+  it("zeigt ohne Anmeldung Titel, Fakten und Auszahlungstabelle — der Katalog bleibt frei einsehbar", () => {
+    engineForMock.mockReturnValue(undefined);
+    renderDetail(european, rouletteModes, "Roulette", null);
+
+    expect(screen.getByRole("heading", { name: european.name })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Fakten zur Demo" })).toBeInTheDocument();
+  });
+
+  it("zeigt ohne Anmeldung einen Anmelde-Hinweis anstelle des Startknopfes", () => {
+    // Truthy Engine (wie bei den Moduswechsel-Tests oben): der Login-Hinweis ersetzt den
+    // Startknopf nur für spielbare Titel — ohne Engine würde ohnehin „Demo folgt" stehen,
+    // unabhängig vom Anmeldezustand, und der Test würde nichts über die Anmeldepflicht beweisen.
+    engineForMock.mockReturnValue(FakeEngine);
+    renderDetail(european, rouletteModes, "Roulette", null);
+
+    expect(screen.queryByRole("button", { name: /Demo spielen/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Zum Spielen ist eine Anmeldung nötig/)).toBeInTheDocument();
+  });
+
+  it("der Anmelde-Link führt nach /login mit einem next-Parameter zurück auf dieselbe Spielseite", () => {
+    engineForMock.mockReturnValue(FakeEngine);
+    renderDetail(european, rouletteModes, "Roulette", null);
+
+    const link = screen.getByRole("link", { name: /Anmelden zum Spielen/ });
+    expect(link).toHaveAttribute("href", `/login?next=${encodeURIComponent("/game/european-roulette")}`);
+  });
+
+  it("zeigt angemeldet weiterhin den Startknopf, keinen Anmelde-Hinweis", () => {
+    engineForMock.mockReturnValue(FakeEngine);
+    renderDetail();
+
+    expect(screen.getByRole("button", { name: /Demo spielen/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Zum Spielen ist eine Anmeldung nötig/)).not.toBeInTheDocument();
   });
 });

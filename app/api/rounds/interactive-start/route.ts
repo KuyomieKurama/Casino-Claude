@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { auth } from "@/server/auth";
 import { getSession } from "@/server/auth/guards";
-import { startGuestSession } from "@/server/rounds/guest-session";
 import { startInteractiveRound, type StartInteractiveRoundData } from "@/server/rounds/interactive-round-service";
 import { startInteractiveRoundRequestSchema } from "@/server/rounds/interactive-schemas";
 import type { WalletRejectionCode } from "@/lib/wallet-policy";
@@ -16,15 +14,16 @@ import type { WalletRejectionCode } from "@/lib/wallet-policy";
  *
  * `runtime = "nodejs"`: derselbe Grund wie bei /api/rounds/start — der `pg`-Treiber ist nicht
  * Edge-fähig.
+ *
+ * Anmeldepflicht (Auftrag „Spielen nur angemeldet"): wie /api/rounds/start — ohne gültige Sitzung
+ * wird JEDE Anfrage mit 401 und UNAUTHENTICATED abgelehnt, kein Gastkonto mehr angelegt.
  */
 export const runtime = "nodejs";
 
 type RoundApiResponse = { success: true; data: StartInteractiveRoundData } | { success: false; error: WalletRejectionCode };
 
-function jsonWithCookie(body: RoundApiResponse, status: number, setCookieHeader: string | null): NextResponse {
-  const response = NextResponse.json(body, { status });
-  if (setCookieHeader) response.headers.append("set-cookie", setCookieHeader);
-  return response;
+function json(body: RoundApiResponse, status: number): NextResponse {
+  return NextResponse.json(body, { status });
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -32,27 +31,21 @@ export async function POST(request: Request): Promise<Response> {
   try {
     rawBody = await request.json();
   } catch {
-    return jsonWithCookie({ success: false, error: "INVALID_STAKE" }, 400, null);
+    return json({ success: false, error: "INVALID_STAKE" }, 400);
   }
 
   const parsed = startInteractiveRoundRequestSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return jsonWithCookie({ success: false, error: "INVALID_STAKE" }, 400, null);
+    return json({ success: false, error: "INVALID_STAKE" }, 400);
   }
 
-  // Autorisierung: die userId kommt ausschließlich aus der geprüften Sitzung (oder einem hier
-  // frisch angelegten Gastkonto) — niemals aus dem Request-Body (derselbe Grundsatz wie
-  // app/api/rounds/start/route.ts).
-  let userId: string;
-  let setCookieHeader: string | null = null;
+  // Autorisierung: die userId kommt ausschließlich aus der geprüften Sitzung — niemals aus dem
+  // Request-Body (derselbe Grundsatz wie app/api/rounds/start/route.ts).
   const session = await getSession();
-  if (session) {
-    userId = session.user.id;
-  } else {
-    const guest = await startGuestSession(db, auth);
-    userId = guest.userId;
-    setCookieHeader = guest.setCookieHeader;
+  if (!session) {
+    return json({ success: false, error: "UNAUTHENTICATED" }, 401);
   }
+  const userId = session.user.id;
 
   try {
     const result = await startInteractiveRound(db, {
@@ -63,13 +56,11 @@ export async function POST(request: Request): Promise<Response> {
       ...(parsed.data.useFreeSpin === undefined ? {} : { useFreeSpin: parsed.data.useFreeSpin }),
       ...(parsed.data.betId === undefined ? {} : { betId: parsed.data.betId }),
     });
-    return result.ok
-      ? jsonWithCookie({ success: true, data: result.data }, 200, setCookieHeader)
-      : jsonWithCookie({ success: false, error: result.code }, 200, setCookieHeader);
+    return result.ok ? json({ success: true, data: result.data }, 200) : json({ success: false, error: result.code }, 200);
   } catch (error: unknown) {
     // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace"). Serverseitig
     // bleibt der Fehler sichtbar (Plattform-Log), der Client sieht nur einen sachlichen Code.
     console.error("[api/rounds/interactive-start] unerwarteter Fehler:", error);
-    return jsonWithCookie({ success: false, error: "SERVER_ERROR" }, 500, setCookieHeader);
+    return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

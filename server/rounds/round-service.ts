@@ -20,8 +20,9 @@ import { assertRgNotBlocked } from "@/server/rg/rg-guard";
 /**
  * Rundenservice für die sechs nicht-interaktiven Spielfamilien (Auftrag §3). Autorisierung
  * passiert HIER, nicht nur im Route Handler: `input.userId` MUSS aus der geprüften Sitzung
- * stammen (app/api/rounds/start/route.ts liest sie über getSession()/createGuestAccount()) —
- * kein Repository-Aufruf in dieser Datei übernimmt eine `userId` direkt aus einem Request-Body.
+ * stammen (app/api/rounds/start/route.ts liest sie über getSession() und lehnt ohne Sitzung mit
+ * UNAUTHENTICATED ab, Auftrag „Spielen nur angemeldet") — kein Repository-Aufruf in dieser Datei
+ * übernimmt eine `userId` direkt aus einem Request-Body.
  *
  * Ablauf (eine Datenbanktransaktion ab dem Zeitpunkt, an dem Geld bewegt wird):
  *  1. Spielmodus laden, Einsatzbereich und Familie prüfen (rein lesend, vor der Transaktion).

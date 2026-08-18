@@ -15,10 +15,9 @@ import { PgGameModeRepository } from "@/server/repositories/game-mode-repository
 import { findWallet, insertWalletIfMissing } from "@/server/repositories/wallet-repository";
 import { findActionsForRound } from "@/server/repositories/game-round-action-repository";
 import { listLedgerEntries, sumLedgerAmountForUser } from "@/server/repositories/ledger-repository";
+import { START_BALANCE_MINOR } from "@/lib/constants";
 import { startBlackjackRoundState, isBlackjackRoundFinished } from "./interactive/blackjack-adapter";
 import { startInteractiveRound } from "./interactive-round-service";
-
-const START_BALANCE_MINOR = 100_000;
 
 async function seedMode(db: TestDatabase, engineKey: "mines" | "blackjack" | "videopoker" | "dice", id: string, overrides: { minBetMinor?: number; maxBetMinor?: number } = {}) {
   const { gameId } = await seedMinimalCatalog(db);
@@ -102,7 +101,9 @@ describe("startInteractiveRound — Mines", () => {
     const modeId = await seedMode(db, "mines", "g-mines-demo", { maxBetMinor: 10_000_000 });
     const userId = await seedUser(db);
 
-    const result = await startInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 999_999, idempotencyKey: "k1", betId: "m3" });
+    // Knapp über dem Startguthaben, aber weiterhin innerhalb der Modus-Obergrenze — der Test prüft
+    // die Ablehnung wegen unzureichenden Bestands, nicht die Obergrenze selbst.
+    const result = await startInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: START_BALANCE_MINOR + 1, idempotencyKey: "k1", betId: "m3" });
 
     expect(result).toEqual({ ok: false, code: "INSUFFICIENT_FUNDS" });
     const wallet = await findWallet(db, userId);

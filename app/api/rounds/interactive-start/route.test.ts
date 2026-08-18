@@ -19,7 +19,6 @@ vi.mock("@/server/auth/guards", () => ({
   getSession: (...args: unknown[]) => getSessionMock(...args),
 }));
 
-import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { seedMinimalCatalog, type TestDatabase } from "@/server/db/test-harness";
 import { PgGameModeRepository } from "@/server/repositories/game-mode-repository";
@@ -57,20 +56,19 @@ function postRequest(body: unknown): Request {
 }
 
 describe("POST /api/rounds/interactive-start", () => {
-  test("ohne Sitzung: legt ein Gastkonto an, bucht den Einsatz und liefert eine offene Runde ohne Minenpositionen", async () => {
+  /**
+   * Wie app/api/rounds/start/route.test.ts: der Beweis für „Spielen nur angemeldet" auf dem
+   * interaktiven Pfad, direkt gegen den echten Route-Handler. Kein Gastkonto mehr.
+   */
+  test("ohne Sitzung: wird mit 401 und dem eigenständigen Code UNAUTHENTICATED abgelehnt, es wird keine Runde gebucht", async () => {
     getSessionMock.mockResolvedValueOnce(null);
 
-    const response = await POST(postRequest({ gameModeId: "g-mines-demo", stakeMinor: 100, idempotencyKey: "guest-round-1", betId: "m3" }));
+    const response = await POST(postRequest({ gameModeId: "g-mines-demo", stakeMinor: 100, idempotencyKey: "anon-round-1", betId: "m3" }));
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean; data?: { status: string; state: unknown } };
-    expect(body.success).toBe(true);
-    expect(body.data?.status).toBe("open");
-    expect(body.data?.state).not.toHaveProperty("positions");
-    expect(response.headers.get("set-cookie")).toContain("session_token");
-
-    const guests = await db.select().from(user).where(eq(user.isGuest, true));
-    expect(guests.length).toBeGreaterThan(0);
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as { success: boolean; error?: string };
+    expect(body).toEqual({ success: false, error: "UNAUTHENTICATED" });
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
 
   test("mit gültiger Sitzung: bucht die Runde auf das angemeldete Konto und setzt kein Cookie", async () => {
@@ -80,6 +78,10 @@ describe("POST /api/rounds/interactive-start", () => {
     const response = await POST(postRequest({ gameModeId: "g-mines-demo", stakeMinor: 100, idempotencyKey: "member-round-1", betId: "m3" }));
 
     expect(response.status).toBe(200);
+    const body = (await response.json()) as { success: boolean; data?: { status: string; state: unknown } };
+    expect(body.success).toBe(true);
+    expect(body.data?.status).toBe("open");
+    expect(body.data?.state).not.toHaveProperty("positions");
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
@@ -92,7 +94,8 @@ describe("POST /api/rounds/interactive-start", () => {
   });
 
   test("ein mitgeschickter returnMinor oder seed im Body hat keine Wirkung (unbekannte Felder werden verworfen)", async () => {
-    getSessionMock.mockResolvedValueOnce(null);
+    await db.insert(user).values({ id: "member-tamper", name: "Mitglied", email: "member-tamper@example.com" });
+    getSessionMock.mockResolvedValueOnce({ user: { id: "member-tamper", email: "member-tamper@example.com", name: "Mitglied", role: "user", status: "active", isGuest: false } });
 
     const response = await POST(
       postRequest({ gameModeId: "g-mines-demo", stakeMinor: 100, idempotencyKey: "tamper-round-1", betId: "m3", returnMinor: 999_999_999, seed: 1 }),
@@ -104,7 +107,8 @@ describe("POST /api/rounds/interactive-start", () => {
   });
 
   test("unbekannter Spielmodus wird abgelehnt", async () => {
-    getSessionMock.mockResolvedValueOnce(null);
+    await db.insert(user).values({ id: "member-unknown-mode", name: "Mitglied", email: "member-unknown-mode@example.com" });
+    getSessionMock.mockResolvedValueOnce({ user: { id: "member-unknown-mode", email: "member-unknown-mode@example.com", name: "Mitglied", role: "user", status: "active", isGuest: false } });
 
     const response = await POST(postRequest({ gameModeId: "unbekannt", stakeMinor: 100, idempotencyKey: "unknown-mode-1" }));
 

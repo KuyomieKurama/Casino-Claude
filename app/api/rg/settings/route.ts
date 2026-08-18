@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { auth } from "@/server/auth";
 import { getSession } from "@/server/auth/guards";
-import { startGuestSession } from "@/server/rounds/guest-session";
 import { rgSettingsRequestSchema } from "@/server/rg/schemas";
 import { endPause, markReminderShown, pauseSession, setReminderInterval, setSessionLimit, startNewSession } from "@/server/rg/rg-settings-service";
 import { nowIso } from "@/lib/ids";
@@ -14,23 +12,23 @@ import type { ResponsibleGaming } from "@/types/responsible-gaming";
  * Begründung wie server/rg/schemas.ts (KISS/DRY). Selbstsperre lebt bewusst getrennt in
  * app/api/rg/self-exclusion/route.ts (kritische Aktion, eigener Zwei-Schritt-Ablauf).
  *
- * Autorisierung: die userId kommt ausschließlich aus der geprüften Sitzung (oder einem hier
- * frisch angelegten Gastkonto, dieselbe Choreografie wie app/api/rounds/start/route.ts) —
- * niemals aus dem Request-Body. `server/rg/rg-settings-service.ts` übernimmt sie unverändert
- * weiter, ohne sie selbst zu bestimmen — ein Nutzer kann dadurch strukturell nur seine eigenen
- * Einstellungen ändern.
+ * Autorisierung: die userId kommt ausschließlich aus der geprüften Sitzung — niemals aus dem
+ * Request-Body. `server/rg/rg-settings-service.ts` übernimmt sie unverändert weiter, ohne sie
+ * selbst zu bestimmen — ein Nutzer kann dadurch strukturell nur seine eigenen Einstellungen
+ * ändern. Ohne Sitzung wird abgelehnt (401, UNAUTHENTICATED): die frühere Gastspiel-Mechanik
+ * (server/auth/guests.ts + server/rounds/guest-session.ts), über die anonyme Besucher hier vorher
+ * ein Gastkonto erhielten, ist mit „Spielen nur angemeldet" entfallen — Responsible-Gaming-
+ * Einstellungen setzen dadurch dieselbe Anmeldung voraus wie das Spielen selbst.
  *
  * `runtime = "nodejs"`: derselbe Grund wie bei den Rundenendpunkten.
  */
 export const runtime = "nodejs";
 
-type SettingsErrorCode = "INVALID_INPUT" | "SERVER_ERROR";
+type SettingsErrorCode = "INVALID_INPUT" | "UNAUTHENTICATED" | "SERVER_ERROR";
 type SettingsResponse = { success: true; data: { rg: ResponsibleGaming } } | { success: false; error: SettingsErrorCode };
 
-function jsonWithCookie(body: SettingsResponse, status: number, setCookieHeader: string | null): NextResponse {
-  const response = NextResponse.json(body, { status });
-  if (setCookieHeader) response.headers.append("set-cookie", setCookieHeader);
-  return response;
+function json(body: SettingsResponse, status: number): NextResponse {
+  return NextResponse.json(body, { status });
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -38,22 +36,17 @@ export async function POST(request: Request): Promise<Response> {
   try {
     rawBody = await request.json();
   } catch {
-    return jsonWithCookie({ success: false, error: "INVALID_INPUT" }, 400, null);
+    return json({ success: false, error: "INVALID_INPUT" }, 400);
   }
 
   const parsed = rgSettingsRequestSchema.safeParse(rawBody);
-  if (!parsed.success) return jsonWithCookie({ success: false, error: "INVALID_INPUT" }, 400, null);
+  if (!parsed.success) return json({ success: false, error: "INVALID_INPUT" }, 400);
 
-  let userId: string;
-  let setCookieHeader: string | null = null;
   const session = await getSession();
-  if (session) {
-    userId = session.user.id;
-  } else {
-    const guest = await startGuestSession(db, auth);
-    userId = guest.userId;
-    setCookieHeader = guest.setCookieHeader;
+  if (!session) {
+    return json({ success: false, error: "UNAUTHENTICATED" }, 401);
   }
+  const userId = session.user.id;
 
   try {
     const now = nowIso();
@@ -79,10 +72,10 @@ export async function POST(request: Request): Promise<Response> {
         rg = await startNewSession(db, userId, now);
         break;
     }
-    return jsonWithCookie({ success: true, data: { rg } }, 200, setCookieHeader);
+    return json({ success: true, data: { rg } }, 200);
   } catch (error: unknown) {
     // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace").
     console.error("[api/rg/settings] unerwarteter Fehler:", error);
-    return jsonWithCookie({ success: false, error: "SERVER_ERROR" }, 500, setCookieHeader);
+    return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

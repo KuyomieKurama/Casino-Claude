@@ -82,14 +82,14 @@ async function startMinesRound(idempotencyKey: string, stakeMinor = 100) {
 }
 
 describe("POST /api/rounds/:id/actions", () => {
-  test("ohne Sitzung wird die Anfrage mit 401 abgelehnt", async () => {
+  test("ohne Sitzung wird die Anfrage mit 401 und dem eigenständigen Code UNAUTHENTICATED abgelehnt", async () => {
     getSessionMock.mockResolvedValueOnce(null);
 
     const response = await callRoute("irgendeine-runde", { seq: 1, action: "reveal", payload: { cell: 0 } });
 
     expect(response.status).toBe(401);
     const body = (await response.json()) as { success: boolean; error?: string };
-    expect(body).toEqual({ success: false, error: "NO_PENDING_ROUND" });
+    expect(body).toEqual({ success: false, error: "UNAUTHENTICATED" });
   });
 
   test("eine gültige reveal-Aktion liefert eine offene Antwort ohne Minenpositionen", async () => {

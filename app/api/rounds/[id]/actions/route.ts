@@ -6,10 +6,14 @@ import { roundActionRequestSchema } from "@/server/rounds/interactive-schemas";
 import type { WalletRejectionCode } from "@/lib/wallet-policy";
 
 /**
- * Spieleraktionen einer laufenden interaktiven Runde (Phase 3b, Auftrag §2). Anders als bei den
- * beiden Rundenstart-Endpunkten wird hier NIE ein Gastkonto angelegt: eine Aktion setzt zwingend
- * voraus, dass bereits eine Runde unter einer bekannten `userId` existiert — ohne Sitzung kann es
- * also keine eigene offene Runde geben, ein Gastkonto an dieser Stelle wäre nur ein leerer Umweg.
+ * Spieleraktionen einer laufenden interaktiven Runde (Phase 3b, Auftrag §2). Anmeldepflicht
+ * (Auftrag „Spielen nur angemeldet"): ohne Sitzung wird JEDE Anfrage mit 401 und dem
+ * eigenständigen Code UNAUTHENTICATED abgelehnt — nicht mit NO_PENDING_ROUND (das würde eine
+ * fehlende Sitzung mit einer fehlenden/fremden Runde vermengen, obwohl die Oberfläche beide
+ * Fälle unterschiedlich behandeln muss: NO_PENDING_ROUND ist ein Fachentscheid über eine bereits
+ * bekannte Runde, UNAUTHENTICATED das Fehlen eines Kontos selbst). Es wird hier ohnehin NIE ein
+ * Gastkonto angelegt (die frühere Gastspiel-Mechanik ist entfernt): eine Aktion setzt zwingend
+ * voraus, dass bereits eine Runde unter einer bekannten `userId` existiert.
  *
  * `runtime = "nodejs"`: derselbe Grund wie bei den übrigen Rundenendpunkten — der `pg`-Treiber ist
  * nicht Edge-fähig.
@@ -27,9 +31,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const session = await getSession();
   if (!session) {
-    // Dieselbe Ablehnung wie „Runde nicht gefunden" (round-action-service.ts) — kein Rückschluss
-    // darauf, ob überhaupt eine Runde mit dieser ID existiert.
-    return json({ success: false, error: "NO_PENDING_ROUND" }, 401);
+    return json({ success: false, error: "UNAUTHENTICATED" }, 401);
   }
 
   let rawBody: unknown;

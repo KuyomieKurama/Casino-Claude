@@ -71,18 +71,21 @@ function postRequest(body: unknown): Request {
 }
 
 describe("POST /api/rounds/start", () => {
-  test("ohne Sitzung: legt ein Gastkonto an, bucht die Runde und liefert ein Sitzungscookie", async () => {
+  /**
+   * Der eigentliche Beweis für „Spielen nur angemeldet" auf diesem Pfad: dieser Test ruft den
+   * echten Route-Handler auf — genau den Pfad, den ein direkter `fetch("/api/rounds/start", …)`
+   * unter Umgehung jeder Oberfläche nimmt. Kein Gastkonto wird mehr angelegt (die frühere
+   * Gastspiel-Mechanik ist entfernt); ohne Sitzung wird strikt abgelehnt.
+   */
+  test("ohne Sitzung: wird mit 401 und dem eigenständigen Code UNAUTHENTICATED abgelehnt, es wird keine Runde gebucht", async () => {
     getSessionMock.mockResolvedValueOnce(null);
 
-    const response = await POST(postRequest({ gameModeId: "g-dice-demo", stakeMinor: 100, idempotencyKey: "guest-round-1", betId: "under-50" }));
+    const response = await POST(postRequest({ gameModeId: "g-dice-demo", stakeMinor: 100, idempotencyKey: "anon-round-1", betId: "under-50" }));
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean; data?: { returnMinor: number } };
-    expect(body.success).toBe(true);
-    expect(response.headers.get("set-cookie")).toContain("session_token");
-
-    const guests = await db.select().from(user).where(eq(user.isGuest, true));
-    expect(guests.length).toBeGreaterThan(0);
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as { success: boolean; error?: string };
+    expect(body).toEqual({ success: false, error: "UNAUTHENTICATED" });
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
 
   test("mit gültiger Sitzung: bucht die Runde auf das angemeldete Konto und setzt kein Cookie", async () => {
@@ -92,6 +95,8 @@ describe("POST /api/rounds/start", () => {
     const response = await POST(postRequest({ gameModeId: "g-dice-demo", stakeMinor: 100, idempotencyKey: "member-round-1", betId: "under-50" }));
 
     expect(response.status).toBe(200);
+    const body = (await response.json()) as { success: boolean; data?: { returnMinor: number } };
+    expect(body.success).toBe(true);
     expect(response.headers.get("set-cookie")).toBeNull();
     const [row] = await db.select().from(user).where(eq(user.id, "member-1"));
     expect(row?.isGuest).toBe(false);
@@ -106,7 +111,8 @@ describe("POST /api/rounds/start", () => {
   });
 
   test("ein mitgeschicktes returnMinor im Body hat keine Wirkung auf das Ergebnis", async () => {
-    getSessionMock.mockResolvedValueOnce(null);
+    await db.insert(user).values({ id: "member-tamper", name: "Mitglied", email: "member-tamper@example.com" });
+    getSessionMock.mockResolvedValueOnce({ user: { id: "member-tamper", email: "member-tamper@example.com", name: "Mitglied", role: "user", status: "active", isGuest: false } });
 
     const response = await POST(
       postRequest({ gameModeId: "g-dice-demo", stakeMinor: 100, idempotencyKey: "tamper-round-1", betId: "under-50", returnMinor: 999_999_999 }),
@@ -118,7 +124,8 @@ describe("POST /api/rounds/start", () => {
   });
 
   test("unbekannter Spielmodus wird abgelehnt", async () => {
-    getSessionMock.mockResolvedValueOnce(null);
+    await db.insert(user).values({ id: "member-unknown-mode", name: "Mitglied", email: "member-unknown-mode@example.com" });
+    getSessionMock.mockResolvedValueOnce({ user: { id: "member-unknown-mode", email: "member-unknown-mode@example.com", name: "Mitglied", role: "user", status: "active", isGuest: false } });
 
     const response = await POST(postRequest({ gameModeId: "unbekannt", stakeMinor: 100, idempotencyKey: "unknown-mode-1" }));
 

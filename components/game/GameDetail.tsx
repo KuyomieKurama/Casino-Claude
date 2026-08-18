@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Ban, ChevronLeft, Play, ShieldAlert, ShieldCheck } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Ban, ChevronLeft, LogIn, Play, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { Game } from "@/types/game";
 import type { GameModeSummary } from "@/types/game-mode";
 import type { RoundStatus } from "@/types/game-round";
 import { useCatalog } from "@/state/CatalogContext";
+import { useSession } from "@/state/SessionContext";
 import { useRgStatus } from "@/state/RgContext";
 import { rgReasonText } from "@/state/rg-reducer";
 import { betIdOf, paytablesOf } from "@/data/paytables";
@@ -55,6 +56,8 @@ export type GameDetailProps = {
 /** Spieldetailseite (§8.4). Spielfläche wird auf derselben Route eingeblendet. */
 export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDetailProps) {
   const { games } = useCatalog();
+  const { isLoggedIn } = useSession();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const rg = useRgStatus(5000);
   const game = games.find((g) => g.id === baseGame.id) ?? baseGame;
@@ -76,6 +79,12 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
 
   const blocked = rg.hydrated && rg.blocked;
   const blockedText = blocked && rg.reason ? rgReasonText[rg.reason] : null;
+  // Rücksprung nach der Anmeldung zurück auf genau diese Spieldetailseite (Auftrag „Spielen nur
+  // angemeldet"). `pathname` ist ein serverseitig bekannter, projektinterner Pfad (App-Router-
+  // Route, kein Nutzereingabefeld) — trotzdem läuft er beim Verbrauch durch `safeNext()`
+  // (components/auth/LoginForm.tsx), derselbe Schutz gegen offene Weiterleitung wie bei jedem
+  // anderen `next`-Parameter.
+  const loginHref = `/login?next=${encodeURIComponent(pathname ?? "/casino")}`;
 
   /**
    * RTP-Angabe (Regel 6): Ein einzelner Wert nur, wenn alle Wetten denselben Erwartungswert haben.
@@ -154,7 +163,14 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
                 Spielstart blockiert
               </Button>
             ) : playable ? (
-              // Gold ist knapp: sobald die Spielfläche offen ist, liegt die einzige goldene
+              !isLoggedIn ? (
+                // Ersetzt den Startknopf vollständig (Auftrag „Spielen nur angemeldet"): der
+                // Katalog inklusive dieser Seite bleibt ohne Anmeldung einsehbar, nur das Spielen
+                // selbst verlangt ein Konto. `?next=` führt nach der Anmeldung zurück hierher.
+                <LinkButton href={loginHref} variant="primary" size="lg" iconLeft={<LogIn className="size-4" aria-hidden="true" />} aria-describedby="login-hint">
+                  Anmelden zum Spielen
+                </LinkButton>
+              ) : // Gold ist knapp: sobald die Spielfläche offen ist, liegt die einzige goldene
               // Fläche des Bildschirms dort („Runde starten“). Hier bleibt nur ein Umriss-Weg.
               playing ? (
                 <Button variant="outline" size="lg" onClick={() => playRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
@@ -181,6 +197,11 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
                   Zu Responsible Gaming
                 </Link>
               </span>
+            </p>
+          ) : null}
+          {playable && !isLoggedIn ? (
+            <p id="login-hint" className="text-sm text-muted">
+              Zum Spielen ist eine Anmeldung nötig. Der Katalog bleibt frei einsehbar, nur das Spielen selbst verlangt ein Konto.
             </p>
           ) : null}
           {!playable && !inactive ? (

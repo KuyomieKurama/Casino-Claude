@@ -43,15 +43,18 @@ describe("POST /api/rg/settings", () => {
     getSessionMock.mockReset();
   });
 
-  test("ohne Sitzung legt ein Gastkonto an und setzt ein Sitzungscookie", async () => {
+  // Wie bei den Rundenendpunkten (app/api/rounds/start/route.test.ts): kein Gastkonto mehr, ohne
+  // Sitzung wird mit 401 und UNAUTHENTICATED abgelehnt (die frühere Gastspiel-Mechanik ist
+  // entfernt — Responsible-Gaming-Einstellungen setzen dieselbe Anmeldung voraus wie das Spielen).
+  test("ohne Sitzung wird mit 401 und UNAUTHENTICATED abgelehnt", async () => {
     getSessionMock.mockResolvedValueOnce(null);
 
     const response = await POST(postRequest({ action: "setReminderInterval", minutes: 15 }));
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("set-cookie")).toContain("session_token");
-    const body = (await response.json()) as { success: boolean; data: { rg: { reminderIntervalMinutes: number } } };
-    expect(body.data.rg.reminderIntervalMinutes).toBe(15);
+    expect(response.status).toBe(401);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    const body = (await response.json()) as { success: boolean; error?: string };
+    expect(body).toEqual({ success: false, error: "UNAUTHENTICATED" });
   });
 
   test("pause setzt pausedUntil, endPause entfernt es wieder", async () => {

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { Game } from "@/types/game";
 import { AppProviders } from "@/state/AppProviders";
 import { __resetStorageForTests } from "@/lib/storage";
-import { STORAGE_KEY, ROUND_DURATION_MS } from "@/lib/constants";
+import { STORAGE_KEY, ROUND_DURATION_MS, START_BALANCE_MINOR } from "@/lib/constants";
 import { games } from "@/data/catalog";
 import { PlinkoGame } from "./PlinkoGame";
 import { MinesGame } from "./MinesGame";
@@ -292,7 +292,11 @@ describe("Arcade-Oberflächen", () => {
   it("Mines: Runde starten, Feld aufdecken, auszahlen — der Betrag bleibt in der Obergrenze", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const stake = 100;
-    const startBalanceMinor = 100_000;
+    // Muss mit dem CLIENT-seitigen Default-Startguthaben übereinstimmen (state/wallet-reducer.ts,
+    // hydriert hier ohne walletSnapshot-Prop) — sonst weicht der gemockte „Server“-Saldo nach dem
+    // ersten Rundenstart-Sync (useRound.ts::syncServerWallet) vom vor dem Klick angezeigten
+    // Anfangswert ab.
+    const startBalanceMinor = START_BALANCE_MINOR;
     // Deterministischer Seed statt eines vom Server erzeugten Zufallsseeds (Begründung: siehe
     // MINES_SAFE_SEED oben) — der Mock antwortet mit genau dem Zustand, den ein echter Server bei
     // diesem Seed liefern würde (Phase 3b: Mines läuft serverseitig, kein lokaler Zufall mehr).
@@ -331,7 +335,11 @@ describe("Arcade-Oberflächen", () => {
   it("Mines: eine getroffene Mine beendet die Runde ohne Rückgabe und zeigt danach alle Minen", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const stake = 100;
-    const startBalanceMinor = 100_000;
+    // Muss mit dem CLIENT-seitigen Default-Startguthaben übereinstimmen (state/wallet-reducer.ts,
+    // hydriert hier ohne walletSnapshot-Prop) — sonst weicht der gemockte „Server“-Saldo nach dem
+    // ersten Rundenstart-Sync (useRound.ts::syncServerWallet) vom vor dem Klick angezeigten
+    // Anfangswert ab.
+    const startBalanceMinor = START_BALANCE_MINOR;
     const positions = minePositions(MINES_SAFE_SEED, MINES_DEFAULT_COUNT);
     const mineCell = positions[0]!;
     mockMinesRoutes(MINES_SAFE_SEED, MINES_DEFAULT_COUNT, stake, startBalanceMinor);

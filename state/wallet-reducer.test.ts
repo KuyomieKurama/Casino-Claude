@@ -108,8 +108,15 @@ describe("Wallet-Reducer — Invarianten (Aufladen, Zurücksetzen, Bonusgutschri
     expect(s.transactions.map((t) => t.type)).toEqual(["demo_credit", "bonus_grant", "demo_credit", "reset"]);
     assertChain(s);
     expect(availableMinor(s.wallet)).toBe(START_BALANCE_MINOR);
-    // Beispielhistorie ist ebenfalls eine gültige Kette
+    // Beispielhistorie ist ebenfalls eine gültige Kette — sie startet bewusst bei einem eigenen,
+    // von START_BALANCE_MINOR unabhängigen Beispielwert (data/mock-history.ts, „data/** darf
+    // nicht aus lib/constants importieren"). `createInitialWalletState()` setzt das Wallet selbst
+    // trotzdem immer auf das ECHTE `initialWallet` (§ Kommentar dort) — für diesen Test wird der
+    // Saldo deshalb gezielt auf den letzten Kettenwert der Beispieldaten nachgezogen, sonst würde
+    // assertChain() einen Bezug prüfen, den es hier gar nicht geben soll.
     const seeded = { ...createInitialWalletState(sampleTransactions), hydrated: true };
+    const lastSampleBalance = sampleTransactions.at(-1)?.balanceAfterMinor ?? 0;
+    seeded.wallet = { ...seeded.wallet, demoBalanceMinor: lastSampleBalance };
     assertChain(seeded);
   });
 

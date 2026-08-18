@@ -4,6 +4,7 @@ import { Coins } from "lucide-react";
 import { DemoBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatCredits } from "@/lib/formatters";
+import { useSession } from "@/state/SessionContext";
 import { useWallet } from "@/state/WalletContext";
 import { availableMinor } from "@/state/wallet-reducer";
 import { cn } from "@/lib/cn";
@@ -16,10 +17,20 @@ export type BalanceDisplayProps = {
 /**
  * Guthaben mit Einheit „Credits“ und DEMO-Kürzel (Kennzeichnung Ebene 2).
  * Vor der Hydration ein Skeleton in Zielgröße — nie ein Platzhalterwert.
+ *
+ * Ohne Sitzung wird NICHTS angezeigt (Auftrag „Spielen nur angemeldet"): der Server liefert für
+ * anonyme Besucher weiterhin einen hypothetischen Startguthaben-Wert (server/wallet/wallet-read-
+ * model.ts, `resolveWalletBalance(db, null)`) — der wäre hier aber irreführend, da ohne Anmeldung
+ * gar kein Wallet existiert und auch keines angelegt werden kann. Gilt für BEIDE Varianten (nicht
+ * nur `header`): `inline` wird zwar aktuell ausschließlich innerhalb angemeldeter Bereiche
+ * verwendet, aber ein Guthabenwert ohne Konto ist grundsätzlich nie ein sinnvoller Anzeigewert.
  */
 export function BalanceDisplay({ variant = "inline", className }: BalanceDisplayProps) {
+  const { isLoggedIn } = useSession();
   const { hydrated, wallet } = useWallet();
   const total = availableMinor(wallet);
+
+  if (!isLoggedIn) return null;
 
   if (variant === "header") {
     return (
