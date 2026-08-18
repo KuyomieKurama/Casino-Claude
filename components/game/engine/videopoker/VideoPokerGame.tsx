@@ -9,19 +9,14 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useRound } from "../useRound";
 import { GameShell } from "../GameShell";
-import {
-  HAND_SIZE,
-  MAX_MULTIPLIER,
-  PAYTABLE,
-  finishVideoPokerRound,
-  resolveVideoPokerRound,
-  type HandCategory,
-  type PokerCard,
-  type VideoPokerDetail,
-} from "./videopoker-logic";
+import { HAND_SIZE, MAX_MULTIPLIER, PAYTABLE, type HandCategory, type PokerCard } from "./videopoker-logic";
 
 /**
- * Video Poker „Jacks or Better“ — interaktive Engine (ein Tausch je Runde).
+ * Video Poker „Jacks or Better“ — interaktive Engine (ein Tausch je Runde), seit Phase 3b
+ * vollständig serverseitig aufgelöst: `useRound({ server: true, interactive: true })` ruft
+ * `POST /api/rounds/interactive-start` (Geben) und `POST /api/rounds/:id/actions`
+ * (`draw` mit der Halteauswahl) auf. `r.interactiveState` zeigt vor dem Tausch NUR die eigene
+ * Starthand — nie das ungezogene Restdeck (server/rounds/interactive/videopoker-adapter.ts).
  *
  * Bewusst NICHT vorhanden (Regel 7, im Code dokumentiert):
  *  - kein Near Miss: eine Hand, der eine Karte zur Straße fehlt, wird nicht hervorgehoben;
@@ -44,48 +39,61 @@ const SUIT_NAME = ["Kreuz", "Karo", "Herz", "Pik"] as const;
 
 const NO_HOLDS: readonly boolean[] = [false, false, false, false, false];
 
+const HAND_CATEGORIES: readonly HandCategory[] = PAYTABLE.map((e) => e.category);
+
+/** Sichtbarer Rundenzustand, wie ihn server/rounds/interactive/videopoker-adapter.ts::videoPokerPublicView() liefert. */
+type VideoPokerServerState = {
+  hand: PokerCard[];
+  finalHand: PokerCard[] | null;
+  category: HandCategory | null;
+};
+
+function isPokerCard(value: unknown): value is PokerCard {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.rank === "number" && v.rank >= 1 && v.rank <= 13 && typeof v.suit === "number" && v.suit >= 0 && v.suit <= 3;
+}
+
+/** Nie vertrauenswürdige externe Eingabe ungeprüft durchreichen (coding-style.md). */
+function parseVideoPokerServerState(value: unknown): VideoPokerServerState | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  if (!Array.isArray(v.hand) || v.hand.length !== HAND_SIZE || !v.hand.every(isPokerCard)) return null;
+  const finalHand = v.finalHand === null ? null : Array.isArray(v.finalHand) && v.finalHand.every(isPokerCard) ? (v.finalHand as PokerCard[]) : undefined;
+  if (finalHand === undefined) return null;
+  const category = v.category === null ? null : typeof v.category === "string" && (HAND_CATEGORIES as readonly string[]).includes(v.category) ? (v.category as HandCategory) : undefined;
+  if (category === undefined) return null;
+  return { hand: v.hand as PokerCard[], finalHand, category };
+}
+
 export function VideoPokerGame({ game, simulateLoadError, onStatusChange }: GameEngineViewProps) {
   const round = useRound({
     game,
-    resolve: resolveVideoPokerRound,
     roundDurationMs: ROUND_DURATION_MS,
     interactive: true,
+    server: true,
     simulateLoadError,
     onStatusChange,
     defaultStakeMinor: 100,
   });
 
-  const [deal, setDeal] = useState<VideoPokerDetail | null>(null);
   const [holds, setHolds] = useState<readonly boolean[]>(NO_HOLDS);
   const [stakeAtStart, setStakeAtStart] = useState(0);
-  const [finalHand, setFinalHand] = useState<PokerCard[] | null>(null);
-  const [category, setCategory] = useState<HandCategory | null>(null);
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+  const state = parseVideoPokerServerState(round.interactiveState);
   /** Tauschphase: Karten liegen, die Runde ist gebucht, der Tausch steht noch aus. */
-  const inHoldPhase = deal !== null && finalHand === null && round.status === "playing";
+  const inHoldPhase = state !== null && state.finalHand === null && round.status === "playing";
 
   const dealCards = () => {
-    const started = round.start();
-    if (!started) return;
-    setDeal(started.outcome.detail as unknown as VideoPokerDetail);
     setHolds(NO_HOLDS);
-    setFinalHand(null);
-    setCategory(null);
     setStakeAtStart(round.stake);
+    void round.startInteractive();
   };
 
   const exchangeCards = () => {
-    if (!deal || finalHand !== null) return;
-    const result = finishVideoPokerRound(deal.seed, holds, stakeAtStart);
-    setFinalHand(result.finalHand);
-    setCategory(result.category);
-    round.settle({
-      returnMinor: result.returnMinor,
-      outcomeKey: result.category,
-      outcomeLabel: result.outcomeLabel,
-      detail: { category: result.category, multiplier: result.multiplier, held: [...holds] },
-    });
+    if (!inHoldPhase) return;
+    void round.sendAction("draw", { holds: [...holds] });
   };
 
   const toggleHold = useCallback(
@@ -105,8 +113,10 @@ export function VideoPokerGame({ game, simulateLoadError, onStatusChange }: Game
     cardRefs.current[index]?.focus();
   };
 
-  const shownHand = finalHand ?? deal?.hand ?? null;
+  const shownHand = state?.finalHand ?? state?.hand ?? null;
   const heldCount = holds.filter(Boolean).length;
+  const finalHand = state?.finalHand ?? null;
+  const category = state?.category ?? null;
 
   const primaryAction = inHoldPhase ? (
     <Button variant="primary" size="lg" fullWidth onClick={exchangeCards} iconLeft={<RefreshCw className="size-4" aria-hidden="true" />}>

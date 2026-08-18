@@ -22,6 +22,13 @@
       "when": 1787041372624,
       "tag": "0002_illegal_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787047540539,
+      "tag": "0003_dazzling_killraven",
+      "breakpoints": true
     }
   ]
 }

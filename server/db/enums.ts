@@ -101,3 +101,12 @@ export type LedgerEntryType = (typeof LEDGER_ENTRY_TYPE_VALUES)[number];
  */
 export const GAME_ROUND_STATUS_VALUES = ["open", "settled", "voided"] as const;
 export type GameRoundStatus = (typeof GAME_ROUND_STATUS_VALUES)[number];
+
+/**
+ * Zulässige Spieleraktionen der drei interaktiven Engines (Phase 3b, Auftrag §1/§4). Eine
+ * Aktion gehört fest zu genau einer Engine (z. B. „split" nur Blackjack) — welche davon im
+ * aktuellen Rundenzustand erlaubt ist, prüft server/rounds/interactive/*-adapter.ts, nicht
+ * dieser CHECK. Der CHECK verhindert nur offensichtlich unsinnige Werte in der Spalte selbst.
+ */
+export const GAME_ROUND_ACTION_VALUES = ["hit", "stand", "double", "split", "reveal", "cashOut", "draw"] as const;
+export type GameRoundActionName = (typeof GAME_ROUND_ACTION_VALUES)[number];

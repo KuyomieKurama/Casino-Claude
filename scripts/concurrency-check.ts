@@ -25,11 +25,17 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as authSchema from "../server/db/auth-schema";
 import * as catalogSchema from "../server/db/schema";
+import type { EngineKey } from "../server/db/enums";
 import { PgGameModeRepository } from "../server/repositories/game-mode-repository";
 import { debitForStake, findWallet, insertWalletIfMissing } from "../server/repositories/wallet-repository";
 import { sumLedgerAmountForUser } from "../server/repositories/ledger-repository";
 import { insertOpenRound } from "../server/repositories/game-round-repository";
+import { findActionsForRound } from "../server/repositories/game-round-action-repository";
+import { listLedgerEntries } from "../server/repositories/ledger-repository";
 import { startNonInteractiveRound } from "../server/rounds/round-service";
+import { startInteractiveRound } from "../server/rounds/interactive-round-service";
+import { applyRoundAction } from "../server/rounds/round-action-service";
+import { START_BALANCE_MINOR } from "../lib/constants";
 
 const schema = { ...catalogSchema, ...authSchema };
 type Db = ReturnType<typeof drizzle<typeof schema>>;
@@ -53,7 +59,7 @@ function uniqueId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${counter}`;
 }
 
-async function seedCatalogFixture(db: Db, modeId: string): Promise<void> {
+async function seedCatalogFixture(db: Db, modeId: string, engineKey: EngineKey = "dice"): Promise<void> {
   const providerId = uniqueId("provider");
   const gameId = uniqueId("game");
   await db.insert(catalogSchema.provider).values({ id: providerId, name: "Nebenläufigkeitstest" });
@@ -76,7 +82,7 @@ async function seedCatalogFixture(db: Db, modeId: string): Promise<void> {
     key: "standard",
     label: "Standard",
     kind: "variant",
-    engineKey: "dice",
+    engineKey,
     paytableKey: null,
     minBetMinor: 1,
     maxBetMinor: 1_000_000,
@@ -182,6 +188,64 @@ async function checkFullRoundConcurrency(db: Db): Promise<boolean> {
   return ok;
 }
 
+/**
+ * Test D (Phase 3b, Auftrag §8): zwei gleichzeitige Spieleraktionen auf DERSELBEN interaktiven
+ * Runde (Blackjack, "double" — beide Versuche wollen als Erste die Position seq=1 belegen, wie
+ * ein Doppelklick oder zwei offene Tabs). `SELECT … FOR UPDATE` auf `game_round`
+ * (game-round-repository.ts::findRoundForUpdate) serialisiert die beiden Transaktionen — der
+ * Zusatzeinsatz darf höchstens EINMAL gebucht werden, der zweite Versuch muss sauber abgelehnt
+ * werden (kein Absturz, kein Teilzustand, kein doppelter Ledger-Eintrag).
+ *
+ * Natürlicher Blackjack schließt "double" aus (die Runde ist dann schon fertig) — bei einem
+ * echten, ungemockten Seed lässt sich das nicht vorab erzwingen, deshalb ein kleiner Retry über
+ * mehrere frische Runden, bis ein Versuchspaar tatsächlich um dieselbe Position konkurriert.
+ */
+async function checkInteractiveActionRace(db: Db): Promise<boolean> {
+  console.log("\n=== Test D: zwei gleichzeitige Aktionen (Blackjack „double\") auf derselben Runde ===");
+  console.log("(server/rounds/round-action-service.ts::applyRoundAction, game-round-repository.ts::findRoundForUpdate)");
+
+  const userId = uniqueId("user-d");
+  await db.insert(authSchema.user).values({ id: userId, name: "Test D", email: `${userId}@example.com` });
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const modeId = uniqueId(`mode-d${attempt}`);
+    await seedCatalogFixture(db, modeId, "blackjack");
+    const stakeMinor = 100;
+    const started = await startInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor, idempotencyKey: uniqueId(`start-d${attempt}`) });
+    if (!started.ok || started.data.status !== "open") continue; // natürlicher Blackjack — neue Runde versuchen
+
+    const roundId = started.data.roundId;
+    const [a, b] = await Promise.all([
+      applyRoundAction(db, { userId, roundId, seq: 1, action: "double", payload: {} }),
+      applyRoundAction(db, { userId, roundId, seq: 1, action: "double", payload: {} }),
+    ]);
+    if (!a.ok && !b.ok) continue; // beide abgelehnt (z. B. Guthaben) — neue Runde versuchen, kein Nachweis
+
+    const successCount = [a, b].filter((r) => r.ok).length;
+    const actions = await findActionsForRound(db, roundId);
+    // Zwei demo_bet-Buchungen mit dieser roundId sind KORREKT: die eine aus dem Rundenstart
+    // (Grundeinsatz) plus höchstens eine weitere aus "double" — nicht "genau 1", wie ein naiver
+    // Filter nahelegen würde. Der belastbare Nachweis ist der SALDO: er darf nur um genau
+    // Grundeinsatz + EINEN Zusatzeinsatz gesunken sein, nie um zwei Zusatzeinsätze.
+    const bookings = (await listLedgerEntries(db, userId, 20)).filter((e) => e.roundId === roundId && e.type === "demo_bet");
+    const wallet = await findWallet(db, userId);
+    const expectedDemoBalance = START_BALANCE_MINOR - stakeMinor - stakeMinor; // Grundeinsatz + genau ein Zusatzeinsatz
+
+    console.log(`Versuch ${attempt + 1}: ${successCount} von 2 gleichzeitigen "double"-Aufrufen angenommen.`);
+    console.log(`Aktionsprotokoll der Runde: ${actions.length} Zeile(n) (erwartet: 1 — nur EIN "double" wurde tatsächlich angewendet).`);
+    console.log(`demo_bet-Buchungen dieser Runde insgesamt: ${bookings.length} (erwartet: 2 — Grundeinsatz + ein Zusatzeinsatz).`);
+    console.log(`Saldo danach: ${wallet?.demoBalanceMinor} (erwartet: ${expectedDemoBalance} — NICHT ${expectedDemoBalance - stakeMinor}, das wäre eine doppelte Buchung).`);
+
+    const ok = successCount === 1 && actions.length === 1 && bookings.length === 2 && wallet?.demoBalanceMinor === expectedDemoBalance;
+    console.log(ok ? "ERGEBNIS: BESTANDEN" : "ERGEBNIS: FEHLGESCHLAGEN");
+    return ok;
+  }
+
+  console.log("Kein Versuch mit tatsächlicher Konkurrenz um dieselbe Position zustande gekommen (zu viele natürliche Blackjacks).");
+  console.log("ERGEBNIS: FEHLGESCHLAGEN (kein Nachweis erbracht)");
+  return false;
+}
+
 async function main(): Promise<void> {
   const pool = new Pool({ connectionString: requireDatabaseUrl() });
   const db = drizzle(pool, { schema });
@@ -189,7 +253,8 @@ async function main(): Promise<void> {
     const a = await checkFundExhaustion(db);
     const b = await checkOpenRoundRace(db);
     const c = await checkFullRoundConcurrency(db);
-    const allOk = a && b && c;
+    const d = await checkInteractiveActionRace(db);
+    const allOk = a && b && c && d;
     console.log(`\nGesamtergebnis: ${allOk ? "ALLE NEBENLÄUFIGKEITSTESTS BESTANDEN" : "MINDESTENS EIN TEST FEHLGESCHLAGEN"}`);
     process.exitCode = allOk ? 0 : 1;
   } finally {

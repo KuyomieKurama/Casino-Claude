@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { createTestDatabase, seedMinimalCatalog, type TestDatabase } from "@/server/db/test-harness";
 import { user } from "@/server/db/auth-schema";
 import { PgGameModeRepository } from "./game-mode-repository";
-import { findByIdempotencyKey, insertOpenRound, settleRound } from "./game-round-repository";
+import { findByIdempotencyKey, findRoundForUpdate, insertOpenRound, settleRound } from "./game-round-repository";
 
 async function seedFixture(db: TestDatabase, userId = "u1") {
   const { gameId } = await seedMinimalCatalog(db);
@@ -136,5 +136,27 @@ describe("settleRound", () => {
     await settleRound(db, "r1", { outcomeKey: "win", returnMinor: 250, transcript: {} });
 
     await expect(settleRound(db, "r1", { outcomeKey: "win", returnMinor: 250, transcript: {} })).rejects.toThrow();
+  });
+});
+
+describe("findRoundForUpdate", () => {
+  test("liefert die Runde (innerhalb einer Transaktion, mit Zeilensperre)", async () => {
+    const db = await createTestDatabase();
+    const { userId, modeId } = await seedFixture(db);
+    await insertOpenRound(db, { id: "r1", userId, gameModeId: modeId, stakeMinor: 100, seed: 1, maxReturnMinor: 300, idempotencyKey: "idem-1", transcript: {} });
+
+    const found = await db.transaction((tx) => findRoundForUpdate(tx, "r1"));
+
+    expect(found?.id).toBe("r1");
+    expect(found?.status).toBe("open");
+  });
+
+  test("liefert null für eine unbekannte Runden-ID", async () => {
+    const db = await createTestDatabase();
+    await seedFixture(db);
+
+    const found = await db.transaction((tx) => findRoundForUpdate(tx, "does-not-exist"));
+
+    expect(found).toBeNull();
   });
 });

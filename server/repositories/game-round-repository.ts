@@ -98,6 +98,25 @@ export async function findByIdempotencyKey(db: AppDatabase, userId: string, idem
   return row ? toRecord(row) : null;
 }
 
+/**
+ * Liest eine Runde MIT Zeilensperre (`SELECT … FOR UPDATE`) — die Serialisierung für
+ * gleichzeitige Spieleraktionen auf DERSELBEN Runde (Phase 3b, Auftrag §8: „zwei gleichzeitige
+ * Aktionen auf derselben Runde führen nicht zu doppelter Buchung"). Anders als beim Einsatz
+ * (bedingtes UPDATE auf `wallet`) gibt es hier keinen einzelnen Zahlenvergleich, der die
+ * Bedingung trägt — der Rundenzustand entsteht erst aus dem Wiederabspielen des Aktionsprotokolls
+ * (server/rounds/round-action-service.ts). Die Zeilensperre auf `game_round` serialisiert diese
+ * Ableitung: eine zweite, gleichzeitige Transaktion für dieselbe `roundId` wartet an dieser
+ * Anweisung, bis die erste committet oder zurückrollt, und sieht danach garantiert das
+ * vollständige, bereits eingefügte Aktionsprotokoll der ersten — kein verlorenes Update, keine
+ * zwei Transaktionen, die denselben nächsten `seq`-Wert gleichzeitig für frei halten. Muss
+ * innerhalb von `db.transaction(...)` aufgerufen werden — außerhalb einer Transaktion hat
+ * `FOR UPDATE` keine über die einzelne Anweisung hinausreichende Wirkung.
+ */
+export async function findRoundForUpdate(db: AppDatabase, roundId: string): Promise<GameRoundRecord | null> {
+  const [row] = await db.select().from(gameRound).where(eq(gameRound.id, roundId)).for("update").limit(1);
+  return row ? toRecord(row) : null;
+}
+
 export interface SettleRoundInput {
   outcomeKey: string;
   returnMinor: CreditsMinor;

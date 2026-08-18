@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { Info, Layers, Play } from "lucide-react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { formatCredits, formatCreditsWithUnit } from "@/lib/formatters";
@@ -8,28 +8,23 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
-import {
-  applyAction,
-  availableActions,
-  beginRound,
-  handValue,
-  isBlackjack,
-  maxReturnFor,
-  roundSettlement,
-  type BlackjackAction,
-  type Card,
-  type PlayerHand,
-  type RoundState,
-  type Suit,
-} from "./blackjack-logic";
+import { RANKS, SUITS, availableActions, handValue, isBlackjack, type BlackjackAction, type Card, type PlayerHand, type RoundState, type Suit } from "./blackjack-logic";
 
 /**
  * Blackjack — Classic, VIP und Live-Demo teilen dieselbe Fachlogik und dieselbe Oberfläche.
- * Interaktive Runde: das Ergebnis steht erst nach den Entscheidungen der spielenden Person fest.
- * Deshalb useRound({ interactive: true }) mit deklarierter Obergrenze und Abschluss über settle().
+ * Seit Phase 3b vollständig serverseitig aufgelöst: `useRound({ server: true, interactive: true })`
+ * ruft `POST /api/rounds/interactive-start` (Austeilen) und `POST /api/rounds/:id/actions`
+ * (hit/stand/double/split) auf. `r.interactiveState` ist GENAU das, was der Server preisgibt —
+ * solange die Runde läuft, enthält die verdeckte Dealerkarte NIE mehr als die eine offene Karte
+ * (server/rounds/interactive/blackjack-adapter.ts::blackjackPublicView).
+ *
+ * `availableActions()`/`handValue()`/`isBlackjack()` aus blackjack-logic.ts sind reine Funktionen,
+ * die nur `phase`, `hands`, `activeHand` bzw. einzelne Kartenlisten lesen — nie den Kartenschlitten
+ * oder den Seed. Der Cast auf `RoundState` unten ist deshalb sicher (siehe Kommentar dort): die
+ * Oberfläche bekommt trotzdem nie mehr Informationen, als der Server tatsächlich sendet.
  *
  * Bewusst NICHT vorhanden (Regel 7):
- *  - kein Autoplay, keine Wiederhol-Automatik — jede Aktion ist ein eigener Klick
+ *  - kein Autoplay, keine Wiederhol-Automatik — jede Aktion ist ein eigener Serveraufruf
  *  - kein Loss Disguised as Win — die Shell zeigt die Nettoveränderung, nichts wird gefeiert
  *  - keine Strategieempfehlung — die Regelerklärung nennt nur Regeln, nie „richtige“ Entscheidungen
  *  - kein knapp-verfehlt-Effekt: 22 wird wie jedes andere Überkaufen behandelt
@@ -49,8 +44,55 @@ const ACTION_LABEL: Record<BlackjackAction, string> = {
   split: "Teilen",
 };
 
-/** Wartezeit, in der der Dealer aufdeckt und zieht; solange sind alle Aktionen inaktiv. */
-const DEALER_DELAY_MS = 900;
+const RESULT_TEXT: Record<string, string> = {
+  blackjack: "Blackjack, Auszahlung 3:2",
+  win: "gewonnen",
+  push: "Push, Einsatz zurück",
+  lose: "verloren",
+  bust: "überkauft",
+  "dealer-blackjack": "verloren, Dealer hat Blackjack",
+};
+
+/** Sichtbarer Rundenzustand, wie ihn server/rounds/interactive/blackjack-adapter.ts::blackjackPublicView() liefert. */
+type BlackjackServerState = {
+  dealer: Card[];
+  hands: PlayerHand[];
+  activeHand: number;
+  phase: "player" | "done";
+  baseBetMinor: number;
+};
+
+function isCard(value: unknown): value is Card {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.rank === "string" && (RANKS as readonly string[]).includes(v.rank) && typeof v.suit === "string" && (SUITS as readonly string[]).includes(v.suit);
+}
+
+function isPlayerHand(value: unknown): value is PlayerHand {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    Array.isArray(v.cards) &&
+    v.cards.every(isCard) &&
+    typeof v.betMinor === "number" &&
+    typeof v.doubled === "boolean" &&
+    typeof v.fromSplit === "boolean" &&
+    typeof v.splitAces === "boolean" &&
+    typeof v.done === "boolean"
+  );
+}
+
+/** Nie vertrauenswürdige externe Eingabe ungeprüft durchreichen (coding-style.md). */
+function parseBlackjackServerState(value: unknown): BlackjackServerState | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  if (!Array.isArray(v.dealer) || !v.dealer.every(isCard)) return null;
+  if (!Array.isArray(v.hands) || !v.hands.every(isPlayerHand)) return null;
+  if (typeof v.activeHand !== "number") return null;
+  if (v.phase !== "player" && v.phase !== "done") return null;
+  if (typeof v.baseBetMinor !== "number") return null;
+  return { dealer: v.dealer as Card[], hands: v.hands as PlayerHand[], activeHand: v.activeHand, phase: v.phase, baseBetMinor: v.baseBetMinor };
+}
 
 function handLabel(cards: readonly Card[]): string {
   const { total, soft } = handValue(cards);
@@ -97,124 +139,47 @@ function CardRow({ cards, hiddenIndex }: { cards: readonly Card[]; hiddenIndex?:
 }
 
 export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameEngineViewProps) {
-  const [round, setRound] = useState<RoundState | null>(null);
-  const [dealerBusy, setDealerBusy] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  /** Zwischenspeicher: beginRound() läuft in resolve(), verwendet wird es erst nach der Wallet-Buchung. */
-  const prepared = useRef<RoundState | null>(null);
-  const dealerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const resolve = useCallback(({ stakeMinor, seed }: { stakeMinor: number; seed: number }) => {
-    const state = beginRound(seed, stakeMinor);
-    prepared.current = state;
-    return {
-      outcomeKey: "in-progress",
-      outcomeLabel: "Runde läuft",
-      // Beim Start ist noch nichts gewonnen; verbindlich ist allein die Obergrenze.
-      returnMinor: 0,
-      maxReturnMinor: maxReturnFor(stakeMinor),
-    };
-  }, []);
 
   const r = useRound({
     game,
-    resolve,
-    roundDurationMs: DEALER_DELAY_MS,
+    roundDurationMs: 900,
     interactive: true,
+    server: true,
     ...(simulateLoadError === undefined ? {} : { simulateLoadError }),
     ...(onStatusChange === undefined ? {} : { onStatusChange }),
     defaultStakeMinor: 100,
   });
 
-  const { settle } = r;
-
-  useEffect(() => {
-    return () => {
-      if (dealerTimer.current) clearTimeout(dealerTimer.current);
-    };
-  }, []);
-
-  const finish = useCallback(
-    (state: RoundState) => {
-      const s = roundSettlement(state);
-      settle({
-        returnMinor: s.returnMinor,
-        outcomeKey: s.outcomeKey,
-        outcomeLabel: s.outcomeLabel,
-        detail: {
-          totalBetMinor: s.totalBetMinor,
-          extraBetMinor: s.extraBetMinor,
-          grossReturnMinor: s.grossReturnMinor,
-          hands: s.results.map((h) => h.kind),
-          dealerTotal: handValue(state.dealer).total,
-        },
-      });
-    },
-    [settle],
-  );
-
-  /** Dealer deckt auf und zieht; solange bleiben alle Aktionen inaktiv. */
-  const runDealer = useCallback(
-    (state: RoundState) => {
-      setDealerBusy(true);
-      dealerTimer.current = setTimeout(() => {
-        setDealerBusy(false);
-        finish(state);
-      }, DEALER_DELAY_MS);
-    },
-    [finish],
-  );
-
-  const deal = useCallback(() => {
-    const started = r.start();
-    const state = prepared.current;
-    if (!started || !state) return;
-    prepared.current = null;
-    setRound(state);
-    if (state.phase === "done") runDealer(state);
-  }, [r, runDealer]);
-
-  /**
-   * Führt eine Aktion aus. Verdoppeln und Teilen erhöhen den Einsatz der Runde: Der Zusatzbetrag
-   * wird ZUERST über den Wallet-Reducer gebucht (eigene demo_bet-Buchung mit derselben Runden-ID).
-   * Nur wenn das gelingt, ändert sich der Spielzustand — bei fehlender Deckung bleibt der Tisch
-   * unverändert und die Shell zeigt die Ablehnung am Einsatzfeld an.
-   */
-  const act = useCallback(
-    (action: BlackjackAction) => {
-      if (!round || round.phase !== "player" || dealerBusy) return;
-      const hand = round.hands[round.activeHand];
-      if (!hand) return;
-      // Verdoppeln kostet den Einsatz dieser Hand noch einmal, Teilen den Grundeinsatz für die zweite Hand.
-      const additionalMinor = action === "double" ? hand.betMinor : action === "split" ? round.baseBetMinor : 0;
-      if (additionalMinor > 0 && !r.raiseStake(additionalMinor)) return;
-      const next = applyAction(round, action);
-      setRound(next);
-      if (next.phase === "done") runDealer(next);
-    },
-    [round, dealerBusy, runDealer, r],
-  );
-
-  const actions = round && !dealerBusy ? availableActions(round) : [];
+  const state = parseBlackjackServerState(r.interactiveState);
   const roundOpen = r.status === "playing";
-  const settlement = useMemo(
-    () => (round && round.phase === "done" && !dealerBusy && r.status === "finished" ? roundSettlement(round) : null),
-    [round, dealerBusy, r.status],
-  );
-  const currentTotalBet = round ? round.hands.reduce((sum, h) => sum + h.betMinor, 0) : r.stake;
-  const dealerHidden = round !== null && round.phase === "player";
+  // Server hat bereits abgerechnet (phase "done"), aber die Animationsverzögerung läuft noch —
+  // solange bleiben alle Aktionen inaktiv (ersetzt den früheren lokalen runDealer()-Timer).
+  const dealerBusy = roundOpen && state?.phase === "done";
+  const dealerHidden = state !== null && state.phase === "player";
 
-  const controls = round ? (
+  const deal = () => {
+    void r.startInteractive();
+  };
+
+  const act = (action: BlackjackAction) => {
+    if (!state || state.phase !== "player" || dealerBusy) return;
+    void r.sendAction(action, {});
+  };
+
+  // availableActions() liest ausschließlich phase/hands/activeHand (siehe Dateikommentar) — der
+  // Cast ist sicher, weil die Funktion die übrigen RoundState-Felder (shoe, seed, drawIndex)
+  // beweisbar nie anfasst; die Oberfläche selbst bekommt sie trotzdem nie vom Server.
+  const actions = state && state.phase === "player" && !dealerBusy ? availableActions(state as unknown as RoundState) : [];
+  const handResults = r.status === "finished" && Array.isArray(r.last?.detail?.hands) ? (r.last.detail.hands as string[]) : null;
+  const currentTotalBet = state ? state.hands.reduce((sum, h) => sum + h.betMinor, 0) : r.stake;
+  const extraBetMinor = state ? currentTotalBet - state.baseBetMinor : 0;
+
+  const controls = state ? (
     <div role="group" aria-label="Spielaktionen" className="space-y-2">
       <div className="grid grid-cols-2 gap-2">
         {(["hit", "stand", "double", "split"] as const).map((action) => (
-          <Button
-            key={action}
-            variant="outline"
-            onClick={() => act(action)}
-            disabled={!actions.includes(action)}
-            className="min-h-11"
-          >
+          <Button key={action} variant="outline" onClick={() => act(action)} disabled={!actions.includes(action)} className="min-h-11">
             {ACTION_LABEL[action]}
           </Button>
         ))}
@@ -222,8 +187,8 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
       <p className="text-xs text-muted" aria-live="polite">
         {dealerBusy
           ? "Der Dealer deckt auf und zieht. Aktionen sind währenddessen inaktiv."
-          : round.phase === "player"
-            ? `Hand ${round.activeHand + 1} von ${round.hands.length} ist am Zug.`
+          : state.phase === "player"
+            ? `Hand ${state.activeHand + 1} von ${state.hands.length} ist am Zug.`
             : "Die Runde ist abgeschlossen."}
       </p>
     </div>
@@ -275,46 +240,44 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
 
         <h3 className="sr-only">Spieltisch</h3>
 
-        {round ? (
+        {state ? (
           <div className="space-y-4 rounded-card border border-border-subtle bg-base p-3 sm:p-4">
             {/* Dealer */}
             <section aria-label="Hand des Dealers" className="space-y-2">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h4 className="text-sm font-medium text-primary">Dealer</h4>
                 <p className="tabular text-sm text-muted">
-                  {dealerHidden
-                    ? `Sichtbar: ${handValue(round.dealer.slice(0, 1)).total}`
-                    : `Wert: ${handLabel(round.dealer)}`}
+                  {dealerHidden ? `Sichtbar: ${handValue(state.dealer.slice(0, 1)).total}` : `Wert: ${handLabel(state.dealer)}`}
                 </p>
               </div>
-              <CardRow cards={round.dealer} {...(dealerHidden ? { hiddenIndex: 1 } : {})} />
+              <CardRow cards={state.dealer} {...(dealerHidden ? { hiddenIndex: 1 } : {})} />
             </section>
 
             {/* Spielerhände */}
             <section aria-label="Deine Hände" className="space-y-3">
-              {round.hands.map((hand, i) => (
+              {state.hands.map((hand, i) => (
                 <PlayerHandView
                   key={i}
                   hand={hand}
                   index={i}
-                  count={round.hands.length}
-                  active={round.phase === "player" && round.activeHand === i && !dealerBusy}
-                  result={settlement?.results[i]?.kind}
+                  count={state.hands.length}
+                  active={state.phase === "player" && state.activeHand === i && !dealerBusy}
+                  result={handResults?.[i]}
                 />
               ))}
             </section>
 
             <p className="tabular text-sm text-muted">
               Effektiver Gesamteinsatz dieser Runde: {formatCredits(currentTotalBet)} Credits
-              {currentTotalBet > round.baseBetMinor
-                ? ` (Grundeinsatz ${formatCredits(round.baseBetMinor)} + Zusatz ${formatCredits(currentTotalBet - round.baseBetMinor)})`
+              {currentTotalBet > state.baseBetMinor
+                ? ` (Grundeinsatz ${formatCredits(state.baseBetMinor)} + Zusatz ${formatCredits(currentTotalBet - state.baseBetMinor)})`
                 : ""}
             </p>
 
-            {settlement && settlement.extraBetMinor > 0 ? (
+            {r.status === "finished" && extraBetMinor > 0 ? (
               <p className="tabular text-sm text-muted">
-                Davon {formatCredits(settlement.extraBetMinor)} Credits Zusatzeinsatz — als eigene Buchung mit
-                derselben Runden-ID in der Historie.
+                Davon {formatCredits(extraBetMinor)} Credits Zusatzeinsatz — als eigene Buchung mit derselben
+                Runden-ID in der Historie.
               </p>
             ) : null}
           </div>
@@ -411,15 +374,6 @@ function PlayerHandView({
     </div>
   );
 }
-
-const RESULT_TEXT: Record<string, string> = {
-  blackjack: "Blackjack, Auszahlung 3:2",
-  win: "gewonnen",
-  push: "Push, Einsatz zurück",
-  lose: "verloren",
-  bust: "überkauft",
-  "dealer-blackjack": "verloren, Dealer hat Blackjack",
-};
 
 /**
  * Statische Illustration eines Tischausschnitts für die Live-Demo (Regel 8):

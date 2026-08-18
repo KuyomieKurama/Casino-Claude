@@ -11,6 +11,7 @@ import { createSeed } from "@/lib/rng";
 import { createId, nowIso } from "@/lib/ids";
 import { GAME_LOAD_MS } from "@/lib/constants";
 import { postRoundStart } from "./round-api-client";
+import { postInteractiveRoundStart, postRoundAction, type RoundApiWalletSnapshot } from "./interactive-round-api-client";
 
 export type LastRoundResult = {
   roundId: string;
@@ -28,20 +29,26 @@ export type LastRoundResult = {
 export type UseRoundOptions = {
   game: Game;
   /**
-   * Löst die Runde auf — reine Funktion aus Seed und Einsatz. Nur für lokal aufgelöste Runden
-   * (interaktive Engines: Blackjack, Mines, Video Poker). Bei `server: true` entfällt sie —
-   * das Ergebnis kommt von POST /api/rounds/start, niemals aus einer lokalen Berechnung
-   * (Phase 3a: Client kann Ergebnis und Guthaben nicht mehr selbst bestimmen).
+   * Löst die Runde auf — reine Funktion aus Seed und Einsatz. Nur für den ÄLTEREN, LOKALEN
+   * interaktiven Pfad (`interactive: true` OHNE `server: true`) — inzwischen ungenutzt, da
+   * Blackjack, Mines und Video Poker seit Phase 3b serverseitig laufen (`interactive: true` UND
+   * `server: true`, siehe `startInteractive()`/`sendAction()` unten). Bleibt vorerst erhalten,
+   * falls ein künftiges, rein lokales Demo-Szenario ohne Datenbank sie wieder braucht.
    */
   resolve?: (input: { stakeMinor: number; seed: number; betId?: string }) => EngineOutcome;
   /** Dauer der Rundenanimation in ms. */
   roundDurationMs: number;
-  /** true, wenn das Ergebnis erst durch Spielerentscheidungen feststeht (Blackjack, Mines). */
+  /** true, wenn das Ergebnis erst durch Spielerentscheidungen feststeht (Blackjack, Mines, Video Poker). */
   interactive?: boolean;
   /**
-   * Phase 3a: nicht-interaktive Runde wird serverseitig aufgelöst und gebucht (Slots, Roulette,
-   * Baccarat, Dice, Plinko, Wheel). Seed entsteht ausschließlich serverseitig; der Client sendet
-   * nur Modus, Einsatz und Wettauswahl (`betId`/`betPayload`), niemals ein Ergebnis.
+   * Phase 3a (nicht-interaktiv) / Phase 3b (interaktiv): die Runde wird serverseitig aufgelöst
+   * und gebucht. Seed entsteht ausschließlich serverseitig; der Client sendet nur Modus, Einsatz,
+   * Wettauswahl und — bei interaktiven Runden — Spieleraktionen, niemals ein Ergebnis.
+   *  - `server: true, interactive: false` (Slots, Roulette, Baccarat, Dice, Plinko, Wheel):
+   *    `play()` → POST /api/rounds/start, Ergebnis liegt sofort fest.
+   *  - `server: true, interactive: true` (Blackjack, Mines, Video Poker): `startInteractive()` →
+   *    POST /api/rounds/interactive-start (Runde bleibt meist offen), `sendAction()` → POST
+   *    /api/rounds/:id/actions für jeden Spielzug, bis der Server die Runde abschließt.
    */
   server?: boolean;
   simulateLoadError?: boolean;
@@ -91,6 +98,27 @@ export function useRound({
    * eigener, sofort aktueller Sperrschalter.
    */
   const serverRoundPending = useRef(false);
+  /**
+   * Phase 3b (interaktive Server-Runden): läuft eine offene Runde, liegt hier die Runden-ID und
+   * die vom Client vorzugebende nächste Aktionsposition (`seq`, siehe round-action-service.ts,
+   * „UNIQUE (round_id, seq) sichert Idempotenz"). `null`, solange keine Runde offen ist ODER die
+   * Runde bereits abgeschlossen wurde — danach sind keine weiteren Aktionen mehr zulässig.
+   */
+  const interactiveRound = useRef<{ roundId: string; nextSeq: number } | null>(null);
+  /**
+   * Ob die laufende interaktive Runde eine Freirunde ist — die Aktionsantwort selbst trägt das
+   * nicht (server/rounds/round-action-service.ts::ApplyActionSettledData), nur die Startantwort.
+   * Wird bei `startInteractive()` gesetzt und bei Abschluss ausgewertet (Freirunden-Zähler).
+   */
+  const interactiveWasFreeSpin = useRef(false);
+  /** Eigener Sperrschalter wie `serverRoundPending` — derselbe Grund (siehe dortiger Kommentar). */
+  const interactiveActionPending = useRef(false);
+  /**
+   * Sichtbarer Zustand der laufenden interaktiven Server-Runde — GENAU das, was der Server in
+   * `state` liefert (z. B. bei Mines: aufgedeckte Felder und aktueller Multiplikator, NIE die
+   * übrigen Minenpositionen vor Rundenende). Nur die jeweilige Spieloberfläche kennt die Form.
+   */
+  const [interactiveState, setInteractiveState] = useState<unknown>(null);
 
   const setStatus = useCallback(
     (s: RoundStatus) => {
@@ -291,6 +319,146 @@ export function useRound({
     }
   }, [canStart, clearRejection, game.id, stake, useFreeSpin, betId, betPayload, roundDurationMs, syncServerWallet, setStatus]);
 
+  /**
+   * Gemeinsamer Abschluss für `startInteractive()`/`sendAction()`, sobald die Server-Antwort
+   * `status: "settled"` meldet — dieselbe Animationsdauer-Choreografie wie `playServer()`: das
+   * Ergebnis steht sofort fest, wird aber erst nach `roundDurationMs` angezeigt.
+   */
+  const finishInteractive = useCallback(
+    (data: {
+      roundId: string;
+      returnMinor: number;
+      netMinor: number;
+      outcomeKey: string;
+      outcomeLabel: string;
+      seed: number;
+      usedFreeSpin: boolean;
+      stakeMinor: number;
+      wallet: RoundApiWalletSnapshot;
+      detail?: Record<string, unknown>;
+    }) => {
+      interactiveRound.current = null;
+      syncServerWallet(data.wallet);
+      addTimer(
+        setTimeout(() => {
+          setLast({
+            roundId: data.roundId,
+            outcomeKey: data.outcomeKey,
+            outcomeLabel: data.outcomeLabel,
+            stakeMinor: data.stakeMinor,
+            returnMinor: data.returnMinor,
+            netMinor: data.netMinor,
+            seed: data.seed,
+            usedFreeSpin: data.usedFreeSpin,
+            ...(data.detail ? { detail: data.detail } : {}),
+          });
+          if (data.usedFreeSpin && data.wallet.freeSpins <= 0) setUseFreeSpin(false);
+          setStatus("finished");
+        }, roundDurationMs),
+      );
+    },
+    [roundDurationMs, syncServerWallet, setStatus],
+  );
+
+  /**
+   * Startet eine interaktive Server-Runde (Blackjack, Mines, Video Poker; Phase 3b). Anders als
+   * `playServer()` ist die Runde danach meist noch OFFEN — `interactiveState` zeigt exakt das, was
+   * der Server zu diesem Zeitpunkt preisgibt (nie mehr, siehe interactive-round-api-client.ts).
+   * Einzige Ausnahme: ein natürlicher Blackjack beim Austeilen ist sofort `settled`.
+   * Rückgabe: der sichtbare Zustand (für die Engine, die z. B. direkt danach die ausgeteilten
+   * Karten zeigen will), oder `null` bei Ablehnung/Doppelklick.
+   */
+  const startInteractive = useCallback(async (): Promise<unknown | null> => {
+    if (!canStart || interactiveActionPending.current) return null;
+    interactiveActionPending.current = true;
+    setInlineError(null);
+    clearRejection();
+    setLast(null);
+    setInteractiveState(null);
+    setStatus("playing");
+    try {
+      const result = await postInteractiveRoundStart({
+        gameModeId: game.id,
+        stakeMinor: stake,
+        idempotencyKey: createId("idem"),
+        useFreeSpin,
+        ...(betId === undefined ? {} : { betId }),
+      });
+      if (!result.ok) {
+        setStatus("ready");
+        setInlineError({ code: result.code, message: rejectionMessage(result.code), at: nowIso() });
+        return null;
+      }
+      setInteractiveState(result.data.state);
+      if (result.data.status === "settled") {
+        finishInteractive({
+          roundId: result.data.roundId,
+          returnMinor: result.data.returnMinor,
+          netMinor: result.data.netMinor,
+          outcomeKey: result.data.outcomeKey,
+          outcomeLabel: result.data.outcomeLabel,
+          seed: result.data.seed,
+          usedFreeSpin: result.data.usedFreeSpin,
+          stakeMinor: result.data.stakeMinor,
+          wallet: result.data.wallet,
+          ...(result.data.detail ? { detail: result.data.detail } : {}),
+        });
+        return result.data.state;
+      }
+      syncServerWallet(result.data.wallet);
+      interactiveWasFreeSpin.current = result.data.usedFreeSpin;
+      interactiveRound.current = { roundId: result.data.roundId, nextSeq: result.data.nextSeq };
+      return result.data.state;
+    } finally {
+      interactiveActionPending.current = false;
+    }
+  }, [canStart, clearRejection, game.id, stake, useFreeSpin, betId, syncServerWallet, finishInteractive, setStatus]);
+
+  /**
+   * Sendet eine Spieleraktion der laufenden interaktiven Server-Runde (hit, stand, double, split,
+   * reveal, cashOut, draw — je nach Engine). `payload` ist engine-spezifisch (z. B. `{ cell }` bei
+   * Mines) und wird ungeprüft an den Server weitergereicht — die Prüfung übernimmt ausschließlich
+   * der Server (server/rounds/interactive/*-adapter.ts), niemals der Client.
+   * Rückgabe: der neue sichtbare Zustand, oder `null` bei Ablehnung/ohne offene Runde.
+   */
+  const sendAction = useCallback(
+    async (action: string, payload?: unknown): Promise<unknown | null> => {
+      const open = interactiveRound.current;
+      if (!open || interactiveActionPending.current) return null;
+      interactiveActionPending.current = true;
+      setInlineError(null);
+      try {
+        const result = await postRoundAction(open.roundId, { seq: open.nextSeq, action, payload });
+        if (!result.ok) {
+          setInlineError({ code: result.code, message: rejectionMessage(result.code), at: nowIso() });
+          return null;
+        }
+        setInteractiveState(result.data.state);
+        syncServerWallet(result.data.wallet);
+        if (result.data.status === "settled") {
+          finishInteractive({
+            roundId: result.data.roundId,
+            returnMinor: result.data.returnMinor,
+            netMinor: result.data.netMinor,
+            outcomeKey: result.data.outcomeKey,
+            outcomeLabel: result.data.outcomeLabel,
+            seed: result.data.seed,
+            usedFreeSpin: interactiveWasFreeSpin.current,
+            stakeMinor: result.data.stakeMinor,
+            wallet: result.data.wallet,
+            ...(result.data.detail ? { detail: result.data.detail } : {}),
+          });
+          return result.data.state;
+        }
+        interactiveRound.current = { roundId: result.data.roundId, nextSeq: result.data.nextSeq };
+        return result.data.state;
+      } finally {
+        interactiveActionPending.current = false;
+      }
+    },
+    [syncServerWallet, finishInteractive],
+  );
+
   /** Nicht-interaktive Engines: Start und Abschluss nach der Animationsdauer in einem Schritt. */
   const play = useCallback(() => {
     if (server) {
@@ -353,6 +521,12 @@ export function useRound({
     /** Nur für interaktive Engines: liegt eine offene Runde vor? */
     hasOpenRound: () => openRound.current !== null,
     openRoundSeed: () => openRound.current?.seed,
+    // Interaktive Server-Runden (Phase 3b: Blackjack, Mines, Video Poker) — nur relevant bei
+    // `server: true, interactive: true`, siehe UseRoundOptions.server oben.
+    interactiveState,
+    startInteractive,
+    sendAction,
+    hasOpenInteractiveRound: () => interactiveRound.current !== null,
   };
 }
 

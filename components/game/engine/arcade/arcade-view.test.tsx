@@ -10,7 +10,7 @@ import { PlinkoGame } from "./PlinkoGame";
 import { MinesGame } from "./MinesGame";
 import { DiceGame } from "./DiceGame";
 import { WheelGame } from "./WheelGame";
-import { minePositions, MINES_DEFAULT_COUNT } from "./mines-logic";
+import { minePositions, minesMultiplier, minesReturnMinor, MINES_DEFAULT_COUNT, type MinesCount } from "./mines-logic";
 
 /**
  * Rauchtest der vier Oberflächen: Verdrahtung mit useRound und GameShell, nicht das Aussehen.
@@ -27,12 +27,10 @@ function gameById(id: string): Game {
 
 /**
  * Erster Seed, dessen Minenlayout das zuerst geprüfte Feld (Zeile 1, Spalte 1 = Index 0) frei
- * lässt. Der Rundenseed ist sonst zufällig (createSeed() in lib/rng.ts), wodurch das im Test
- * zuerst aufgedeckte Feld je nach Lauf eine Mine treffen konnte — dann erscheint der Text
- * „Mine getroffen" an mehreren Stellen im DOM (Statuszeile, Ergebniszeile, Rundenhistorie) und
- * getByText(/Mine getroffen/) wird mehrdeutig. Gleicher Seed erzeugt laut ENGINE-BRIEF.md
- * immer dasselbe Ergebnis, also lässt sich ein garantiert sicheres erstes Feld vorab bestimmen,
- * statt sich auf den Zufall zu verlassen (analog zu PLAYABLE_SEED in BlackjackGame.test.tsx).
+ * lässt — nur noch für den serverseitigen Fetch-Mock unten gebraucht (Phase 3b: Mines läuft
+ * nicht mehr lokal, der Seed entsteht ausschließlich im Server, siehe mockMinesRoutes()).
+ * Gleicher Seed erzeugt laut ENGINE-BRIEF.md immer dasselbe Ergebnis, also lässt sich ein
+ * garantiert sicheres erstes Feld vorab bestimmen, statt sich auf den Zufall zu verlassen.
  */
 const MINES_SAFE_SEED = (() => {
   for (let seed = 1; seed < 10_000; seed++) {
@@ -40,14 +38,6 @@ const MINES_SAFE_SEED = (() => {
   }
   throw new Error("Kein Seed mit sicherem ersten Feld gefunden.");
 })();
-
-/** Macht createSeed() deterministisch — gleiches Muster wie BlackjackGame.test.tsx. */
-function fixSeed(seed: number) {
-  vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementation(((array: ArrayBufferView) => {
-    new Uint32Array(array.buffer)[0] = seed;
-    return array;
-  }) as typeof globalThis.crypto.getRandomValues);
-}
 
 async function tick(ms: number) {
   await act(async () => {
@@ -100,6 +90,115 @@ function mockRoundResponse(data: {
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     ),
+  );
+}
+
+/**
+ * Mines läuft seit Phase 3b serverseitig (POST /api/rounds/interactive-start, POST
+ * /api/rounds/:id/actions, siehe components/game/engine/useRound.ts). Dieser Mock antwortet mit
+ * genau den Feldern, die server/rounds/interactive/mines-adapter.ts liefert — Minenpositionen und
+ * das getroffene Feld erst NACH Rundenende, wie in der echten Sichtbarkeitsgrenze. Berechnungen
+ * (Multiplikator, Rückgabe) laufen über dieselben unveränderten Funktionen aus mines-logic.ts,
+ * die auch der Server verwendet.
+ */
+function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, startBalanceMinor: number) {
+  const positions = minePositions(seed, mines);
+  let revealed: number[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init: RequestInit) => {
+      const body = init.body ? (JSON.parse(init.body as string) as Record<string, unknown>) : {};
+      const json = (data: unknown) => new Response(JSON.stringify({ success: true, data }), { status: 200, headers: { "content-type": "application/json" } });
+
+      if (url.toString().endsWith("/api/rounds/interactive-start")) {
+        revealed = [];
+        return json({
+          status: "open",
+          roundId: "r-mines-test",
+          gameModeId: "g-mines-demo",
+          stakeMinor,
+          maxReturnMinor: 999_999_999,
+          betKey: `m${mines}`,
+          usedFreeSpin: false,
+          nextSeq: 1,
+          state: { mines, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 25 - mines },
+          wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+        });
+      }
+
+      if (url.toString().endsWith("/actions")) {
+        const action = body.action as string;
+        if (action === "reveal") {
+          const cell = (body.payload as { cell: number }).cell;
+          if (positions.includes(cell)) {
+            return json({
+              status: "settled",
+              roundId: "r-mines-test",
+              nextSeq: revealed.length + 2,
+              stakeMinor,
+              returnMinor: 0,
+              netMinor: -stakeMinor,
+              outcomeKey: "mine",
+              outcomeLabel: `Mine getroffen nach ${revealed.length} Feldern`,
+              seed,
+              state: {
+                mines,
+                status: "hit",
+                revealedCells: revealed,
+                revealedCount: revealed.length,
+                multiplier: minesMultiplier(mines, revealed.length),
+                cellsRemaining: 25 - mines - revealed.length,
+                positions,
+                hitCell: cell,
+              },
+              wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            });
+          }
+          revealed = [...revealed, cell];
+          return json({
+            status: "open",
+            roundId: "r-mines-test",
+            nextSeq: revealed.length + 1,
+            stakeMinor,
+            state: {
+              mines,
+              status: "open",
+              revealedCells: revealed,
+              revealedCount: revealed.length,
+              multiplier: minesMultiplier(mines, revealed.length),
+              cellsRemaining: 25 - mines - revealed.length,
+            },
+            wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          });
+        }
+        if (action === "cashOut") {
+          const returnMinor = minesReturnMinor(stakeMinor, mines, revealed.length);
+          return json({
+            status: "settled",
+            roundId: "r-mines-test",
+            nextSeq: revealed.length + 2,
+            stakeMinor,
+            returnMinor,
+            netMinor: returnMinor - stakeMinor,
+            outcomeKey: "cashout",
+            outcomeLabel: `Ausgezahlt nach ${revealed.length} Feldern`,
+            seed,
+            state: {
+              mines,
+              status: "cashedOut",
+              revealedCells: revealed,
+              revealedCount: revealed.length,
+              multiplier: minesMultiplier(mines, revealed.length),
+              cellsRemaining: 25 - mines - revealed.length,
+              positions,
+              hitCell: null,
+            },
+            wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor + returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          });
+        }
+      }
+      throw new Error(`mockMinesRoutes: unerwarteter Aufruf ${String(url)}`);
+    }),
   );
 }
 
@@ -192,8 +291,12 @@ describe("Arcade-Oberflächen", () => {
 
   it("Mines: Runde starten, Feld aufdecken, auszahlen — der Betrag bleibt in der Obergrenze", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    // Deterministischer Seed statt zufälligem Startseed (Begründung: siehe MINES_SAFE_SEED oben).
-    fixSeed(MINES_SAFE_SEED);
+    const stake = 100;
+    const startBalanceMinor = 100_000;
+    // Deterministischer Seed statt eines vom Server erzeugten Zufallsseeds (Begründung: siehe
+    // MINES_SAFE_SEED oben) — der Mock antwortet mit genau dem Zustand, den ein echter Server bei
+    // diesem Seed liefern würde (Phase 3b: Mines läuft serverseitig, kein lokaler Zufall mehr).
+    mockMinesRoutes(MINES_SAFE_SEED, MINES_DEFAULT_COUNT, stake, startBalanceMinor);
     render(
       <AppProviders>
         <MinesGame game={gameById("g-mines-demo")} />
@@ -201,41 +304,59 @@ describe("Arcade-Oberflächen", () => {
     );
     await tick(800);
     const before = balanceMinor();
-    const stake = 100;
 
     await user.click(screen.getByRole("button", { name: "Runde starten" }));
+    await tick(0); // Promise-Kette (fetch + response.json()) durchlaufen lassen, siehe useRound.interactive-server.test.tsx.
     expect(balanceMinor()).toBe(before - stake);
     // Einsatz ist während der offenen Runde gesperrt.
     expect(screen.getByRole("button", { name: "Einsatz erhöhen" })).toBeDisabled();
 
     const grid = screen.getByRole("group", { name: "Spielfeld" });
-    let revealedSafe = false;
-    for (let cell = 0; cell < 25 && !revealedSafe; cell++) {
-      const row = Math.floor(cell / 5) + 1;
-      const column = (cell % 5) + 1;
-      const button = within(grid).getByRole("button", { name: new RegExp(`^Feld Zeile ${row}, Spalte ${column}`) });
-      if ((button as HTMLButtonElement).disabled) break;
-      await user.click(button);
-      const label = button.getAttribute("aria-label") ?? "";
-      if (label.includes("frei")) revealedSafe = true;
-      else break; // Mine — die Runde ist beendet
-    }
+    // MINES_SAFE_SEED garantiert, dass Feld 0 (Zeile 1, Spalte 1) sicher ist.
+    const button = within(grid).getByRole("button", { name: /^Feld Zeile 1, Spalte 1/ });
+    await user.click(button);
+    await tick(0);
+    expect(button.getAttribute("aria-label")).toContain("frei");
 
-    // MINES_SAFE_SEED garantiert ein freies erstes Feld — bricht der Test hier ab, ist die
-    // Determinismus-Annahme (gleicher Seed ⇒ gleiche Minenpositionen) verletzt.
-    expect(revealedSafe).toBe(true);
+    const cashOut = screen.getByRole("button", { name: /Auszahlen — Rückgabe/ });
+    await user.click(cashOut);
+    await tick(ROUND_DURATION_MS + 50);
+    const after = balanceMinor();
+    expect(after).toBeGreaterThan(before - stake);
+    // Höchstens die Obergrenze (alle 22 freien Felder bei 3 Minen): 2231 × Einsatz
+    expect(after).toBeLessThanOrEqual(before - stake + 2231 * stake);
+    expect(screen.getByRole("button", { name: "Runde starten" })).toBeInTheDocument();
+  });
 
-    if (revealedSafe) {
-      const cashOut = screen.getByRole("button", { name: /Auszahlen — Rückgabe/ });
-      await user.click(cashOut);
-      const after = balanceMinor();
-      expect(after).toBeGreaterThan(before - stake);
-      // Höchstens die Obergrenze (alle 22 freien Felder bei 3 Minen): 2231 × Einsatz
-      expect(after).toBeLessThanOrEqual(before - stake + 2231 * stake);
-    } else {
-      expect(balanceMinor()).toBe(before - stake);
-      expect(screen.getByText(/Mine getroffen/)).toBeInTheDocument();
-    }
+  it("Mines: eine getroffene Mine beendet die Runde ohne Rückgabe und zeigt danach alle Minen", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const stake = 100;
+    const startBalanceMinor = 100_000;
+    const positions = minePositions(MINES_SAFE_SEED, MINES_DEFAULT_COUNT);
+    const mineCell = positions[0]!;
+    mockMinesRoutes(MINES_SAFE_SEED, MINES_DEFAULT_COUNT, stake, startBalanceMinor);
+    render(
+      <AppProviders>
+        <MinesGame game={gameById("g-mines-demo")} />
+      </AppProviders>,
+    );
+    await tick(800);
+    const before = balanceMinor();
+
+    await user.click(screen.getByRole("button", { name: "Runde starten" }));
+    await tick(0);
+
+    const grid = screen.getByRole("group", { name: "Spielfeld" });
+    const row = Math.floor(mineCell / 5) + 1;
+    const column = (mineCell % 5) + 1;
+    const button = within(grid).getByRole("button", { name: new RegExp(`^Feld Zeile ${row}, Spalte ${column}`) });
+    await user.click(button);
+    await tick(ROUND_DURATION_MS + 50);
+
+    expect(balanceMinor()).toBe(before - stake); // keine Rückgabe
+    // "Mine getroffen" erscheint sowohl in der Statuszeile der Spielfläche als auch in der
+    // Ergebniszeile der Shell — mehrdeutig für getByText, deshalb getAllByText.
+    expect(screen.getAllByText(/Mine getroffen/).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Runde starten" })).toBeInTheDocument();
   });
 });

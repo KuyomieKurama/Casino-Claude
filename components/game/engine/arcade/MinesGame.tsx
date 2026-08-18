@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Bomb, Check, Play } from "lucide-react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { ROUND_DURATION_MS } from "@/lib/constants";
@@ -9,51 +9,73 @@ import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
-import {
-  MINES_CELLS,
-  MINES_COUNTS,
-  MINES_DEFAULT_COUNT,
-  MINES_GRID_SIZE,
-  minesBetId,
-  minesLadder,
-  minesMultiplier,
-  minesReturnMinor,
-  parseMinesDetail,
-  startMinesRound,
-  type MinesCount,
-} from "./mines-logic";
+import { MINES_CELLS, MINES_COUNTS, MINES_DEFAULT_COUNT, MINES_GRID_SIZE, minesBetId, minesLadder, minesReturnMinor, type MinesCount } from "./mines-logic";
 
 /**
- * Mines Demo — Oberfläche, interaktiv.
+ * Mines Demo — Oberfläche, interaktiv, seit Phase 3b vollständig serverseitig aufgelöst.
  *
- * Der Ausgang steht erst am Ende fest, deshalb `useRound({ interactive: true })`: beim Start wird
- * die Obergrenze der Rückgabe deklariert (alle sicheren Felder aufgedeckt), und der Wallet-Reducer
- * akzeptiert beim Abschluss nur Beträge bis dahin. Die Oberfläche kann keinen Betrag erfinden.
- *
- * Die Minen kommen aus dem Rundenseed und stehen vor dem ersten Klick fest — sie werden hier
- * einmal beim Start aus dem EngineOutcome gelesen und danach nie mehr verändert.
+ * Die größte Schwachstelle aus Phase 3a war, dass `startMinesRound` (mines-logic.ts) die
+ * Minenpositionen sofort an den Client lieferte — wer wollte, konnte sie im Speicher auslesen,
+ * bevor überhaupt ein Feld aufgedeckt war. Seit dieser Phase kommt der Zustand ausschließlich aus
+ * `round.interactiveState` (useRound.ts → POST /api/rounds/interactive-start und
+ * POST /api/rounds/:id/actions): der Server liefert je Zug NUR das Ergebnis des gerade
+ * aufgedeckten Feldes und den aktuellen Multiplikator, niemals die übrigen Positionen — sichtbar
+ * an `MinesServerState` unten, das `positions`/`hitCell` erst nach Rundenende überhaupt kennt.
  *
  * Bewusst NICHT vorhanden (Regel 7): kein Autoplay, keine Wiederhol-Automatik, kein Ton,
  * keine Strategiehinweise („jetzt aufhören“), keine Feier bei Rückgabe unter Einsatz.
  * Farbe trägt nie allein: jedes Feld hat Symbol und Text.
  */
+
+type MinesRoundStatus = "open" | "hit" | "cashedOut" | "cleared";
+
+/** Spiegelt server/rounds/interactive/mines-adapter.ts::MinesPublicView(Open|Finished) — der
+ *  Client kennt den Servertyp nicht (Schichtregel), deshalb eine eigene, rein lokale Prüfung. */
+type MinesServerState = {
+  mines: MinesCount;
+  status: MinesRoundStatus;
+  revealedCells: number[];
+  revealedCount: number;
+  multiplier: number;
+  cellsRemaining: number;
+  /** Nur vorhanden, wenn die Runde beendet ist — vom Server bewusst vorher weggelassen. */
+  positions?: number[];
+  hitCell?: number | null;
+};
+
+function isMinesCountValue(value: unknown): value is MinesCount {
+  return typeof value === "number" && (MINES_COUNTS as readonly number[]).includes(value);
+}
+
+function parseMinesServerState(value: unknown): MinesServerState | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  if (!isMinesCountValue(v.mines)) return null;
+  if (typeof v.status !== "string" || !["open", "hit", "cashedOut", "cleared"].includes(v.status)) return null;
+  if (!Array.isArray(v.revealedCells) || v.revealedCells.some((c) => typeof c !== "number")) return null;
+  if (typeof v.revealedCount !== "number" || typeof v.multiplier !== "number" || typeof v.cellsRemaining !== "number") return null;
+  const positions = Array.isArray(v.positions) && v.positions.every((p) => typeof p === "number") ? (v.positions as number[]) : undefined;
+  const hitCell = typeof v.hitCell === "number" ? v.hitCell : null;
+  return {
+    mines: v.mines,
+    status: v.status as MinesRoundStatus,
+    revealedCells: v.revealedCells as number[],
+    revealedCount: v.revealedCount,
+    multiplier: v.multiplier,
+    cellsRemaining: v.cellsRemaining,
+    ...(positions ? { positions } : {}),
+    hitCell,
+  };
+}
+
 export function MinesGame({ game, simulateLoadError = false, onStatusChange }: GameEngineViewProps) {
   const [mineCount, setMineCount] = useState<MinesCount>(MINES_DEFAULT_COUNT);
-  const [positions, setPositions] = useState<number[] | null>(null);
-  const [revealed, setRevealed] = useState<number[]>([]);
-  const [hitCell, setHitCell] = useState<number | null>(null);
-  const [open, setOpen] = useState(false);
-
-  const resolve = useCallback(
-    ({ stakeMinor, seed, betId }: { stakeMinor: number; seed: number; betId?: string }) => startMinesRound(stakeMinor, seed, betId),
-    [],
-  );
 
   const round = useRound({
     game,
-    resolve,
     roundDurationMs: ROUND_DURATION_MS,
     interactive: true,
+    server: true,
     simulateLoadError,
     ...(onStatusChange ? { onStatusChange } : {}),
   });
@@ -63,60 +85,32 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
     setBetId(minesBetId(mineCount));
   }, [mineCount, setBetId]);
 
-  const safeCells = MINES_CELLS - mineCount;
-  const currentMultiplier = minesMultiplier(mineCount, revealed.length);
-  const cashOutMinor = minesReturnMinor(round.stake, mineCount, revealed.length);
-  const finished = !open && positions !== null;
+  const state = parseMinesServerState(round.interactiveState);
+  const open = round.status === "playing";
+  const finished = round.status === "finished";
+  const revealed = state?.revealedCells ?? [];
+  const currentMultiplier = state?.multiplier ?? 0;
+  const cashOutMinor = state ? minesReturnMinor(round.stake, state.mines, state.revealedCount) : 0;
+  const positions = finished ? (state?.positions ?? []) : [];
+  const hitCell = finished ? (state?.hitCell ?? null) : null;
 
   const startRound = () => {
-    const started = round.start();
-    if (!started) return;
-    const detail = parseMinesDetail(started.outcome.detail);
-    if (!detail) return;
-    setPositions(detail.positions);
-    setRevealed([]);
-    setHitCell(null);
-    setOpen(true);
+    void round.startInteractive();
   };
 
   const reveal = (cell: number) => {
-    if (!open || positions === null || revealed.includes(cell)) return;
-    if (positions.includes(cell)) {
-      setHitCell(cell);
-      setOpen(false);
-      round.settle({
-        returnMinor: 0,
-        outcomeKey: "mine",
-        outcomeLabel: `Mine getroffen nach ${revealed.length} ${revealed.length === 1 ? "Feld" : "Feldern"}`,
-        detail: { mines: mineCount, revealed: revealed.length, hit: cell },
-      });
-      return;
-    }
-    const next = [...revealed, cell];
-    setRevealed(next);
-    if (next.length === safeCells) {
-      setOpen(false);
-      round.settle({
-        returnMinor: minesReturnMinor(round.stake, mineCount, next.length),
-        outcomeKey: "clear",
-        outcomeLabel: `Alle ${safeCells} freien Felder aufgedeckt · ${minesMultiplier(mineCount, next.length).toLocaleString("de-DE")}×`,
-        detail: { mines: mineCount, revealed: next.length },
-      });
-    }
+    if (!open || !state || state.status !== "open" || revealed.includes(cell)) return;
+    void round.sendAction("reveal", { cell });
   };
 
   const cashOut = () => {
     if (!open || revealed.length === 0) return;
-    setOpen(false);
-    round.settle({
-      returnMinor: cashOutMinor,
-      outcomeKey: "cashout",
-      outcomeLabel: `Ausgezahlt nach ${revealed.length} ${revealed.length === 1 ? "Feld" : "Feldern"} · ${currentMultiplier.toLocaleString("de-DE")}×`,
-      detail: { mines: mineCount, revealed: revealed.length },
-    });
+    void round.sendAction("cashOut", {});
   };
 
   const ladder = minesLadder(mineCount);
+  const displayMineCount = state?.mines ?? mineCount;
+  const displaySafeCells = MINES_CELLS - displayMineCount;
 
   return (
     <GameShell
@@ -193,7 +187,7 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
     >
       <div className="mx-auto max-w-md space-y-3">
         <h3 className="text-sm font-medium text-primary">
-          Raster {MINES_GRID_SIZE} × {MINES_GRID_SIZE} · {mineCount} {mineCount === 1 ? "Mine" : "Minen"} · {safeCells} freie Felder
+          Raster {MINES_GRID_SIZE} × {MINES_GRID_SIZE} · {displayMineCount} {displayMineCount === 1 ? "Mine" : "Minen"} · {displaySafeCells} freie Felder
         </h3>
 
         <div className="grid grid-cols-5 gap-1 sm:gap-2" role="group" aria-label="Spielfeld">
@@ -202,7 +196,7 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
             const column = (cell % MINES_GRID_SIZE) + 1;
             const isRevealed = revealed.includes(cell);
             const isHit = hitCell === cell;
-            const isMine = positions?.includes(cell) ?? false;
+            const isMine = positions.includes(cell);
             const showMine = isHit || (finished && isMine);
             const label = `Feld Zeile ${row}, Spalte ${column}${
               isRevealed ? " — frei" : showMine ? " — Mine" : open ? " — verdeckt" : ""
@@ -235,8 +229,8 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
           {open
             ? revealed.length === 0
               ? "Runde läuft. Decke ein Feld auf."
-              : `${revealed.length} von ${safeCells} freien Feldern aufgedeckt · aktuell ${currentMultiplier.toLocaleString("de-DE")}×`
-            : positions === null
+              : `${revealed.length} von ${displaySafeCells} freien Feldern aufgedeckt · aktuell ${currentMultiplier.toLocaleString("de-DE")}×`
+            : !round.last
               ? "Bereit. Minenzahl und Einsatz wählen, dann Runde starten."
               : hitCell === null
                 ? "Runde beendet."

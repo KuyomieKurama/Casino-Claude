@@ -7,6 +7,7 @@ import {
   ENGINE_KEY_VALUES,
   GAME_CATEGORY_VALUES,
   GAME_MODE_KIND_VALUES,
+  GAME_ROUND_ACTION_VALUES,
   GAME_ROUND_STATUS_VALUES,
   LEDGER_ENTRY_TYPE_VALUES,
 } from "./enums";
@@ -210,6 +211,42 @@ export const gameRound = pgTable(
     check("game_round_stake_check", sql`${t.stakeMinor} >= 0`),
     check("game_round_return_check", sql`${t.returnMinor} IS NULL OR ${t.returnMinor} >= 0`),
     check("game_round_max_return_check", sql`${t.maxReturnMinor} >= 0`),
+  ],
+);
+
+/**
+ * Aktionsprotokoll interaktiver Runden (Phase 3b, Auftrag §1): Blackjack, Video Poker und Mines
+ * bleiben länger als einen Request offen — ihr Zustand entsteht NICHT aus einer veränderlichen
+ * Zwischenspalte auf `gameRound`, sondern wird bei jeder Aktion aus dieser Tabelle neu abgeleitet
+ * (server/rounds/interactive/*-adapter.ts::start + wiederholtes applyAction). Damit ist jede
+ * Runde reproduzierbar und prüfbar (Wiedergabetest) und es gibt keinen zweiten, angreifbaren
+ * Zustand, der vom Protokoll abweichen könnte.
+ *
+ * Append-only wie `ledgerEntry`: kein UPDATE, kein DELETE auf einer bestehenden Zeile.
+ * `UNIQUE (round_id, seq)` ist zugleich die Idempotenzsicherung (Auftrag §1): Der Client übergibt
+ * die Position der Aktion innerhalb der Runde (1, 2, 3, …); ein doppelt gesendeter Request mit
+ * derselben `seq` trifft auf den bestehenden Datensatz und wird — bei gleichem Inhalt — als
+ * bereits ausgeführt erkannt, statt ein zweites Mal zu buchen (server/rounds/round-action-
+ * service.ts).
+ */
+export const gameRoundAction = pgTable(
+  "game_round_action",
+  {
+    id: text("id").primaryKey(),
+    roundId: text("round_id")
+      .notNull()
+      .references(() => gameRound.id),
+    /** Position innerhalb der Runde, beginnend bei 1 — vom Client vorgegeben (siehe oben). */
+    seq: integer("seq").notNull(),
+    action: text("action", { enum: GAME_ROUND_ACTION_VALUES }).notNull(),
+    /** Aktionsspezifische Nutzlast (z. B. { cell: 7 } bei Mines „reveal"), niemals ein Geldbetrag. */
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("game_round_action_round_seq_unique").on(t.roundId, t.seq),
+    check("game_round_action_action_check", checkIn(t.action, GAME_ROUND_ACTION_VALUES)),
+    check("game_round_action_seq_check", sql`${t.seq} >= 1`),
   ],
 );
 
