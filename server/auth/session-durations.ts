@@ -5,10 +5,9 @@
  * Umgebungsvalidierung (DATABASE_URL, BETTER_AUTH_SECRET, …) auszulösen, die create-auth.ts
  * durch seinen `lib/env`-Import mitbringt.
  *
- * 1 Stunde entspricht `SESSION_TTL_MS` aus `state/session-reducer.ts` (heutiges clientseitiges
- * Pendant ohne "angemeldet bleiben"). Kein Import von dort: die ESLint-Schichtregel verbietet
- * `server/**` den Import aus `state/**` (server/ kennt keinen Browser-Zustand). Der Wert ist
- * deshalb hier als eigene, klar benannte Konstante dupliziert statt importiert.
+ * 1 Stunde ist eine bewährte Sitzungsdauer. Kein Import von wo anders: Die ESLint-Schichtregel
+ * verbietet `server/**` den Import aus `state/**` (server/ kennt keinen Browser-Zustand).
+ * Der Wert ist deshalb hier als eigene, klar benannte Konstante definiert.
  */
 export const SHORT_SESSION_SECONDS = 60 * 60;
 export const REMEMBER_ME_SESSION_SECONDS = 60 * 60 * 24 * 30;

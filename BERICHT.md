@@ -2,6 +2,14 @@
 
 Stand: 15.08.2026 · Iteration M1 plus vollständiger Spielausbau
 
+> **Historischer Hinweis**: Dieser Bericht beschreibt den Zustand des Projekts **vor dem Fullstack-Umbau** (Phase 1). Nach dem Umbau existiert jetzt:
+> - PostgreSQL-Datenbank mit Drizzle ORM
+> - better-auth für Authentifizierung und Autorisierung
+> - Route Handler und Middleware
+> - Server-seitiges Gating
+> 
+> Der aktualisierte Stand ist in `CLAUDE.md` und `README.md` dokumentiert.
+
 ---
 
 ## 1. Funktionalität
