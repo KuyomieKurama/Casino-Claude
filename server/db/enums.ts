@@ -1,4 +1,5 @@
 import type { Game, GameCategory } from "@/types/game";
+import type { TransactionType } from "@/types/transaction";
 
 /**
  * Werte-Quellen für CHECK-Constraints (server/db/schema.ts) und Domänentypen
@@ -74,3 +75,29 @@ export type UserStatus = (typeof USER_STATUS_VALUES)[number];
 /** Ziel eines Login-Versuchs für die gestaffelte Rate-Begrenzung, siehe server/auth/rate-limit.ts. */
 export const LOGIN_ATTEMPT_SUBJECT_KIND_VALUES = ["email", "ip"] as const;
 export type LoginAttemptSubjectKind = (typeof LOGIN_ATTEMPT_SUBJECT_KIND_VALUES)[number];
+
+/**
+ * Ledger-Buchungsarten (Phase 3a, Auftrag §1). Wortgleich zu `TransactionType` aus
+ * `types/transaction.ts` — dieselbe Werteliste, aus demselben Grund wie oben (kein
+ * PostgreSQL-Enum, `text` + `CHECK`). `types/transaction.ts` bleibt die eine Quelle der
+ * Wahrheit für den Client; hier steht dieselbe Liste `satisfies` geprüft, damit ein künftiger
+ * neuer Wert dort NICHT stillschweigend an dieser Stelle fehlt.
+ */
+export const LEDGER_ENTRY_TYPE_VALUES = [
+  "demo_credit",
+  "demo_bet",
+  "demo_win",
+  "bonus_grant",
+  "free_spin",
+  "reset",
+] as const satisfies readonly TransactionType[];
+export type LedgerEntryType = (typeof LEDGER_ENTRY_TYPE_VALUES)[number];
+
+/**
+ * Lebenszyklus einer Spielrunde (`game_round`, server/db/schema.ts). Nicht-interaktive Runden
+ * durchlaufen `open` → `settled` innerhalb derselben Datenbanktransaktion (Auftrag §3); `voided`
+ * bleibt für künftige interaktive Runden (Phase 3b, z. B. eine wegen Absturzes nie abgeschlossene
+ * Runde) reserviert und wird von dieser Phase nicht erzeugt.
+ */
+export const GAME_ROUND_STATUS_VALUES = ["open", "settled", "voided"] as const;
+export type GameRoundStatus = (typeof GAME_ROUND_STATUS_VALUES)[number];

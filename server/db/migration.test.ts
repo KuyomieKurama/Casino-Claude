@@ -18,8 +18,21 @@ describe("Migration", () => {
       sql`select table_name from information_schema.tables where table_schema = 'public' order by table_name`,
     );
     const tableNames = result.rows.map((row) => row.table_name);
-    // Phase 0 (Katalog) + Phase 1 (Auth, server/db/auth-schema.ts): acht Tabellen insgesamt.
-    expect(tableNames).toEqual(["account", "game", "game_mode", "login_attempt", "provider", "session", "user", "verification"]);
+    // Phase 0 (Katalog) + Phase 1 (Auth, server/db/auth-schema.ts) + Phase 3a (Wallet-Ledger,
+    // server/db/schema.ts): elf Tabellen insgesamt.
+    expect(tableNames).toEqual([
+      "account",
+      "game",
+      "game_mode",
+      "game_round",
+      "ledger_entry",
+      "login_attempt",
+      "provider",
+      "session",
+      "user",
+      "verification",
+      "wallet",
+    ]);
   });
 
   test("ist wiederholt anwendbar, ohne Fehler zu werfen (leere Datenbank je Aufruf)", async () => {

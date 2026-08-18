@@ -112,8 +112,8 @@ const eslintConfig = [
         {
           patterns: [
             {
-              group: ["@/components/*", "@/state/*"],
-              message: "server/ läuft ohne Browser und ohne React-Baum; ein Import aus components/ oder state/ würde UI-Code in die Server-Schicht ziehen, wo er nie ausgeführt werden kann.",
+              regex: "^@/(components/(?!game/engine/[^/]+/[a-z-]+-logic$).*|state/.*)$",
+              message: "server/ läuft ohne Browser und ohne React-Baum; ein Import aus components/ oder state/ würde UI-Code in die Server-Schicht ziehen, wo er nie ausgeführt werden kann. Ausnahme: reine *-logic.ts-Module unter components/game/engine/ (Auftrag Phase 3a).",
             },
           ],
         },

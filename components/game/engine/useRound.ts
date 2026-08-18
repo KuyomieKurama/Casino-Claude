@@ -6,10 +6,11 @@ import type { RoundStatus } from "@/types/game-round";
 import type { EngineOutcome } from "@/types/engine";
 import { useWallet } from "@/state/WalletContext";
 import { useRgStatus } from "@/state/RgContext";
-import { availableMinor, type WalletRejection } from "@/state/wallet-reducer";
+import { availableMinor, rejectionMessage, type WalletRejection } from "@/state/wallet-reducer";
 import { createSeed } from "@/lib/rng";
-import { createId } from "@/lib/ids";
+import { createId, nowIso } from "@/lib/ids";
 import { GAME_LOAD_MS } from "@/lib/constants";
+import { postRoundStart } from "./round-api-client";
 
 export type LastRoundResult = {
   roundId: string;
@@ -26,12 +27,23 @@ export type LastRoundResult = {
 
 export type UseRoundOptions = {
   game: Game;
-  /** Löst die Runde auf — reine Funktion aus Seed und Einsatz. */
-  resolve: (input: { stakeMinor: number; seed: number; betId?: string }) => EngineOutcome;
+  /**
+   * Löst die Runde auf — reine Funktion aus Seed und Einsatz. Nur für lokal aufgelöste Runden
+   * (interaktive Engines: Blackjack, Mines, Video Poker). Bei `server: true` entfällt sie —
+   * das Ergebnis kommt von POST /api/rounds/start, niemals aus einer lokalen Berechnung
+   * (Phase 3a: Client kann Ergebnis und Guthaben nicht mehr selbst bestimmen).
+   */
+  resolve?: (input: { stakeMinor: number; seed: number; betId?: string }) => EngineOutcome;
   /** Dauer der Rundenanimation in ms. */
   roundDurationMs: number;
   /** true, wenn das Ergebnis erst durch Spielerentscheidungen feststeht (Blackjack, Mines). */
   interactive?: boolean;
+  /**
+   * Phase 3a: nicht-interaktive Runde wird serverseitig aufgelöst und gebucht (Slots, Roulette,
+   * Baccarat, Dice, Plinko, Wheel). Seed entsteht ausschließlich serverseitig; der Client sendet
+   * nur Modus, Einsatz und Wettauswahl (`betId`/`betPayload`), niemals ein Ergebnis.
+   */
+  server?: boolean;
   simulateLoadError?: boolean;
   onStatusChange?: (status: RoundStatus) => void;
   /** Voreingestellter Einsatz; wird auf den Demo-Bereich des Spiels begrenzt. */
@@ -45,13 +57,24 @@ export type UseRoundOptions = {
  *
  * Bewusst NICHT enthalten (Regel 7): kein Autoplay, kein Turbospin, keine Wiederholautomatik.
  */
-export function useRound({ game, resolve, roundDurationMs, interactive = false, simulateLoadError = false, onStatusChange, defaultStakeMinor }: UseRoundOptions) {
-  const { hydrated, wallet, startRound, settleRound, raiseRoundStake, lastRejection, clearRejection } = useWallet();
+export function useRound({
+  game,
+  resolve,
+  roundDurationMs,
+  interactive = false,
+  server = false,
+  simulateLoadError = false,
+  onStatusChange,
+  defaultStakeMinor,
+}: UseRoundOptions) {
+  const { hydrated, wallet, startRound, settleRound, raiseRoundStake, lastRejection, clearRejection, syncServerWallet } = useWallet();
   const rg = useRgStatus(5000);
 
   const [status, setStatusRaw] = useState<RoundStatus>("idle");
   const [stake, setStakeRaw] = useState<number>(() => clampStake(defaultStakeMinor ?? 100, game));
   const [betId, setBetId] = useState<string | undefined>(undefined);
+  /** Strukturierte Wettauswahl für Familien, denen ein einfacher betId nicht reicht (Roulette). */
+  const [betPayload, setBetPayload] = useState<unknown>(undefined);
   const [useFreeSpin, setUseFreeSpin] = useState(false); // nie vorausgewählt (Regel 7)
   const [last, setLast] = useState<LastRoundResult | null>(null);
   const [inlineError, setInlineError] = useState<WalletRejection | null>(null);
@@ -60,6 +83,14 @@ export function useRound({ game, resolve, roundDurationMs, interactive = false, 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   /** Läuft eine interaktive Runde, liegt hier alles, was zum Abschluss gebraucht wird. */
   const openRound = useRef<null | { roundId: string; stakeMinor: number; seed: number; usedFreeSpin: boolean; outcome: EngineOutcome }>(null);
+  /**
+   * Doppelklick-Schutz für serverseitige Runden (Phase 3a): `canStart` stammt aus dem letzten
+   * Render und ist bei mehreren Klicks im selben Task noch veraltet — derselbe Grund, aus dem
+   * `start()` unten `openRound.current` statt `canStart` prüft. Serverrunden haben kein
+   * lokales `openRound`-Äquivalent (das Ergebnis kommt erst asynchron zurück), deshalb ein
+   * eigener, sofort aktueller Sperrschalter.
+   */
+  const serverRoundPending = useRef(false);
 
   const setStatus = useCallback(
     (s: RoundStatus) => {
@@ -124,6 +155,12 @@ export function useRound({ game, resolve, roundDurationMs, interactive = false, 
     // `canStart` stammt aus dem letzten Render und ist bei mehreren Klicks im selben Task noch
     // veraltet. Die offene Runde im Ref ist dagegen sofort aktuell.
     if (!canStart || openRound.current !== null) return null;
+    if (!resolve) {
+      // Programmierfehler, kein Nutzerzustand: `resolve` ist bei server: true optional, `start()`
+      // ist dann aber nicht der richtige Aufrufpfad — nicht-interaktive Server-Runden laufen über
+      // `play()` → `playServer()`. Kein stiller Fallback bei einer Geldbewegung.
+      throw new Error("useRound: resolve() fehlt. Bei server: true muss play() statt start() verwendet werden.");
+    }
     setInlineError(null);
     clearRejection();
     const seed = createSeed();
@@ -203,13 +240,68 @@ export function useRound({ game, resolve, roundDurationMs, interactive = false, 
     [raiseRoundStake],
   );
 
+  /**
+   * Nicht-interaktive Server-Runde (Phase 3a): POST /api/rounds/start löst Einsatzbuchung,
+   * Ergebnis und Rückgabe serverseitig auf — der Client sendet nur Modus, Einsatz und
+   * Wettauswahl, nie ein Ergebnis oder einen Seed. Die Animationsdauer bleibt sichtbar: das
+   * Ergebnis liegt zwar sofort nach der Antwort fest, wird aber erst nach `roundDurationMs`
+   * angezeigt (dieselbe Choreografie wie bei lokal aufgelösten Runden).
+   */
+  const playServer = useCallback(async () => {
+    if (!canStart || serverRoundPending.current) return;
+    serverRoundPending.current = true;
+    setInlineError(null);
+    clearRejection();
+    setLast(null);
+    setStatus("playing");
+    try {
+      const result = await postRoundStart({
+        gameModeId: game.id,
+        stakeMinor: stake,
+        idempotencyKey: createId("idem"),
+        useFreeSpin,
+        ...(betId === undefined ? {} : { betId }),
+        ...(betPayload === undefined ? {} : { bet: betPayload }),
+      });
+      if (!result.ok) {
+        setStatus("ready");
+        setInlineError({ code: result.code, message: rejectionMessage(result.code), at: nowIso() });
+        return;
+      }
+      syncServerWallet(result.data.wallet);
+      addTimer(
+        setTimeout(() => {
+          setLast({
+            roundId: result.data.roundId,
+            outcomeKey: result.data.outcomeKey,
+            outcomeLabel: result.data.outcomeLabel,
+            stakeMinor: result.data.stakeMinor,
+            returnMinor: result.data.returnMinor,
+            netMinor: result.data.netMinor,
+            seed: result.data.seed,
+            usedFreeSpin: result.data.usedFreeSpin,
+            ...(result.data.detail ? { detail: result.data.detail } : {}),
+          });
+          if (result.data.usedFreeSpin && result.data.wallet.freeSpins <= 0) setUseFreeSpin(false);
+          setStatus("finished");
+        }, roundDurationMs),
+      );
+    } finally {
+      serverRoundPending.current = false;
+    }
+  }, [canStart, clearRejection, game.id, stake, useFreeSpin, betId, betPayload, roundDurationMs, syncServerWallet, setStatus]);
+
   /** Nicht-interaktive Engines: Start und Abschluss nach der Animationsdauer in einem Schritt. */
   const play = useCallback(() => {
+    if (server) {
+      void playServer();
+      return null;
+    }
     const started = start();
     if (!started) return null;
     addTimer(setTimeout(() => settle(), roundDurationMs));
     return started;
-  }, [start, settle, roundDurationMs]);
+  }, [server, playServer, start, settle, roundDurationMs]);
 
   const togglePause = useCallback(() => {
     setStatusRaw((current) => {
@@ -240,6 +332,8 @@ export function useRound({ game, resolve, roundDurationMs, interactive = false, 
     stakeBounds,
     betId,
     setBetId,
+    betPayload,
+    setBetPayload,
     useFreeSpin,
     setUseFreeSpin,
     last,

@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "node --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs server/seed/run-seed.ts"
+    "db:seed": "node --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs server/seed/run-seed.ts",
+    "check:concurrency": "node --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs scripts/concurrency-check.ts"
   },
   "dependencies": {
     "better-auth": "1.6.30",

@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback } from "react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { ROUND_DURATION_MS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { WHEEL_SEGMENTS, WHEEL_SEGMENT_COUNT } from "@/data/paytables/arcade";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
-import { formatSegmentValue, parseWheelDetail, resolveWheel, wheelHighlight, wheelSegmentAt } from "./wheel-logic";
+import { formatSegmentValue, parseWheelDetail, wheelHighlight, wheelSegmentAt } from "./wheel-logic";
 
 /**
  * Wheel Demo — Oberfläche.
@@ -22,11 +21,9 @@ import { formatSegmentValue, parseWheelDetail, resolveWheel, wheelHighlight, whe
  *    zusätzlich im Klartext.
  */
 export function WheelGame({ game, simulateLoadError = false, onStatusChange }: GameEngineViewProps) {
-  const resolve = useCallback(({ stakeMinor, seed }: { stakeMinor: number; seed: number }) => resolveWheel(stakeMinor, seed), []);
-
   const round = useRound({
     game,
-    resolve,
+    server: true,
     roundDurationMs: ROUND_DURATION_MS,
     simulateLoadError,
     ...(onStatusChange ? { onStatusChange } : {}),

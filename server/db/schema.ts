@@ -1,7 +1,16 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { checkIn } from "./check-in";
-import { CATALOG_STATUS_VALUES, ENGINE_KEY_VALUES, GAME_CATEGORY_VALUES, GAME_MODE_KIND_VALUES } from "./enums";
+import { user } from "./auth-schema";
+import {
+  CATALOG_STATUS_VALUES,
+  ENGINE_KEY_VALUES,
+  GAME_CATEGORY_VALUES,
+  GAME_MODE_KIND_VALUES,
+  GAME_ROUND_STATUS_VALUES,
+  LEDGER_ENTRY_TYPE_VALUES,
+} from "./enums";
+import { MAX_BALANCE_MINOR } from "@/lib/constants";
 
 /**
  * Katalog-Fundament: `provider` → `game` (Titel) → `game_mode` (Modus).
@@ -98,5 +107,140 @@ export const gameMode = pgTable(
     check("game_mode_kind_check", checkIn(t.kind, GAME_MODE_KIND_VALUES)),
     check("game_mode_engine_key_check", checkIn(t.engineKey, ENGINE_KEY_VALUES)),
     check("game_mode_status_check", checkIn(t.status, CATALOG_STATUS_VALUES)),
+  ],
+);
+
+/**
+ * Wallet-Ledger (Phase 3a, Auftrag §1–§2): materialisierter Saldo (diese Tabelle) plus
+ * Append-only-Historie (`ledgerEntry` unten). `wallet` ist absichtlich NICHT die Quelle der
+ * Wahrheit für Geldbewegungen — sie ist ein Cache, dessen Stand jederzeit gegen die Summe der
+ * `ledger_entry`-Zeilen desselben Nutzers nachrechenbar sein muss (siehe
+ * server/repositories/wallet-repository.test.ts, Konsistenztest). Die Buchung selbst läuft über
+ * ein bedingtes UPDATE direkt auf dieser Tabelle (server/repositories/wallet-repository.ts),
+ * nicht über Lesen-dann-Schreiben — das ist der eigentliche Schutz gegen Wettläufe.
+ *
+ * `nextSeq` beginnt bei 1: der ERSTE Ledger-Eintrag eines Kontos (die Startguthaben-Buchung,
+ * server/rounds/round-service.ts::ensureWallet) bekommt `seq = 1`, danach steht `nextSeq` auf 2.
+ * Damit ist die Sequenznummer alleine aus der Wallet-Zeile ableitbar, ohne vorher `MAX(seq)`
+ * über die Ledger-Tabelle laufen zu lassen.
+ */
+export const wallet = pgTable(
+  "wallet",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id),
+    demoBalanceMinor: bigint("demo_balance_minor", { mode: "number" }).notNull().default(0),
+    bonusBalanceMinor: bigint("bonus_balance_minor", { mode: "number" }).notNull().default(0),
+    freeSpins: integer("free_spins").notNull().default(0),
+    nextSeq: bigint("next_seq", { mode: "number" }).notNull().default(1),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Invariante 1 (Auftrag): Guthaben nie negativ, nie über der Obergrenze — auf Datenbankebene
+    // erzwungen, nicht nur in der Anwendungslogik. Das bedingte UPDATE beim Einsatz (WHERE
+    // demo_balance_minor >= :fromDemo AND bonus_balance_minor >= :fromBonus) verhindert zwar
+    // bereits ein Unterschreiten von 0, dieser CHECK ist die zusätzliche, vom Anwendungscode
+    // unabhängige Schranke — sie greift auch, falls ein künftiger Codepfad die Bedingung vergisst.
+    // sql.raw() statt eines gebundenen Parameters: ein generiertes Migrations-SQL-File wird von
+    // drizzle-kit als reiner Text ausgeführt (kein Prepared Statement) — ein `$1`-Platzhalter in
+    // einer CHECK-Klausel wäre dort unauflösbar (siehe check-in.ts für dieselbe Begründung).
+    // Unproblematisch: MAX_BALANCE_MINOR ist eine feste Konstante aus lib/constants.ts, nie aus
+    // Nutzereingaben.
+    check("wallet_demo_balance_check", sql`${t.demoBalanceMinor} >= 0 AND ${t.demoBalanceMinor} <= ${sql.raw(String(MAX_BALANCE_MINOR))}`),
+    check("wallet_bonus_balance_check", sql`${t.bonusBalanceMinor} >= 0 AND ${t.bonusBalanceMinor} <= ${sql.raw(String(MAX_BALANCE_MINOR))}`),
+    check("wallet_free_spins_check", sql`${t.freeSpins} >= 0`),
+    check("wallet_next_seq_check", sql`${t.nextSeq} >= 1`),
+  ],
+);
+
+/**
+ * Eine Spielrunde. Nicht-interaktive Runden (Slots, Roulette, Baccarat, Dice, Plinko, Wheel,
+ * Auftrag §3) durchlaufen `open` → `settled` INNERHALB derselben Datenbanktransaktion
+ * (server/rounds/round-service.ts) — das Fenster ist damit sehr kurz, aber der partielle
+ * Unique-Index unten ist trotzdem die reale Absicherung, nicht nur eine Attrappe: er ist
+ * dieselbe Instanz, die künftige interaktive Runden (Phase 3b, echt mehrere Requests lang offen)
+ * unverändert weiterverwenden.
+ *
+ * `seed`: bewusst `integer`, nicht `bigint` — der Seed wird mit `crypto.randomInt(0, 2**31)`
+ * gezogen (server/rounds/round-service.ts), passt also in den 32-Bit-Wertebereich von
+ * PostgreSQL `integer`. `mulberry32` (lib/rng.ts) behandelt den Seed intern ohnehin nur als
+ * vorzeichenlose 32-Bit-Zahl (`seed >>> 0`) — der Wertebereich [0, 2^31) liefert dieselbe
+ * Entropie- und Verteilungsqualität wie der volle Uint32-Bereich, den der Client bisher über
+ * `createSeed()` erzeugt hat.
+ */
+export const gameRound = pgTable(
+  "game_round",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    gameModeId: text("game_mode_id")
+      .notNull()
+      .references(() => gameMode.id),
+    /** Kurzform der gewählten Wette für Anzeige/Debugging (z. B. "red", "straight", "player"). */
+    betKey: text("bet_key"),
+    stakeMinor: bigint("stake_minor", { mode: "number" }).notNull(),
+    seed: integer("seed").notNull(),
+    status: text("status", { enum: GAME_ROUND_STATUS_VALUES }).notNull().default("open"),
+    outcomeKey: text("outcome_key"),
+    returnMinor: bigint("return_minor", { mode: "number" }),
+    maxReturnMinor: bigint("max_return_minor", { mode: "number" }).notNull(),
+    /** Verhindert Doppelbuchung bei Doppelklick/erneutem Absenden — UNIQUE (user_id, idempotency_key) unten. */
+    idempotencyKey: text("idempotency_key").notNull(),
+    /**
+     * Vollständiger, wiedergabefähiger Rundenkontext (Auftrag §8, Wiedergabetest): die vom Client
+     * gewählte Wette (`betPayload`) plus vom Server erzeugte Anzeigedetails (`EngineOutcome.detail`).
+     * `(gameModeId, stakeMinor, seed, betPayload)` aus dieser Spalte reicht aus, um dieselbe Runde
+     * erneut aufzulösen und `returnMinor` exakt zu reproduzieren.
+     */
+    transcript: jsonb("transcript").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    settledAt: timestamp("settled_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("game_round_user_idempotency_unique").on(t.userId, t.idempotencyKey),
+    // Die Datenbankfassung von Invariante 4 (Auftrag): pro Nutzer höchstens eine offene Runde
+    // gleichzeitig. Zeilen mit status != 'open' sind von diesem Index unbegrenzt (partieller Index).
+    uniqueIndex("game_round_user_open_unique")
+      .on(t.userId)
+      .where(sql`${t.status} = 'open'`),
+    check("game_round_status_check", checkIn(t.status, GAME_ROUND_STATUS_VALUES)),
+    check("game_round_stake_check", sql`${t.stakeMinor} >= 0`),
+    check("game_round_return_check", sql`${t.returnMinor} IS NULL OR ${t.returnMinor} >= 0`),
+    check("game_round_max_return_check", sql`${t.maxReturnMinor} >= 0`),
+  ],
+);
+
+/**
+ * Append-only Ledger (Auftrag §1): jede Guthabenänderung erzeugt genau eine Zeile hier
+ * (Invariante 2), niemals ein UPDATE oder DELETE auf einer bestehenden Zeile — kein Codepfad in
+ * `server/repositories/ledger-repository.ts` bietet das an. `balanceAfterMinor` ist immer die
+ * Summe aus Demo- und Bonusguthaben unmittelbar NACH dieser Buchung (Invariante 3).
+ */
+export const ledgerEntry = pgTable(
+  "ledger_entry",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    /** Monoton je Nutzer, aus `wallet.next_seq` (siehe dortiger Kommentar). */
+    seq: bigint("seq", { mode: "number" }).notNull(),
+    type: text("type", { enum: LEDGER_ENTRY_TYPE_VALUES }).notNull(),
+    /** Einsatz negativ, Gutschrift positiv — wie `Transaction.amountMinor` (types/transaction.ts). */
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    balanceAfterMinor: bigint("balance_after_minor", { mode: "number" }).notNull(),
+    /** Nur bei `type = 'demo_bet'` gefüllt: wie sich der Einsatz auf die beiden Salden verteilt hat. */
+    fromDemoMinor: bigint("from_demo_minor", { mode: "number" }),
+    fromBonusMinor: bigint("from_bonus_minor", { mode: "number" }),
+    gameModeId: text("game_mode_id").references(() => gameMode.id),
+    roundId: text("round_id").references(() => gameRound.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ledger_entry_user_seq_unique").on(t.userId, t.seq),
+    check("ledger_entry_type_check", checkIn(t.type, LEDGER_ENTRY_TYPE_VALUES)),
   ],
 );

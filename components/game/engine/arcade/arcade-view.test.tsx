@@ -61,6 +61,48 @@ function balanceMinor(): number {
   return Number(digits);
 }
 
+/**
+ * Plinko, Wheel und Dice lösen ihre Runde seit Phase 3a serverseitig auf (POST
+ * /api/rounds/start, siehe components/game/engine/useRound.ts `server: true`) — `fetch` wird
+ * deshalb hier gemockt, mit genau der Antwortform, die server/rounds/round-service.ts liefert.
+ * Mines bleibt interaktiv und lokal (unverändert, kein Mock nötig).
+ */
+function mockRoundResponse(data: {
+  returnMinor: number;
+  netMinor: number;
+  outcomeKey: string;
+  outcomeLabel: string;
+  betKey?: string;
+  detail?: Record<string, unknown>;
+  demoBalanceMinor: number;
+}) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            roundId: "r-test",
+            gameModeId: "g-test",
+            stakeMinor: 100,
+            returnMinor: data.returnMinor,
+            netMinor: data.netMinor,
+            outcomeKey: data.outcomeKey,
+            outcomeLabel: data.outcomeLabel,
+            seed: 1,
+            usedFreeSpin: false,
+            betKey: data.betKey ?? null,
+            ...(data.detail ? { detail: data.detail } : {}),
+            wallet: { demoBalanceMinor: data.demoBalanceMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    ),
+  );
+}
+
 describe("Arcade-Oberflächen", () => {
   beforeEach(() => {
     __resetStorageForTests();
@@ -69,12 +111,22 @@ describe("Arcade-Oberflächen", () => {
   });
 
   afterEach(() => {
-    // Stellt crypto.getRandomValues() wieder her, falls fixSeed() im Mines-Test gespiegelt hat.
+    // Stellt crypto.getRandomValues() wieder her, falls fixSeed() im Mines-Test gespiegelt hat,
+    // und entfernt den fetch()-Mock der Plinko/Wheel/Dice-Tests.
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("Plinko: eine Runde läuft durch und zeigt Fach und Weg", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mockRoundResponse({
+      returnMinor: 200,
+      netMinor: 100,
+      outcomeKey: "mid",
+      outcomeLabel: "Mitte · 2×",
+      detail: { path: "LRLRLRLRLRLR", bucket: 6 },
+      demoBalanceMinor: 100_200,
+    });
     render(
       <AppProviders>
         <PlinkoGame game={gameById("g-plinko-demo")} />
@@ -91,6 +143,14 @@ describe("Arcade-Oberflächen", () => {
 
   it("Wheel: eine Runde benennt das getroffene Segment", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mockRoundResponse({
+      returnMinor: 200,
+      netMinor: 100,
+      outcomeKey: "seg-3",
+      outcomeLabel: "Segment 4 · 2×",
+      detail: { index: 3 },
+      demoBalanceMinor: 100_200,
+    });
     render(
       <AppProviders>
         <WheelGame game={gameById("g-wheel-demo")} />
@@ -104,6 +164,15 @@ describe("Arcade-Oberflächen", () => {
 
   it("Dice: Richtung und Stufe ändern die Wette", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mockRoundResponse({
+      returnMinor: 970,
+      netMinor: 870,
+      outcomeKey: "win",
+      outcomeLabel: "Treffer — Wurf 7",
+      betKey: "under-11",
+      detail: { roll: 7, betId: "under-11", win: true },
+      demoBalanceMinor: 100_870,
+    });
     render(
       <AppProviders>
         <DiceGame game={gameById("g-dice-demo")} />
@@ -117,7 +186,7 @@ describe("Arcade-Oberflächen", () => {
     expect(screen.getByText(/Auszahlung 9,7×/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Würfeln/ }));
     await tick(ROUND_DURATION_MS + 50);
-    // „Wurf 47 · …“ steht in der Spielfläche und zusätzlich in der Ergebniszeile der Shell.
+    // „Wurf 7 · …“ steht in der Spielfläche und zusätzlich in der Ergebniszeile der Shell.
     expect(screen.getAllByText(/Wurf \d+ · /).length).toBeGreaterThan(0);
   });
 

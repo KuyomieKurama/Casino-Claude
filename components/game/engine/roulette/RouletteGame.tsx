@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { ROUND_DURATION_MS } from "@/lib/constants";
@@ -20,9 +20,7 @@ import {
   PAYOUT_TO_ONE,
   pocketColor,
   pocketCount,
-  resolveBet,
   splitPartners,
-  spin,
   wheelFor,
   type BetKind,
   type Pocket,
@@ -79,37 +77,24 @@ export function RouletteGame({ game, simulateLoadError = false, onStatusChange }
     }
   }, [kind, straight, splitA, splitB, streetRow, cornerAnchor, sixRow, column, dozen]);
 
-  /** Reine Auflösung: ein Wurf aus dem Seed, danach die Wette gegen das Fach. */
-  const resolve = useCallback(
-    ({ stakeMinor, seed }: { stakeMinor: number; seed: number }) => {
-      const result = spin(seed, variant);
-      const returnMinor = resolveBet(bet, result.pocket, stakeMinor);
-      const color = pocketColor(result.pocket);
-      const hit = returnMinor > 0;
-      return {
-        outcomeKey: hit ? "win" : "none",
-        outcomeLabel: `Fach ${formatPocket(result.pocket)} ${COLOR_LABEL[color]} — ${hit ? "Treffer" : "kein Treffer"}`,
-        returnMinor,
-        detail: { pocket: formatPocket(result.pocket), color, betId: kind },
-      };
-    },
-    [bet, kind, variant],
-  );
-
   const round = useRound({
     game,
-    resolve,
+    server: true,
     roundDurationMs: ROUND_DURATION_MS,
     simulateLoadError,
     onStatusChange,
   });
 
-  const { setBetId, last, status } = round;
+  const { setBetId, setBetPayload, last, status } = round;
 
-  // Die Wett-ID ist zugleich der Schlüssel der Auszahlungstabelle (`gameId::betId`).
+  // Die Wett-ID ist zugleich der Schlüssel der Auszahlungstabelle (`gameId::betId`); `bet` ist die
+  // vollständige, strukturierte Wette (inklusive gewählter Zahlen), die der Server zum Auflösen
+  // braucht — `betId` allein reicht für Plein/Cheval/Carré/Sixain/Transversale nicht, weil deren
+  // Auszahlung von den KONKRET gewählten Zahlen abhängt, nicht nur von der Wettart.
   useEffect(() => {
     setBetId(kind);
-  }, [kind, setBetId]);
+    setBetPayload(bet);
+  }, [kind, bet, setBetId, setBetPayload]);
 
   // Ergebnis der abgeschlossenen Runde in Kesselanzeige und Protokoll übernehmen.
   useEffect(() => {

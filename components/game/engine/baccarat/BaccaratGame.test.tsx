@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AppProviders } from "@/state/AppProviders";
@@ -21,6 +21,49 @@ async function tick(ms: number) {
   });
 }
 
+/** Baccarat löst seine Runde seit Phase 3a serverseitig auf (siehe useRound `server: true`). */
+function mockBaccaratRoundResponse() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            roundId: "r-test",
+            gameModeId: "g-baccarat",
+            stakeMinor: 100,
+            returnMinor: 195,
+            netMinor: 95,
+            outcomeKey: "win",
+            outcomeLabel: "Bankseite vorn 4:6",
+            seed: 1,
+            usedFreeSpin: false,
+            betKey: "banker",
+            detail: {
+              bet: "banker",
+              playerCards: [
+                { rank: 2, suit: 0 },
+                { rank: 2, suit: 1 },
+              ],
+              bankerCards: [
+                { rank: 3, suit: 0 },
+                { rank: 3, suit: 1 },
+              ],
+              playerTotal: 4,
+              bankerTotal: 6,
+              result: "banker",
+              natural: false,
+            },
+            wallet: { demoBalanceMinor: 100_095, bonusBalanceMinor: 0, freeSpins: 0 },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    ),
+  );
+}
+
 describe("BaccaratGame — Oberfläche und Wallet-Verdrahtung", () => {
   beforeEach(() => {
     __resetStorageForTests();
@@ -28,8 +71,13 @@ describe("BaccaratGame — Oberfläche und Wallet-Verdrahtung", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("startet keine Runde ohne gewählte Wette und spielt danach eine Runde durch", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mockBaccaratRoundResponse();
     render(
       <AppProviders>
         <BaccaratGame game={game} />

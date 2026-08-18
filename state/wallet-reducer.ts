@@ -96,7 +96,16 @@ export type WalletAction =
   | { type: "SETTLE_ROUND"; roundId: string; ctx: WalletCtx; returnMinor?: CreditsMinor; outcomeKey?: string }
   | { type: "RAISE_ROUND_STAKE"; roundId: string; additionalMinor: CreditsMinor; ctx: WalletCtx }
   | { type: "GRANT_BONUS"; bonusMinor: CreditsMinor; freeSpins: number; sourceId: string; ctx: WalletCtx }
-  | { type: "CLEAR_REJECTION" };
+  | { type: "CLEAR_REJECTION" }
+  /**
+   * Phase 3a: Guthabenstand nach einer serverseitig aufgelösten, nicht-interaktiven Runde
+   * (`state/WalletContext.tsx::syncServerWallet`). Die Buchung selbst (Einsatz, Ergebnis, Ledger)
+   * ist zu diesem Zeitpunkt bereits serverseitig abgeschlossen — hier wird NUR die Anzeige
+   * nachgeführt, es wird keine weitere Transaktion erzeugt (die liegt bereits im Server-Ledger)
+   * und `roundInFlight`/`pendingRound` bleiben unberührt, damit eine parallel laufende
+   * interaktive Runde (Blackjack, Mines) davon nicht betroffen ist.
+   */
+  | { type: "SERVER_WALLET_SYNC"; wallet: { demoBalanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number } };
 
 export const MAX_STORED_TRANSACTIONS = 500;
 
@@ -129,7 +138,18 @@ const messages: Record<WalletRejectionCode, string> = {
   NO_FREE_SPINS: "Es sind keine Freirunden mehr übrig.",
   RETURN_OUT_OF_RANGE: "Das Rundenergebnis liegt außerhalb des für diese Runde deklarierten Rahmens.",
   RAISE_NOT_ALLOWED: "Der Einsatz dieser Runde lässt sich nicht erhöhen.",
+  SERVER_ERROR: "Der Server ist gerade nicht erreichbar oder hat unerwartet geantwortet. Bitte versuche es erneut.",
 };
+
+/**
+ * Exportiert (Phase 3a): `useRound.ts` baut für serverseitig aufgelöste Runden (nicht-interaktive
+ * Spiele) eigene `WalletRejection`-Objekte aus dem Fehlercode der Server-Antwort — dieselbe
+ * deutsche Meldung wie hier, ohne sie zu duplizieren (Auftrag: „damit die vorhandenen deutschen
+ * Meldungen weiterverwendet werden können").
+ */
+export function rejectionMessage(code: WalletRejectionCode): string {
+  return messages[code];
+}
 
 function reject(state: WalletState, code: WalletRejectionCode, now: string): WalletState {
   return { ...state, lastRejection: { code, message: messages[code], at: now } };
@@ -438,6 +458,11 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
       const { roundId, ctx } = action;
       if (!state.pendingRound || state.pendingRound.roundId !== roundId) return reject(state, "NO_PENDING_ROUND", ctx.now);
       return settle(state, ctx, action.returnMinor);
+    }
+
+    case "SERVER_WALLET_SYNC": {
+      const wallet: Wallet = { ...state.wallet, ...action.wallet };
+      return { ...state, wallet };
     }
 
     default:

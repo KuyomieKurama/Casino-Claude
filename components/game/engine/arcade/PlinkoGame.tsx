@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { ROUND_DURATION_MS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
@@ -11,7 +11,7 @@ import {
 } from "@/data/paytables/arcade";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
-import { parsePlinkoDetail, plinkoHighlight, plinkoPositions, resolvePlinko, type PlinkoStep } from "./plinko-logic";
+import { parsePlinkoDetail, plinkoHighlight, plinkoPositions, type PlinkoStep } from "./plinko-logic";
 
 /**
  * Plinko Demo — Oberfläche.
@@ -27,11 +27,9 @@ import { parsePlinkoDetail, plinkoHighlight, plinkoPositions, resolvePlinko, typ
  *    Ergebniszeile im Klartext.
  */
 export function PlinkoGame({ game, simulateLoadError = false, onStatusChange }: GameEngineViewProps) {
-  const resolve = useCallback(({ stakeMinor, seed }: { stakeMinor: number; seed: number }) => resolvePlinko(stakeMinor, seed), []);
-
   const round = useRound({
     game,
-    resolve,
+    server: true,
     roundDurationMs: ROUND_DURATION_MS,
     simulateLoadError,
     ...(onStatusChange ? { onStatusChange } : {}),

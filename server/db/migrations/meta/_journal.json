@@ -15,6 +15,13 @@
       "when": 1787006536592,
       "tag": "0001_demonic_spirit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787041372624,
+      "tag": "0002_illegal_giant_man",
+      "breakpoints": true
     }
   ]
 }

@@ -14,7 +14,6 @@ import { GameShell } from "../GameShell";
 import {
   BACCARAT_BET_IDS,
   isBaccaratBetId,
-  resolveBaccaratRound,
   type BaccaratBetId,
   type BaccaratCard,
   type BaccaratDetail,
@@ -61,7 +60,7 @@ type HistoryEntry = { roundId: string; result: CoupResult; playerTotal: number; 
 export function BaccaratGame({ game, simulateLoadError, onStatusChange }: GameEngineViewProps) {
   const round = useRound({
     game,
-    resolve: resolveBaccaratRound,
+    server: true,
     roundDurationMs: ROUND_DURATION_MS,
     simulateLoadError,
     onStatusChange,

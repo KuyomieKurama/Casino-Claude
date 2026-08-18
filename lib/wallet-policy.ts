@@ -18,7 +18,16 @@ export type WalletRejectionCode =
   | "MAX_BALANCE"
   | "NO_FREE_SPINS"
   | "RETURN_OUT_OF_RANGE"
-  | "RAISE_NOT_ALLOWED";
+  | "RAISE_NOT_ALLOWED"
+  /**
+   * Phase 3a (serverseitige, nicht-interaktive Runden): der Server war nicht erreichbar, hat
+   * unerwartet geantwortet, oder eine Antwort ließ sich nicht auflösen. Kein Rundenergebnis und
+   * keine Buchung — anders als die übrigen Codes hier ist das kein Fachentscheid, sondern ein
+   * Transportfehler. Gehört trotzdem in dieselbe Union, damit `useRound.ts` einheitlich mit
+   * `WalletRejection` arbeiten kann, egal ob die Ablehnung vom lokalen Reducer oder von der
+   * Server-Antwort stammt.
+   */
+  | "SERVER_ERROR";
 
 /** Discriminated Union statt Exceptions — der Aufrufer kann den Ablehnungsgrund nicht vergessen. */
 export type PolicyResult<T> = { ok: true; value: T } | { ok: false; code: WalletRejectionCode };

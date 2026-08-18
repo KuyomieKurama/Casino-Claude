@@ -37,6 +37,12 @@ type WalletValue = {
   raiseRoundStake: (roundId: string, additionalMinor: CreditsMinor) => WalletRejection | null;
   grantBonus: (input: { bonusMinor: CreditsMinor; freeSpins: number; sourceId: string }) => WalletRejection | null;
   clearRejection: () => void;
+  /**
+   * Phase 3a: trägt den vom Server gemeldeten Guthabenstand nach einer serverseitig aufgelösten,
+   * nicht-interaktiven Runde in die Anzeige ein (components/game/engine/useRound.ts). Bucht keine
+   * eigene Transaktion — die liegt bereits im Server-Ledger, dies ist reiner Anzeige-Abgleich.
+   */
+  syncServerWallet: (wallet: { demoBalanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number }) => void;
 };
 
 const WalletContext = createContext<WalletValue | null>(null);
@@ -107,6 +113,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [run, makeCtx],
   );
   const clearRejection = useCallback(() => dispatch({ type: "CLEAR_REJECTION" }), []);
+  const syncServerWallet = useCallback(
+    (walletSnapshot: { demoBalanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number }) => {
+      const action: WalletAction = { type: "SERVER_WALLET_SYNC", wallet: walletSnapshot };
+      stateRef.current = walletReducer(stateRef.current, action);
+      dispatch(action);
+    },
+    [],
+  );
 
   const value = useMemo<WalletValue>(
     () => ({
@@ -122,8 +136,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       raiseRoundStake,
       grantBonus,
       clearRejection,
+      syncServerWallet,
     }),
-    [state, topUp, reset, startRound, settleRound, raiseRoundStake, grantBonus, clearRejection],
+    [state, topUp, reset, startRound, settleRound, raiseRoundStake, grantBonus, clearRejection, syncServerWallet],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

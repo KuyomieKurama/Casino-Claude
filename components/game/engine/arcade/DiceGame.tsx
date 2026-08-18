@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { ROUND_DURATION_MS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { DICE_BETS, DICE_MAX_ROLL, DICE_MIN_ROLL, type DiceDirection } from "@/data/paytables/arcade";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
-import { parseDiceDetail, resolveDice } from "./dice-logic";
+import { parseDiceDetail } from "./dice-logic";
 
 /**
  * Dice Demo — Oberfläche.
@@ -33,14 +33,9 @@ export function DiceGame({ game, simulateLoadError = false, onStatusChange }: Ga
     return found ?? DICE_BETS[0];
   }, [direction, chancePercent]);
 
-  const resolve = useCallback(
-    ({ stakeMinor, seed, betId }: { stakeMinor: number; seed: number; betId?: string }) => resolveDice(stakeMinor, seed, betId),
-    [],
-  );
-
   const round = useRound({
     game,
-    resolve,
+    server: true,
     roundDurationMs: ROUND_DURATION_MS,
     simulateLoadError,
     ...(onStatusChange ? { onStatusChange } : {}),

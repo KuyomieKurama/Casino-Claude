@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { findPaytable } from "@/data/paytables";
-import { resolveRound } from "@/lib/rng";
 import { ROUND_DURATION_MS } from "@/lib/constants";
 import { useRound } from "@/components/game/engine/useRound";
 import { GameShell } from "@/components/game/engine/GameShell";
@@ -29,17 +28,7 @@ export function SlotGame({ game, simulateLoadError = false, onStatusChange }: Ga
   const paytable = useMemo(() => findPaytable(game.id), [game.id]);
   const theme = useMemo(() => themeFor(game.id), [game.id]);
 
-  const resolve = useCallback(
-    ({ stakeMinor, seed }: { stakeMinor: number; seed: number }) => {
-      // Ohne Tabelle wird keine Runde angeboten (siehe unten) — dieser Zweig ist reine Absicherung.
-      if (!paytable) return { outcomeKey: "none", outcomeLabel: "Nullrunde", returnMinor: 0 };
-      const { entry, returnMinor } = resolveRound(paytable, stakeMinor, seed);
-      return { outcomeKey: entry.key, outcomeLabel: entry.label, returnMinor };
-    },
-    [paytable],
-  );
-
-  const round = useRound({ game, resolve, roundDurationMs: ROUND_DURATION_MS, simulateLoadError, onStatusChange });
+  const round = useRound({ game, server: true, roundDurationMs: ROUND_DURATION_MS, simulateLoadError, onStatusChange });
 
   // Die Darstellung folgt dem Ergebnis: erst entscheidet die Tabelle, dann wird gerendert.
   const grid: ReelGrid = useMemo(
