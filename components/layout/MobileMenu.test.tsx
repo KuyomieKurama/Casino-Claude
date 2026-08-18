@@ -93,6 +93,19 @@ describe("MobileMenu", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  test("der Backdrop trägt eine deckende Overlay-Utility statt der wirkungslosen bg-black-Klasse", () => {
+    // Regressionstest zum Produktionsvorfall „totes bg-black“: --color-*: initial in
+    // app/globals.css definiert kein --color-black, wodurch bg-black/60 lautlos keine Regel
+    // erzeugt hätte (jsdom prüft das nicht selbst, deshalb hier die Klassenzusicherung). Das
+    // Menü muss stattdessen das projekteigene Overlay-Token (--color-overlay) verwenden.
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "Öffnen" }));
+
+    const backdrop = screen.getByTestId("mobile-menu-backdrop");
+    expect(backdrop.className).toMatch(/\bbg-overlay\/60\b/);
+    expect(backdrop.className).not.toMatch(/\bbg-black\b/);
+  });
+
   test("die Fläche bleibt bei 320 px ohne horizontales Scrollen (jsdom layoutet nicht real, deshalb Klassenprüfung statt Pixelmessung)", () => {
     // Das Panel ist `fixed` positioniert (kein Einfluss auf die Dokumentbreite) und über
     // min(320px, 85vw) begrenzt — bei genau 320 px Viewportbreite entspricht das 85 % = 272 px,

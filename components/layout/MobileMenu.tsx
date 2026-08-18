@@ -75,7 +75,7 @@ export function MobileMenu({ open, onClose, triggerRef, title, id, children }: M
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <div data-testid="mobile-menu-backdrop" aria-hidden="true" className="anim-fade-in absolute inset-0 bg-black/60" onClick={onClose} />
+      <div data-testid="mobile-menu-backdrop" aria-hidden="true" className="anim-fade-in absolute inset-0 bg-overlay/60" onClick={onClose} />
       <div
         ref={panelRef}
         id={id}

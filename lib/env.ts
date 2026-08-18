@@ -72,6 +72,53 @@ function isValidTrustedProxyEntry(entry: string): boolean {
   return prefix <= (isV4 ? 32 : 128);
 }
 
+/**
+ * Namen aller optionalen Umgebungsvariablen. Zentral an einer Stelle gepflegt und in
+ * normalizeOptionalEnv() unten wiederverwendet, statt die Normalisierung an jedem einzelnen
+ * Feld zu wiederholen. Pflichtvariablen (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL)
+ * stehen hier bewusst NICHT: Ein leerer Wert bleibt dort ein Konfigurationsfehler mit eigener,
+ * die Variable benennenden Meldung — siehe normalizeOptionalEnv() für die Begründung.
+ */
+const OPTIONAL_ENV_KEYS = [
+  "SESSION_SECRET",
+  "ADMIN_BOOTSTRAP_EMAIL",
+  "OAUTH_GOOGLE_CLIENT_ID",
+  "OAUTH_GOOGLE_CLIENT_SECRET",
+  "OAUTH_GITHUB_CLIENT_ID",
+  "OAUTH_GITHUB_CLIENT_SECRET",
+  "OAUTH_DISCORD_CLIENT_ID",
+  "OAUTH_DISCORD_CLIENT_SECRET",
+  "TRUSTED_PROXY_IPS",
+] as const;
+
+/**
+ * Behandelt leere oder ausschließlich aus Leerzeichen bestehende Werte optionaler Variablen wie
+ * „nicht gesetzt" (entfernt den Schlüssel aus einer Kopie von process.env), bevor das Schema
+ * validiert.
+ *
+ * Warum nötig: zods `.optional()` greift nur, wenn ein Schlüssel fehlt oder `undefined` ist —
+ * nicht bei einem gesetzten, aber leeren String. Wer `.env.example` kopiert und eine optionale
+ * Zeile wie `OAUTH_GOOGLE_CLIENT_ID=` unverändert leer lässt (statt sie zu entfernen oder
+ * auszukommentieren), hat einen gesetzten Leerstring im Prozess — der scheiterte bisher an
+ * `.min(1)`, obwohl die Variable als „nicht gesetzt" gemeint war. Genau das brach beim ersten
+ * `npm run build` auf einem Produktionsserver mit sechs OAuth-Fehlern ab.
+ *
+ * Warum zentral statt pro Feld: Eine einzige Liste (OPTIONAL_ENV_KEYS) plus eine Funktion, statt
+ * `.transform()`/`.preprocess()` an jedem der neun betroffenen Felder zu wiederholen. Betrifft
+ * ausschließlich die dort gelisteten Variablen — Pflichtvariablen durchlaufen diese Funktion
+ * nicht und bleiben bei leerem Wert ein klarer, benannter Fehler.
+ */
+function normalizeOptionalEnv(rawEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const normalized = { ...rawEnv };
+  for (const key of OPTIONAL_ENV_KEYS) {
+    const value = normalized[key];
+    if (typeof value === "string" && value.trim() === "") {
+      delete normalized[key];
+    }
+  }
+  return normalized;
+}
+
 const rawEnvSchema = z.object({
   DATABASE_URL: z
     .string(DATABASE_URL_MISSING_MESSAGE)
@@ -167,7 +214,7 @@ function formatValidationError(error: z.ZodError): string {
 }
 
 function loadEnv(): Env {
-  const parsed = envSchema.safeParse(process.env);
+  const parsed = envSchema.safeParse(normalizeOptionalEnv(process.env));
   if (!parsed.success) {
     throw new Error(formatValidationError(parsed.error));
   }

@@ -77,7 +77,7 @@ export function Modal({ open, onClose, title, description, children, footer, dis
         if (dismissible && e.target === e.currentTarget) onClose();
       }}
       className={cn(
-        "m-0 max-h-none max-w-none bg-transparent p-0 text-primary backdrop:bg-black/60",
+        "m-0 max-h-none max-w-none bg-transparent p-0 text-primary backdrop:bg-overlay/60",
         isDrawer
           ? "fixed inset-x-0 bottom-0 top-auto w-full md:inset-y-0 md:left-auto md:right-0 md:h-full md:w-[420px]"
           : "fixed inset-0 h-full w-full",

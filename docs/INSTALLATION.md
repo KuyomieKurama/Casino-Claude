@@ -50,6 +50,33 @@ sudo chmod 750 /opt/velora
 
 Die Anwendung läuft später **nicht als root**, sondern als Benutzer `velora`. Root ist für die Verzeichnisverwaltung und Service-Setup nötig, nicht für die Ausführung.
 
+> **Stolperstein: Dienstbenutzer ohne Home-Verzeichnis**
+>
+> `--no-create-home` ist für einen reinen Dienstbenutzer richtig (kein Login, keine Shell-Historie
+> nötig) — bricht aber später bei `npm ci` mit `EACCES: permission denied, mkdir '/home/velora'`
+> ab: npm legt seinen Cache standardmäßig unter `$HOME/.npm` an, und `velora` hat kein `$HOME`.
+>
+> **Abhilfe**, eine der beiden Varianten wählen:
+>
+> ```bash
+> # Variante A: Home-Verzeichnis nachträglich anlegen und HOME beim Aufruf setzen
+> sudo mkdir -p /home/velora
+> sudo chown velora:velora /home/velora
+> sudo -H -u velora npm ci   # -H setzt $HOME für den velora-Aufruf korrekt
+>
+> # Variante B: npm-Cache explizit umleiten, kein Home-Verzeichnis nötig
+> sudo -u velora npm ci --cache /opt/velora/.npm-cache
+> ```
+>
+> **Wichtig, unabhängig von der gewählten Variante:** Jeder folgende Befehl in diesem Kapitel
+> (`npm run db:migrate`, `npm run db:seed`, `npm run build`, …) muss **als derselbe Benutzer**
+> mit derselben `$HOME`/Cache-Konfiguration laufen wie `npm ci`. Wechselt der Benutzer zwischendurch
+> (z. B. ein Befehl versehentlich als root statt `sudo -u velora`), entstehen gemischte
+> Dateibesitzer in `node_modules/` und `~/.npm`. `npm ci` kann `node_modules` dann bei einem
+> späteren Lauf nicht mehr sauber aufräumen und bricht mit verwirrenden Berechtigungsfehlern ab —
+> Abhilfe in diesem Fall: `sudo rm -rf node_modules` und `npm ci` als korrekt konsistenter
+> Benutzer erneut ausführen.
+
 ## Node.js 22 installieren
 
 Zwei empfohlene Optionen:
@@ -280,6 +307,50 @@ sudo -u velora npm ci
 - `npm ci` (Continuous Integration) installiert **exakt** die in `package-lock.json` festgehaltenen Versionen
 - In der Produktion garantiert das: der App-Code unterscheidet sich nicht zwischen Entwicklung und Produktion wegen Versionsdrift
 
+> **Stolperstein: Blockierte Install-Scripts**
+>
+> Neuere npm-Versionen blockieren `postinstall`-Skripte von Abhängigkeiten standardmäßig
+> (Sicherheitsmaßnahme gegen bösartige Pakete). Betroffen sind hier unter anderem `esbuild`,
+> `sharp` und `unrs-resolver` — alle drei werden zur Laufzeit bzw. beim Build tatsächlich
+> gebraucht (native Binaries laden). Ohne deren Install-Skripte startet die Anwendung nicht
+> zuverlässig oder der Build schlägt an unerwarteter Stelle fehl.
+>
+> **Prüfen, welche Skripte blockiert wurden:**
+> ```bash
+> npm install-scripts ls
+> ```
+>
+> **Freigeben (pro Paket) und danach neu installieren:**
+> ```bash
+> npm install-scripts approve esbuild
+> npm install-scripts approve sharp
+> npm install-scripts approve unrs-resolver
+>
+> # Nach jeder Freigabe erneut installieren, damit das Skript tatsächlich läuft:
+> sudo -u velora npm ci
+> ```
+>
+> Ohne den erneuten `npm ci`-Lauf bleibt das Paket installiert, aber ohne die vom Skript
+> erzeugten Artefakte (z. B. heruntergeladene native Binaries) — der Fehler zeigt sich dann erst
+> beim Start oder Build, nicht bei der Installation selbst.
+
+> **Warnung: `npm audit fix --force` nicht verwenden**
+>
+> `npm audit fix --force` ignoriert die in `package-lock.json` festgehaltenen Versionsgrenzen und
+> kann Pakete auf inkompatible Hauptversionen herunter- oder hochstufen. Auf dem Testserver hat
+> es `drizzle-kit` von `0.31.10` auf `0.18.1` **heruntergestuft** — dabei verschwand der
+> `migrate`-Befehl aus dieser älteren Version vollständig, wodurch sowohl `npm run db:migrate`
+> als auch `npm run db:seed` (das intern eine Migration voraussetzt) fehlschlugen, ohne dass der
+> Zusammenhang mit dem vorangegangenen `audit fix` beim Fehler selbst erkennbar war.
+>
+> **Empfehlung:** Statt `--force` zunächst nur bewerten, welche Schwachstellen überhaupt
+> produktionsrelevant sind (Dev-Abhängigkeiten wie Test-Tooling zählen hier meist nicht):
+> ```bash
+> npm audit --omit=dev
+> ```
+> Einzelne Pakete danach gezielt und bewusst aktualisieren (`npm install <paket>@<version>`),
+> nicht pauschal per `--force`.
+
 ### Umgebungsvariablen (.env.local)
 
 ```bash
@@ -376,6 +447,29 @@ sudo chown velora:velora /opt/velora/velora-casino-demo/.env.local
 
 ---
 
+> **Stolperstein: `drizzle-kit` liest `.env`/`.env.local` nicht automatisch**
+>
+> Nur Next.js selbst lädt `.env`/`.env.local` automatisch beim Start (`npm run dev`,
+> `npm run build`, `npm start`). `drizzle-kit` (hinter `npm run db:migrate` und `npm run
+> db:generate`) und das eigenständige Seed-Skript (`npm run db:seed`, hinter
+> `server/seed/run-seed.ts`) sind reine Node-Skripte ohne diesen automatischen Lademechanismus —
+> `drizzle.config.ts` liest `process.env.DATABASE_URL` direkt und bricht ohne vorher geladene
+> Umgebung mit „DATABASE_URL fehlt" ab, obwohl `.env.local` korrekt befüllt ist.
+>
+> **Konkreter Weg, die Umgebung vor diesen beiden Befehlen explizit zu laden:**
+> ```bash
+> cd /opt/velora/velora-casino-demo
+> set -a   # danach exportiert `source` automatisch jede gesetzte Variable in die Umgebung
+> source .env.local
+> set +a
+>
+> sudo -u velora --preserve-env npm run db:migrate
+> sudo -u velora --preserve-env npm run db:seed
+> ```
+> `--preserve-env` ist nötig, weil `sudo` die Umgebung sonst zurücksetzt und die gerade per
+> `source` geladenen Variablen wieder verwirft — ohne dieses Flag landet man wieder beim selben
+> „DATABASE_URL fehlt"-Fehler, obwohl `.env.local` diesmal geladen wurde.
+
 ### Datenbank initialisieren
 
 ```bash
@@ -391,6 +485,7 @@ sudo -u velora npm run db:migrate
 **Fehlerbehandlung:**
 - `ECONNREFUSED localhost:5432`: PostgreSQL läuft nicht; prüfe `systemctl status postgresql` oder `docker compose logs`
 - `role "velora" does not exist`: Benutzer nicht angelegt; siehe Abschnitt PostgreSQL
+- `DATABASE_URL fehlt`, obwohl `.env.local` befüllt ist: siehe Stolperstein oben — die Umgebung muss vor diesem Befehl explizit geladen werden
 
 ---
 
@@ -776,9 +871,11 @@ sudo journalctl -u velora -f
 **Reihenfolge wichtig:**
 1. Code
 2. `npm ci`
-3. `npm run db:migrate` (vor dem Build, weil Migrationen Tabellen ändern)
+3. `npm run db:migrate` (vor dem Build, weil Migrationen Tabellen ändern) — Umgebung vorher wie im Abschnitt „Datenbank initialisieren" beschrieben explizit laden (`set -a; source .env.local; set +a`), sonst bricht der Befehl mit „DATABASE_URL fehlt" ab
 4. `npm run build`
 5. `systemctl restart`
+
+**Warnung:** `npm audit fix --force` nicht als Teil dieses Ablaufs verwenden — kann Abhängigkeiten wie `drizzle-kit` auf eine inkompatible Version herunterstufen und dabei benötigte Befehle (z. B. `migrate`) entfernen. Siehe Warnung im Abschnitt „Abhängigkeiten installieren".
 
 ---
 
@@ -1057,6 +1154,10 @@ npm update
 # OS-Sicherheitsupdates
 sudo apt update && sudo apt upgrade -y
 ```
+
+**Nicht verwenden:** `npm audit fix --force` — siehe Warnung im Abschnitt „Abhängigkeiten
+installieren" oben. Stattdessen `npm audit --omit=dev` zur Bewertung nutzen und betroffene Pakete
+einzeln, gezielt aktualisieren.
 
 ### Zertifikatserneuerung
 

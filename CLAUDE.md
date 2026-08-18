@@ -29,7 +29,7 @@ Statischer Export (`NEXT_OUTPUT=export`) ist nicht mehr möglich — siehe `next
 
 **Next.js 15.5.23** (App Router, kein Pages Router), **React 19.2.8**, **TypeScript 5.9.3** (`strict: true`, `noUncheckedIndexedAccess`, `noFallthroughCasesInSwitch`), **Tailwind CSS 4.3.3**, **Vitest 3.2.7** + Testing Library + jsdom, **lucide-react 0.577.0**, **ESLint 9.39.5** Flat Config.
 
-Backend & Persistence: **PostgreSQL**, **Drizzle ORM 0.37** (`drizzle-kit` für Migrationen), **pg 8.12** (Node.js-Driver), **better-auth 1.4** (Authentifizierung, OAuth, Sitzungsverwaltung), **zod 3.24** (Eingabevalidierung).
+Backend & Persistence: **PostgreSQL**, **Drizzle ORM 0.45.2** (`drizzle-kit 0.31.10` für Migrationen), **pg 8.23.0** (Node.js-Driver), **better-auth 1.6.30** (Authentifizierung, OAuth, Sitzungsverwaltung), **zod 4.4.3** (Eingabevalidierung).
 
 Pfad-Alias: `@/*` → Root (nicht `src/`; das Projekt hat kein `src/`).
 
@@ -124,7 +124,7 @@ Autoplay, Turbospin, betonter Near Miss, Loss Disguised as Win, vorausgewählte 
 
 ## Authentifizierung und Autorisierung
 
-**Technologie**: better-auth 1.4 mit PostgreSQL. Session-Cookies, optional OAuth (Google, GitHub, Discord).
+**Technologie**: better-auth 1.6.30 mit PostgreSQL. Session-Cookies, optional OAuth (Google, GitHub, Discord).
 
 **Authentifizierung (Identität prüfen)**:
 - `middleware.ts` (Edge Runtime): Prüft AUSSCHLIESSLICH Cookie-Präsenz; leitet nicht-angemeldete Nutzer nach `/login?next=…` um.

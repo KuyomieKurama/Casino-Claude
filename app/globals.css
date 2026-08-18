@@ -21,6 +21,11 @@
                                Das Konzept nannte 1,45:1; im Browser nachgemessen sind es 1,34:1.
                                Ohne Folgen, weil dieser Ton nie die einzige Markierung trägt. */
   --border-control: #646c7a; /*  3,39:1 — Eingabefelder, Umriss-Buttons (WCAG 1.4.11) */
+  --overlay-scrim: #000000; /* REIN DEKORATIV, nie alleinige Markierung — Abdunkelung hinter
+                               MobileMenu/Modal, immer mit reduzierter Deckkraft über den
+                               Tailwind-Opacity-Modifier (z. B. bg-overlay/60) verwendet, nie
+                               deckend. Kein Informationsträger, deshalb keine WCAG-Kontrastprüfung
+                               nötig (siehe app/design-tokens.test.ts). */
 
   /* ─── Tiefe, Licht, Interaktion (Ergänzung) ────────────────────────────────
      Leitidee "Der Tisch als Lichtquelle": eine ruhige, weit gestreute
@@ -128,6 +133,7 @@
   --color-danger: var(--danger);
   --color-border-subtle: var(--border-subtle);
   --color-border-control: var(--border-control);
+  --color-overlay: var(--overlay-scrim);
   --color-transparent: transparent;
   --color-current: currentColor;
 
@@ -181,6 +187,38 @@
   --spacing-xl: var(--space-xl);
   --spacing-2xl: var(--space-2xl);
   --spacing-3xl: var(--space-3xl);
+
+  /* Schutz vor Namenskollision (Produktionsvorfall): Tailwind löst max-w-*, w-* und min-w-*
+     in dieser Reihenfolge auf: erst das jeweils passende --max-width-*, --width-* bzw.
+     --min-width-*, dann --spacing-*, erst danach --container-*. Die Abstands-Skala oben nennt
+     ihre Stufen xs/sm/md/lg/xl/2xl/3xl
+     — exakt dieselben Namen wie Tailwinds Standard-Container-Skala für max-w-md, max-w-lg usw.
+     Ohne diese Zeilen hätte z. B. max-w-md lautlos --spacing-md (1,25rem, Kartenabstand) statt
+     der vorgesehenen Containerbreite (28rem) verwendet — Formulare und Karten kollabierten dadurch
+     auf einen schmalen Streifen (u. a. Registrierungsseite, components/ui/Modal.tsx). Verweist
+     bewusst auf die unverändert vorhandenen Tailwind-Standardwerte --container-* statt eigene
+     Zahlen zu wiederholen. */
+  --max-width-xs: var(--container-xs);
+  --max-width-sm: var(--container-sm);
+  --max-width-md: var(--container-md);
+  --max-width-lg: var(--container-lg);
+  --max-width-xl: var(--container-xl);
+  --max-width-2xl: var(--container-2xl);
+  --max-width-3xl: var(--container-3xl);
+  --width-xs: var(--container-xs);
+  --width-sm: var(--container-sm);
+  --width-md: var(--container-md);
+  --width-lg: var(--container-lg);
+  --width-xl: var(--container-xl);
+  --width-2xl: var(--container-2xl);
+  --width-3xl: var(--container-3xl);
+  --min-width-xs: var(--container-xs);
+  --min-width-sm: var(--container-sm);
+  --min-width-md: var(--container-md);
+  --min-width-lg: var(--container-lg);
+  --min-width-xl: var(--container-xl);
+  --min-width-2xl: var(--container-2xl);
+  --min-width-3xl: var(--container-3xl);
 
   --ease-out: var(--ease-out);
 }
@@ -338,7 +376,16 @@ body {
 .anim-fade-in { animation: fade-in var(--dur-fade) var(--ease-out) both; }
 .anim-rise-in { animation: rise-in var(--dur-fade) var(--ease-out) both; }
 .anim-sheet-up { animation: sheet-up var(--dur-sheet) var(--ease-out) both; }
-.anim-sheet-side { animation: sheet-side var(--dur-sheet) var(--ease-out) both; }
+/* Als @utility statt gewöhnlicher Klasse (anders als die übrigen .anim-*-Regeln hier): wird mit
+   einem Varianten-Präfix verwendet (md:anim-sheet-side in components/ui/Modal.tsx, Drawer wechselt
+   ab md von „von unten“ auf „von rechts“). Eine gewöhnliche CSS-Klasse kennt Tailwind-4-Varianten
+   wie md: nicht — die Klasse existierte, griff aber nie, der Drawer sprang ab md ohne Übergang ein.
+   Der :root-Fallback @media-Block (prefers-reduced-motion) unten bleibt unverändert wirksam: er
+   ist ungelayertes CSS und schlägt laut Kaskadenschichten-Regel jede Utility, unabhängig von
+   Spezifität oder Reihenfolge. */
+@utility anim-sheet-side {
+  animation: sheet-side var(--dur-sheet) var(--ease-out) both;
+}
 .anim-skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; }
 .anim-reel { animation: reel-spin 0.35s linear infinite; }
 .anim-panel-in { animation: panel-in var(--dur-fade) var(--ease-out) both; }
