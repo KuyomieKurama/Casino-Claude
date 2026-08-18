@@ -204,6 +204,43 @@ describe("Wallet-Reducer — Invarianten", () => {
     const b = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: "kaputt", ctx: ctx() });
     expect(b.wallet.demoBalanceMinor).toBe(START_BALANCE_MINOR);
   });
+
+  it("Hydration: serverWallet überschreibt einen veralteten LocalStorage-Saldo (Auftrag: durchgängig der Serverstand)", () => {
+    const stale = fresh();
+    const persisted = JSON.parse(JSON.stringify(toPersistedWallet({ ...stale, wallet: { ...stale.wallet, demoBalanceMinor: START_BALANCE_MINOR - 100 } })));
+    const serverWallet = { demoBalanceMinor: 42_000, bonusBalanceMinor: 500, freeSpins: 3 };
+
+    const rehydrated = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: persisted, ctx: ctx(), serverWallet });
+
+    expect(rehydrated.wallet.demoBalanceMinor).toBe(42_000);
+    expect(rehydrated.wallet.bonusBalanceMinor).toBe(500);
+    expect(rehydrated.wallet.freeSpins).toBe(3);
+  });
+
+  it("Hydration: serverWallet gewinnt auch bei einer defekten Scheibe (kein Rückfall auf den hartkodierten Default)", () => {
+    const serverWallet = { demoBalanceMinor: 7_500, bonusBalanceMinor: 0, freeSpins: 0 };
+    const a = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: "kaputt", ctx: ctx(), serverWallet });
+    expect(a.wallet.demoBalanceMinor).toBe(7_500);
+  });
+
+  it("Hydration: eine unterbrochene Runde wird zuerst lokal abgeschlossen, danach gewinnt trotzdem serverWallet", () => {
+    let s = fresh();
+    s = walletReducer(s, { type: "START_ROUND", input: round({ returnMinor: 500 }), ctx: ctx() });
+    const persisted = JSON.parse(JSON.stringify(toPersistedWallet(s)));
+    const serverWallet = { demoBalanceMinor: 999_000, bonusBalanceMinor: 0, freeSpins: 0 };
+
+    const rehydrated = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: persisted, ctx: ctx(), serverWallet });
+
+    expect(rehydrated.pendingRound).toBeNull();
+    expect(rehydrated.wallet.roundInFlight).toBe(false);
+    expect(rehydrated.wallet.demoBalanceMinor).toBe(999_000);
+  });
+
+  it("Hydration ohne serverWallet verhält sich unverändert (bestehende Aufrufer bleiben kompatibel)", () => {
+    const persisted = JSON.parse(JSON.stringify(toPersistedWallet(fresh())));
+    const rehydrated = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: persisted, ctx: ctx() });
+    expect(rehydrated.wallet.demoBalanceMinor).toBe(START_BALANCE_MINOR);
+  });
 });
 
 describe("Wallet-Reducer — interaktive Runden (Blackjack, Mines)", () => {

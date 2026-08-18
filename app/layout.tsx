@@ -12,6 +12,7 @@ import { SystemNotices } from "@/components/layout/SystemNotices";
 import { getSession, type AuthSession } from "@/server/auth/guards";
 import { db } from "@/server/db/client";
 import { loadLobbyGames } from "@/server/catalog/read-model";
+import { resolveWalletBalance } from "@/server/wallet/wallet-read-model";
 
 // E2: Fraunces (Serif) als Display-Akzent, Inter für Body/UI. Selbst gehostet über next/font — keine Requests zur Laufzeit.
 const fraunces = Fraunces({
@@ -61,7 +62,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // getSession() oben: einmal pro Anfrage im Root-Layout, dann als fertige Daten (kein
   // @/server/*-Import) in den Client-Baum gereicht. Speist Lobby, Startseite und die
   // "Ähnliche Spiele"-Liste der Detailseite über CatalogContext.
-  const [session, initialGames] = await Promise.all([getSession(), loadLobbyGames(db)]);
+  const session = await getSession();
+  // resolveWalletBalance() braucht die (evtl. fehlende) userId aus getSession() — deshalb erst
+  // NACH der Sitzung aufgerufen, aber weiterhin parallel zum unabhängigen Katalog-Read. Für
+  // Gäste ohne Sitzung (session === null) liefert sie ohne Datenbankzugriff das dokumentierte
+  // Startguthaben (server/wallet/wallet-read-model.ts) — kein Fehler, kein Sonderfall hier.
+  const [initialGames, walletSnapshot] = await Promise.all([loadLobbyGames(db), resolveWalletBalance(db, session?.user.id ?? null)]);
   const user = toClientUser(session);
   return (
     <html lang="de" className={`${fraunces.variable} ${inter.variable}`}>
@@ -69,7 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a href="#main" className="skip-link">
           Zum Inhalt springen
         </a>
-        <AppProviders user={user} initialGames={initialGames}>
+        <AppProviders user={user} initialGames={initialGames} walletSnapshot={walletSnapshot}>
           <DemoBanner />
           <Header />
           <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1536px] px-4 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))] sm:px-6 md:pb-0">

@@ -1,12 +1,11 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
-import type { Wallet } from "@/types/wallet";
+import type { Wallet, WalletBalance } from "@/types/wallet";
 import type { Transaction } from "@/types/transaction";
 import type { CreditsMinor } from "@/types/money";
 import { writeSlice } from "@/lib/storage";
 import { nowIso } from "@/lib/ids";
-import { sampleTransactions } from "@/data/mock-history";
 import { usePersistence } from "./PersistenceContext";
 import { useSession } from "./SessionContext";
 import { useRg } from "./RgContext";
@@ -47,15 +46,31 @@ type WalletValue = {
 
 const WalletContext = createContext<WalletValue | null>(null);
 
+export type WalletProviderProps = {
+  children: ReactNode;
+  /**
+   * Serverseitig gelesener Wallet-Stand (app/layout.tsx ⇒ server/wallet/wallet-read-model.ts),
+   * beim allerersten Render bereits bekannt — kein Nachladen, kein zweiter Request. Ohne Prop
+   * (z. B. bestehende Komponententests, die nur `<AppProviders>` ohne Server-Kontext brauchen)
+   * verhält sich der Provider wie vor dieser Änderung: hartkodierter Default plus LocalStorage.
+   */
+  initialWallet?: WalletBalance;
+};
+
 /**
  * Der Provider legt jeder Aktion den Kontext bei (Nutzer, Zeit, RG-Sperre) — die UI kann
  * diese Werte nicht beeinflussen. Der Reducer entscheidet, die UI zeigt nur an.
  */
-export function WalletProvider({ children }: { children: ReactNode }) {
+export function WalletProvider({ children, initialWallet }: WalletProviderProps) {
   const persistence = usePersistence();
   const { user } = useSession();
   const { getStatus, hydrated: rgHydrated } = useRg();
-  const [state, dispatch] = useReducer(walletReducer, sampleTransactions, createInitialWalletState);
+  // Kein sampleTransactions-Seed mehr (Auftrag §2): Wallet-Seite und Historie lesen inzwischen
+  // aus dem Server-Ledger (app/(user)/wallet, app/(user)/history), nicht mehr aus
+  // state.transactions — Beispieldaten dürften dort sonst als echte Buchungen erscheinen.
+  // state.transactions bleibt für die noch lokalen interaktiven Spiele (Blackjack, Video Poker,
+  // Mines, siehe wallet-reducer.ts) bestehen, startet für echte Nutzer aber leer.
+  const [state, dispatch] = useReducer(walletReducer, undefined, createInitialWalletState);
   const stateRef = useRef(state);
   // Bei jedem Render gilt der echte React-Zustand. Zwischen zwei Rendern schreibt `run()` den
   // Zwischenstand fort (siehe dort) — nur dann kann er überhaupt vom Render abweichen.
@@ -67,11 +82,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   // Erst hydrieren, wenn auch RG hydriert ist — sonst könnte eine offene Runde mit falschem Kontext abgeschlossen werden.
+  // `serverWallet: initialWallet` sorgt dafür, dass der Saldo NACH der lokalen Wiederherstellung
+  // immer auf den beim Laden gelesenen Serverstand korrigiert wird (state/wallet-reducer.ts::
+  // applyServerWallet) — ein wiederkehrender Nutzer sieht dadurch nie einen veralteten Wert aus
+  // einem alten LocalStorage-Stand, sondern spätestens ab hydrated=true den echten Saldo.
   useEffect(() => {
     if (persistence.hydrated && rgHydrated && !state.hydrated) {
-      dispatch({ type: "HYDRATE", slice: persistence.slices.wallet, ctx: makeCtx() });
+      dispatch({ type: "HYDRATE", slice: persistence.slices.wallet, ctx: makeCtx(), ...(initialWallet ? { serverWallet: initialWallet } : {}) });
     }
-  }, [persistence.hydrated, persistence.slices.wallet, rgHydrated, state.hydrated, makeCtx]);
+  }, [persistence.hydrated, persistence.slices.wallet, rgHydrated, state.hydrated, makeCtx, initialWallet]);
 
   useEffect(() => {
     if (state.hydrated) writeSlice("wallet", toPersistedWallet(state));

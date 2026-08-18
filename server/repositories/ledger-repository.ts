@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import type { AppDatabase } from "@/server/db/types";
 import { ledgerEntry } from "@/server/db/schema";
 import type { LedgerEntryType } from "@/server/db/enums";
@@ -76,6 +76,89 @@ export async function insertLedgerEntry(db: AppDatabase, input: InsertLedgerEntr
 export async function listLedgerEntries(db: AppDatabase, userId: string, limit = 100): Promise<LedgerEntryRecord[]> {
   const rows = await db.select().from(ledgerEntry).where(eq(ledgerEntry.userId, userId)).orderBy(desc(ledgerEntry.seq)).limit(limit);
   return rows.map(toRecord);
+}
+
+/**
+ * Gemeinsame Filter für die paginierte Historie (Auftrag §2/§3, app/(user)/history): immer
+ * scharf auf `userId` (die geprüfte Sitzung, nie eine Angabe aus der Anfrage), optional auf
+ * Spielmodus und Zeitraum eingeschränkt.
+ */
+export interface LedgerEntryFilters {
+  gameModeId?: string;
+  /** Nur Einträge ab diesem Zeitpunkt (ISO), für die Zeitraum-Filter (heute/7 Tage/30 Tage). */
+  createdAfterIso?: string;
+}
+
+function buildFilterConditions(userId: string, filters: LedgerEntryFilters) {
+  const conditions = [eq(ledgerEntry.userId, userId)];
+  if (filters.gameModeId !== undefined) conditions.push(eq(ledgerEntry.gameModeId, filters.gameModeId));
+  if (filters.createdAfterIso !== undefined) conditions.push(gte(ledgerEntry.createdAt, new Date(filters.createdAfterIso)));
+  return conditions;
+}
+
+export interface ListLedgerEntriesPageOptions extends LedgerEntryFilters {
+  /** Seitengröße — vom Aufrufer (server/wallet/ledger-history.ts) auf eine feste Obergrenze geprüft. */
+  limit: number;
+  /** Keyset-Cursor: nur Einträge MIT kleinerer seq als dieser Wert (die nächstälteren). Ohne
+   *  Angabe beginnt die Ausgabe bei der neuesten Zeile — kein OFFSET, keine unbegrenzte Abfrage. */
+  beforeSeq?: number;
+}
+
+export interface LedgerEntriesPage {
+  entries: LedgerEntryRecord[];
+  /** true, wenn nach dieser Seite (unter denselben Filtern) noch ältere Einträge existieren. */
+  hasMore: boolean;
+}
+
+/**
+ * Paginierte Historie (Auftrag §2): Keyset-Pagination über `seq` (monoton je Nutzer, siehe
+ * server/db/schema.ts::ledgerEntry) statt OFFSET — bleibt bei wachsender Historie konstant
+ * schnell und liefert bei gleichzeitigen neuen Buchungen keine verschobenen/doppelten Zeilen.
+ * Lädt genau `limit + 1` Zeilen, um `hasMore` ohne separate COUNT-Abfrage zu bestimmen, und
+ * gibt nie mehr als `limit` Zeilen zurück.
+ */
+export async function listLedgerEntriesPage(db: AppDatabase, userId: string, options: ListLedgerEntriesPageOptions): Promise<LedgerEntriesPage> {
+  const conditions = buildFilterConditions(userId, options);
+  if (options.beforeSeq !== undefined) conditions.push(lt(ledgerEntry.seq, options.beforeSeq));
+
+  const rows = await db
+    .select()
+    .from(ledgerEntry)
+    .where(and(...conditions))
+    .orderBy(desc(ledgerEntry.seq))
+    .limit(options.limit + 1);
+
+  const hasMore = rows.length > options.limit;
+  const page = hasMore ? rows.slice(0, options.limit) : rows;
+  return { entries: page.map(toRecord), hasMore };
+}
+
+/**
+ * Gesamtzahl der (gefilterten) Einträge — eine einzelne aggregierte Zeile, kein Laden aller
+ * Datensätze. Dient ausschließlich der Anzeige ("Seite 2 von 3, 45 Buchungen") für Screenreader
+ * und ist kein Ersatz für `listLedgerEntriesPage`s Keyset-Pagination.
+ */
+export async function countLedgerEntries(db: AppDatabase, userId: string, filters: LedgerEntryFilters): Promise<number> {
+  const conditions = buildFilterConditions(userId, filters);
+  const [row] = await db
+    .select({ total: sql<string>`COUNT(*)` })
+    .from(ledgerEntry)
+    .where(and(...conditions));
+  return Number(row?.total ?? 0);
+}
+
+/**
+ * Distinkte Spielmodi, in denen der Nutzer jemals eine Buchung hatte — Grundlage für den
+ * „Spiel"-Filter der Historie (nur Modi zeigen, in denen tatsächlich etwas passiert ist, wie
+ * zuvor beim lokalen Reducer). Begrenzt durch die Zahl der Kataloge-Modi (§Auftrag: 24 Titel),
+ * keine unbegrenzte Ergebnismenge.
+ */
+export async function listDistinctGameModeIds(db: AppDatabase, userId: string): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ gameModeId: ledgerEntry.gameModeId })
+    .from(ledgerEntry)
+    .where(eq(ledgerEntry.userId, userId));
+  return rows.map((r) => r.gameModeId).filter((id): id is string => id !== null);
 }
 
 /**

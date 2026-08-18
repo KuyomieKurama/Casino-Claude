@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import type { Game } from "@/types/game";
 import type { User } from "@/types/user";
+import type { WalletBalance } from "@/types/wallet";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PersistenceProvider } from "./PersistenceContext";
 import { SessionProvider } from "./SessionContext";
@@ -22,15 +23,30 @@ import { WalletProvider } from "./WalletContext";
  * `initialGames` (optional, wie `user`): aus app/layout.tsx, dort über die Repositories aus der
  * Datenbank gelesen (server/catalog/read-model.ts). Ohne Prop fällt CatalogProvider auf
  * data/catalog.ts zurück — bestehende Tests bleiben dadurch unverändert lauffähig.
+ *
+ * `walletSnapshot` (optional, wie `initialGames`): aus app/layout.tsx, dort über
+ * server/wallet/wallet-read-model.ts gelesen. Ohne Prop verhält sich WalletProvider wie vor
+ * dieser Änderung (hartkodierter Default plus LocalStorage) — bestehende Tests, die nur
+ * `<AppProviders>` ohne Server-Kontext brauchen, bleiben unverändert lauffähig.
  */
-export function AppProviders({ children, user = null, initialGames }: { children: ReactNode; user?: User | null; initialGames?: readonly Game[] }) {
+export function AppProviders({
+  children,
+  user = null,
+  initialGames,
+  walletSnapshot,
+}: {
+  children: ReactNode;
+  user?: User | null;
+  initialGames?: readonly Game[];
+  walletSnapshot?: WalletBalance;
+}) {
   return (
     <ToastProvider>
       <PersistenceProvider>
         <SessionProvider user={user}>
           <RgProvider>
             <CatalogProvider initialGames={initialGames}>
-              <WalletProvider>{children}</WalletProvider>
+              <WalletProvider initialWallet={walletSnapshot}>{children}</WalletProvider>
             </CatalogProvider>
           </RgProvider>
         </SessionProvider>

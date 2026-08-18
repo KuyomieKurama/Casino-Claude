@@ -1,6 +1,6 @@
 import type { CreditsMinor } from "@/types/money";
 import type { Transaction, TransactionType } from "@/types/transaction";
-import type { Wallet } from "@/types/wallet";
+import type { Wallet, WalletBalance } from "@/types/wallet";
 import { MAX_BALANCE_MINOR, START_BALANCE_MINOR } from "@/lib/constants";
 import {
   availableMinor,
@@ -89,7 +89,24 @@ export type StartRoundInput = {
 };
 
 export type WalletAction =
-  | { type: "HYDRATE"; slice: unknown; ctx: WalletCtx }
+  | {
+      type: "HYDRATE";
+      slice: unknown;
+      ctx: WalletCtx;
+      /**
+       * Phase 3b (Auftrag: Guthabenanzeige zeigt durchgängig den Serverstand): der beim Laden
+       * server-seitig gelesene Wallet-Stand (state/WalletContext.tsx, app/layout.tsx ⇒
+       * server/wallet/wallet-read-model.ts). Wird — falls vorhanden — NACH der lokalen
+       * Wiederherstellung (inkl. einer eventuell hier abgeschlossenen unterbrochenen Runde,
+       * siehe unten) über die Saldofelder gelegt: der Server ist die Wahrheit, ein evtl.
+       * veralteter LocalStorage-Stand gewinnt nie. `roundInFlight`/`pendingRound` bleiben
+       * unberührt (wie bei SERVER_WALLET_SYNC) — der Server kennt lokale interaktive Runden
+       * (Blackjack, Mines, Video Poker) nicht, das bleibt bis Phase 3c reine Client-Sache.
+       * Optional, damit bestehende HYDRATE-Aufrufe (Tests, ohne Server-Kontext) unverändert
+       * funktionieren.
+       */
+      serverWallet?: WalletBalance;
+    }
   | { type: "TOP_UP"; amountMinor: CreditsMinor; ctx: WalletCtx }
   | { type: "RESET"; ctx: WalletCtx }
   | { type: "START_ROUND"; input: StartRoundInput; ctx: WalletCtx }
@@ -105,7 +122,7 @@ export type WalletAction =
    * und `roundInFlight`/`pendingRound` bleiben unberührt, damit eine parallel laufende
    * interaktive Runde (Blackjack, Mines) davon nicht betroffen ist.
    */
-  | { type: "SERVER_WALLET_SYNC"; wallet: { demoBalanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number } };
+  | { type: "SERVER_WALLET_SYNC"; wallet: WalletBalance };
 
 export const MAX_STORED_TRANSACTIONS = 500;
 
@@ -288,14 +305,27 @@ function settle(state: WalletState, ctx: WalletCtx, override?: CreditsMinor): Wa
   return { ...next, pendingRound: null };
 }
 
+/**
+ * Legt — falls vorhanden — den serverseitig gelesenen Saldo über die Wallet-Salden. Gilt für
+ * JEDEN HYDRATE-Ausgang (auch den Defekte-Scheibe-Pfad): ohne diesen Aufruf dort würde ein
+ * beschädigter LocalStorage-Eintrag auf das hartkodierte `initialWallet` (1.000,00 Credits)
+ * zurückfallen, statt auf den tatsächlichen Serverstand — genau das „Aufblitzen eines falschen
+ * Werts", das der Auftrag ausschließt. `roundInFlight` bleibt unverändert (siehe Kommentar am
+ * `serverWallet`-Feld oben).
+ */
+function applyServerWallet(state: WalletState, serverWallet: Extract<WalletAction, { type: "HYDRATE" }>["serverWallet"]): WalletState {
+  if (!serverWallet) return state;
+  return { ...state, wallet: { ...state.wallet, ...serverWallet } };
+}
+
 export function walletReducer(state: WalletState, action: WalletAction): WalletState {
   switch (action.type) {
     case "HYDRATE": {
       const slice = action.slice;
-      if (!isRecord(slice)) return { ...state, hydrated: true };
+      if (!isRecord(slice)) return applyServerWallet({ ...state, hydrated: true }, action.serverWallet);
       const wallet = parseWallet(slice.wallet);
       const transactions = parseTransactions(slice.transactions);
-      if (!wallet || !transactions) return { ...state, hydrated: true };
+      if (!wallet || !transactions) return applyServerWallet({ ...state, hydrated: true }, action.serverWallet);
       const maxSeq = transactions.reduce((m, t) => Math.max(m, t.seq), 0);
       const nextSeq = typeof slice.nextSeq === "number" && slice.nextSeq > maxSeq ? slice.nextSeq : maxSeq + 1;
       const pendingRound = parsePendingRound(slice.pendingRound);
@@ -309,12 +339,16 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
         lastRejection: null,
       };
       // Eine beim letzten Besuch unterbrochene Runde wird jetzt abgeschlossen — Einsatz und
-      // Ergebnis waren bereits festgelegt, es geht kein Guthaben verloren.
+      // Ergebnis waren bereits festgelegt, es geht kein Guthaben verloren. Das läuft ausschließlich
+      // gegen den LOKALEN Stand: der Server kennt diese Runde nicht (interaktive Engines sind bis
+      // Phase 3c rein lokal), ein Abgleich hier wäre finanziell falsch (siehe Kommentar am
+      // `serverWallet`-Feld). Die anschließende applyServerWallet() korrigiert danach trotzdem den
+      // sichtbaren SALDO auf den Serverstand — der bekannte Rest-Kompromiss dieser Übergangsphase.
       if (pendingRound) {
         next = { ...next, wallet: { ...next.wallet, roundInFlight: true } };
         next = settle(next, action.ctx);
       }
-      return next;
+      return applyServerWallet(next, action.serverWallet);
     }
 
     case "CLEAR_REJECTION":
