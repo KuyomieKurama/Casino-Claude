@@ -10,6 +10,8 @@ import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { Footer } from "@/components/layout/Footer";
 import { SystemNotices } from "@/components/layout/SystemNotices";
 import { getSession, type AuthSession } from "@/server/auth/guards";
+import { db } from "@/server/db/client";
+import { loadLobbyGames } from "@/server/catalog/read-model";
 
 // E2: Fraunces (Serif) als Display-Akzent, Inter für Body/UI. Selbst gehostet über next/font — keine Requests zur Laufzeit.
 const fraunces = Fraunces({
@@ -55,7 +57,11 @@ function toClientUser(session: AuthSession | null): User | null {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
+  // Katalog serverseitig über die Repositories lesen (Auftrag §1) — derselbe Rhythmus wie
+  // getSession() oben: einmal pro Anfrage im Root-Layout, dann als fertige Daten (kein
+  // @/server/*-Import) in den Client-Baum gereicht. Speist Lobby, Startseite und die
+  // "Ähnliche Spiele"-Liste der Detailseite über CatalogContext.
+  const [session, initialGames] = await Promise.all([getSession(), loadLobbyGames(db)]);
   const user = toClientUser(session);
   return (
     <html lang="de" className={`${fraunces.variable} ${inter.variable}`}>
@@ -63,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a href="#main" className="skip-link">
           Zum Inhalt springen
         </a>
-        <AppProviders user={user}>
+        <AppProviders user={user} initialGames={initialGames}>
           <DemoBanner />
           <Header />
           <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1536px] px-4 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))] sm:px-6 md:pb-0">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Ban, ChevronLeft, Play, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { Game } from "@/types/game";
+import type { GameModeSummary } from "@/types/game-mode";
 import type { RoundStatus } from "@/types/game-round";
 import { useCatalog } from "@/state/CatalogContext";
 import { useRgStatus } from "@/state/RgContext";
@@ -23,6 +24,7 @@ import { EmptyState } from "@/components/feedback/EmptyState";
 import { GameArt } from "./GameArt";
 import { FavoriteButton } from "./FavoriteButton";
 import { GameCard } from "./GameCard";
+import { ModeSwitcher } from "./ModeSwitcher";
 import { PaytableView } from "./PaytableView";
 import { DemoWallet } from "@/components/wallet/DemoWallet";
 import { cn } from "@/lib/cn";
@@ -39,8 +41,19 @@ const statusLabel: Record<RoundStatus, string> = {
   error: "Fehler beim Laden",
 };
 
+export type GameDetailProps = {
+  game: Game;
+  /**
+   * Alle Modi des Titels (inklusive des aktiven, inklusive inaktiver) — aus
+   * server/catalog/read-model.ts über app/game/[slug]/page.tsx. Fehlt die Prop (z. B. in
+   * älteren Tests) oder hat der Titel nur einen Modus, bleibt die Modusauswahl ausgeblendet.
+   */
+  siblingModes?: readonly GameModeSummary[];
+  titleLabel?: string;
+};
+
 /** Spieldetailseite (§8.4). Spielfläche wird auf derselben Route eingeblendet. */
-export function GameDetail({ game: baseGame }: { game: Game }) {
+export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDetailProps) {
   const { games } = useCatalog();
   const searchParams = useSearchParams();
   const rg = useRgStatus(5000);
@@ -86,8 +99,12 @@ export function GameDetail({ game: baseGame }: { game: Game }) {
         </Link>
       </nav>
 
-      {/* Kopf: großes Bild + Fakten */}
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]" aria-labelledby="game-title">
+      {/* Kopf: großes Bild + Fakten. "Der Tisch als Lichtquelle": Tiefe über Schatten statt
+          zusätzlicher Farbe — signature-top bleibt die einzige box-shadow-Deklaration hier,
+          da .edge-light dieselbe CSS-Eigenschaft setzt und sie sonst überschreiben würde
+          (siehe app/globals.css: --edge-light ist für die Kombination in EINER box-shadow-Liste
+          gedacht, z. B. in .hover-elevate, nicht für das Stapeln zweier Utility-Klassen). */}
+      <section className="grid gap-lg lg:grid-cols-[1.2fr_1fr]" aria-labelledby="game-title">
         <div className={cn("signature-top overflow-hidden rounded-card border border-border-subtle bg-surface", inactive && "opacity-70")}>
           <div className="aspect-[16/9]">
             <GameArt game={game} useBanner priority />
@@ -112,6 +129,14 @@ export function GameDetail({ game: baseGame }: { game: Game }) {
             {game.name}
           </h1>
           <p className="text-sm text-muted">{providerName(game.providerId)}</p>
+          {siblingModes && siblingModes.length > 1 ? (
+            <ModeSwitcher
+              modes={siblingModes}
+              activeModeId={game.id}
+              titleLabel={titleLabel ?? game.name}
+              roundInProgress={roundStatus === "playing"}
+            />
+          ) : null}
           <p className="measure text-base text-primary/90">{game.description}</p>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">

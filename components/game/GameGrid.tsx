@@ -26,7 +26,7 @@ export function GameGrid({
     {heading ? <h2 className={headingHidden ? "sr-only" : "mb-3 text-md font-semibold text-primary"}>{heading}</h2> : null}
     <ul
       className={cn(
-        "grid grid-cols-2 gap-3 sm:gap-4",
+        "grid grid-cols-2 gap-sm sm:gap-md",
         dense ? "md:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5",
         className,
       )}
@@ -43,7 +43,7 @@ export function GameGrid({
 
 export function GameGridSkeleton({ count = 8, className }: { count?: number; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5", className)} aria-hidden="true">
+    <div className={cn("grid grid-cols-2 gap-sm sm:gap-md md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5", className)} aria-hidden="true">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="overflow-hidden rounded-card border border-border-subtle bg-surface">
           <Skeleton className="aspect-[4/3] w-full rounded-none" />

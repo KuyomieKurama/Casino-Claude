@@ -72,7 +72,7 @@ export function Lobby() {
         <CategoryTabs criteria={criteria} counts={counts} />
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+      <div className="grid gap-lg lg:grid-cols-[260px_1fr]">
         <div className="hidden lg:block">
           <FilterPanel mode="sidebar" criteria={criteria} onApply={(patch) => update(patch)} onReset={reset} />
         </div>

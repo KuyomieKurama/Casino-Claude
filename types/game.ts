@@ -1,4 +1,5 @@
 import type { CreditsMinor } from "./money";
+import type { GameModeSummary } from "./game-mode";
 
 export type GameCategory =
   | "slots"
@@ -38,6 +39,13 @@ export type Game = {
   status: "active" | "inactive";
   releasedAt: string;
   popularityScore: number;
+  /**
+   * Geschwistermodi desselben Titels (ohne diesen Modus selbst), nur gesetzt, wenn das Spiel
+   * über die Repositories aus der Datenbank geladen wurde (server/catalog/read-model.ts).
+   * Trägt den dezenten Lobby-Hinweis ("Auch als: Amerikanisch, Live") und die Modusauswahl auf
+   * der Detailseite. `undefined`, wenn nur ein Modus existiert oder die Herkunft rein statisch ist.
+   */
+  siblingModes?: readonly GameModeSummary[];
 };
 
 export type Provider = {

@@ -21,7 +21,7 @@ type CatalogValue = {
 
 const CatalogContext = createContext<CatalogValue | null>(null);
 
-export function CatalogProvider({ children }: { children: ReactNode }) {
+export function CatalogProvider({ children, initialGames }: { children: ReactNode; initialGames?: readonly Game[] }) {
   const persistence = usePersistence();
   const [state, dispatch] = useReducer(catalogReducer, initialCatalogState);
 
@@ -33,7 +33,12 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     if (state.hydrated) writeSlice("catalogPrefs", toPersistedCatalog(state));
   }, [state]);
 
-  const games = useMemo(() => applyOverrides(baseGames, state.overrides), [state.overrides]);
+  // `initialGames` kommt aus app/layout.tsx (Server Component, server/catalog/read-model.ts) —
+  // der Katalog wird dort über die Repositories aus der Datenbank gelesen (Auftrag §1), genau
+  // wie `user` bereits serverseitig gelesen und durchgereicht wird (siehe toClientUser() dort).
+  // Optional statt Pflichtprop: bestehende Tests instanziieren <CatalogProvider> ohne DB-Anbindung
+  // und dürfen unverändert funktionieren — dann bleibt data/catalog.ts der Fallback.
+  const games = useMemo(() => applyOverrides(initialGames ?? baseGames, state.overrides), [initialGames, state.overrides]);
   const isFavorite = useCallback((id: string) => state.favorites.includes(id), [state.favorites]);
   const toggleFavorite = useCallback((gameId: string) => dispatch({ type: "TOGGLE_FAVORITE", gameId }), []);
   const setOverride = useCallback((gameId: string, override: GameOverride) => dispatch({ type: "SET_OVERRIDE", gameId, override }), []);
