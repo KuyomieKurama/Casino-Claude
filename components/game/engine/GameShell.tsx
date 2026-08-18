@@ -14,6 +14,7 @@ import { ErrorState } from "@/components/feedback/ErrorState";
 import { DemoBadge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 import type { LastRoundResult } from "./useRound";
+import { useSound } from "./sound/useEngineSound";
 
 /** Feste Einsatzstufen; jede Engine filtert auf ihren Demo-Bereich. */
 export const STAKE_PRESETS = [10, 25, 50, 100, 200, 500, 1000, 2000, 5000, 10000] as const;
@@ -63,7 +64,13 @@ export type GameShellProps = {
  * Lade- und Fehlerzustand. Alle sieben RoundStatus-Werte haben hier eine eigene Darstellung.
  *
  * Bewusst NICHT vorhanden (Regel 7): kein Autoplay, kein Turbospin, keine Gewinnfanfare bei
- * Rückgabe unter Einsatz, keine vorausgewählte Bonusoption, kein Ton, keine versteckte Pause.
+ * Rückgabe unter Einsatz, keine vorausgewählte Bonusoption, keine versteckte Pause.
+ *
+ * Klang (Auftrag „Sound-Integration"): Die Einsatzsteuerung ist die einzige Bedienung, die für
+ * ALLE Engines hier in der Shell liegt (+/- Buttons) — deshalb löst ausschließlich sie hier
+ * zentral "chip" aus, statt das in jeder Engine zu wiederholen. Alle übrigen Klänge (Gewinn/
+ * Verlust, Spieleraktionen, Kartenausgabe, Rad-/Walzenstopp, Fehler) bleiben Sache der jeweiligen
+ * Engine — diese Datei kennt weder Rundenergebnis noch Spielaktionen und rührt beides nicht an.
  */
 export function GameShell(props: GameShellProps) {
   const {
@@ -74,6 +81,7 @@ export function GameShell(props: GameShellProps) {
 
   const options = stakeOptionsFor(game);
   const index = options.indexOf(stake);
+  const { play } = useSound();
 
   if (status === "loading" || status === "idle" || !hydrated) {
     return (
@@ -104,7 +112,10 @@ export function GameShell(props: GameShellProps) {
   const changeStake = (dir: 1 | -1) => {
     const i = index === -1 ? 0 : index;
     const next = options[Math.min(options.length - 1, Math.max(0, i + dir))];
-    if (next !== undefined) onStakeChange(next);
+    if (next !== undefined && next !== stake) {
+      onStakeChange(next);
+      play("chip"); // Einsatz geändert — die einzige stake-ändernde Bedienung, die in der Shell liegt
+    }
   };
 
   return (

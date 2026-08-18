@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { WHEEL_SEGMENTS, WHEEL_SEGMENT_COUNT } from "@/data/paytables/arcade";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
+import { useReelStopSound } from "../sound/useReelStopSound";
 import { formatSegmentValue, parseWheelDetail, wheelHighlight, wheelSegmentAt } from "./wheel-logic";
 
 /**
@@ -16,9 +18,13 @@ import { formatSegmentValue, parseWheelDetail, wheelHighlight, wheelSegmentAt } 
  *    Während der Runde zeigt die Fläche einen neutralen Zustand, danach wird genau ein Segment
  *    markiert — wheelHighlight liefert ausschließlich den Index des getroffenen Segments.
  *    Die Segmentreihenfolge ist eine Konstante und wird zwischen Runden nie umsortiert.
- *  - kein Autoplay, keine Wiederhol-Automatik, kein Ton
+ *  - kein Autoplay, keine Wiederhol-Automatik
  *  - Farbe trägt nie allein: jedes Segment ist benannt („Segment 7 · 0,5×“), das Ergebnis steht
  *    zusätzlich im Klartext.
+ *
+ * Klang: "stop" beim Anhalten des Rads (useReelStopSound), danach "win" bei echtem Netto-Gewinn
+ * bzw. "settle" sonst (useRoundSettleSound) — beide genau einmal je Runde, kein Zwischenton
+ * während der Drehung.
  */
 export function WheelGame({ game, simulateLoadError = false, onStatusChange }: GameEngineViewProps) {
   const round = useRound({
@@ -28,6 +34,9 @@ export function WheelGame({ game, simulateLoadError = false, onStatusChange }: G
     simulateLoadError,
     ...(onStatusChange ? { onStatusChange } : {}),
   });
+
+  useReelStopSound(round.last);
+  useRoundSettleSound(round.last, round.inlineError);
 
   const detail = round.status === "finished" ? parseWheelDetail(round.last?.detail) : null;
   const highlighted = detail ? wheelHighlight(detail.index) : [];

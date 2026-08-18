@@ -11,6 +11,7 @@ import {
 } from "@/data/paytables/arcade";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
 import { parsePlinkoDetail, plinkoHighlight, plinkoPositions, type PlinkoStep } from "./plinko-logic";
 
 /**
@@ -21,10 +22,14 @@ import { parsePlinkoDetail, plinkoHighlight, plinkoPositions, type PlinkoStep } 
  *    genau einen Index). Während der Runde bleibt das Brett neutral — es gibt keine Animation,
  *    die die Kugel an einem hohen Außenfach „vorbeischrammen“ lässt, und keine Hervorhebung von
  *    Nachbarfächern nach der Runde.
- *  - kein Autoplay, keine Wiederhol-Automatik, kein Ton
+ *  - kein Autoplay, keine Wiederhol-Automatik
  *  - kein Risikoregler (die Spielbeschreibung schließt ihn aus)
  *  - Farbe trägt nie allein: das getroffene Fach hat Rahmen, Fettung, Text und eine
  *    Ergebniszeile im Klartext.
+ *
+ * Klang: kein "stop" — die Kugel ist weder Walze, Rad noch Kessel (siehe Zuordnungsliste des
+ * Auftrags). Nur "win" bei echtem Netto-Gewinn bzw. "settle" sonst (useRoundSettleSound), aus
+ * demselben Grund keine Betonung eines hoch bewerteten Nachbarfachs.
  */
 export function PlinkoGame({ game, simulateLoadError = false, onStatusChange }: GameEngineViewProps) {
   const round = useRound({
@@ -34,6 +39,8 @@ export function PlinkoGame({ game, simulateLoadError = false, onStatusChange }: 
     simulateLoadError,
     ...(onStatusChange ? { onStatusChange } : {}),
   });
+
+  useRoundSettleSound(round.last, round.inlineError);
 
   const detail = round.status === "finished" ? parsePlinkoDetail(round.last?.detail) : null;
   const positions = useMemo(() => (detail ? plinkoPositions(detail.path) : null), [detail]);

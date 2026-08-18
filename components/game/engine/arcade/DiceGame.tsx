@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { DICE_BETS, DICE_MAX_ROLL, DICE_MIN_ROLL, type DiceDirection } from "@/data/paytables/arcade";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
 import { parseDiceDetail } from "./dice-logic";
 
 /**
@@ -16,10 +17,15 @@ import { parseDiceDetail } from "./dice-logic";
  * Ein Wurf von 1 bis 100 je Runde. Richtung („unter“/„über“) und Zielwert wählt die spielende
  * Person vor der Runde; beides bestimmt die Auszahlungstabelle (Schlüssel g-dice-demo::<betId>).
  *
- * Bewusst NICHT vorhanden (Regel 7): kein Autoplay, keine Wiederhol-Automatik, kein Ton,
+ * Bewusst NICHT vorhanden (Regel 7): kein Autoplay, keine Wiederhol-Automatik,
  * keine vorausgewählte „empfohlene“ Stufe. Voreingestellt ist die Stufe mit 50 % Trefferchance,
  * ohne dass sie als besser dargestellt würde. Farbe trägt nie allein: Trefferbereich und Wurf
  * stehen im Klartext.
+ *
+ * Klang: kein eigener Ton für Richtung/Stufe (Konfiguration vor der Runde, keine Spielaktion)
+ * und keiner für einen knapp verfehlten Wurf (z. B. Ziel 50, Wurf 51) — nur "win" bei echtem
+ * Netto-Gewinn bzw. "settle" sonst, über useRoundSettleSound. "chip" bei Einsatzänderung
+ * übernimmt GameShell zentral.
  */
 
 const CHANCE_STEPS = [50, 25, 20, 10, 5] as const;
@@ -45,6 +51,8 @@ export function DiceGame({ game, simulateLoadError = false, onStatusChange }: Ga
   useEffect(() => {
     if (bet) setBetId(bet.id);
   }, [bet, setBetId]);
+
+  useRoundSettleSound(round.last, round.inlineError);
 
   const detail = round.status === "finished" ? parseDiceDetail(round.last?.detail) : null;
 

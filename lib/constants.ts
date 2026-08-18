@@ -29,6 +29,15 @@ export const STORAGE_KEY = "velora.demo.v1";
  * Daten werden sichtbar verworfen, nicht geraten. Eine echte Migration nach Postgres gibt es
  * nicht (siehe Bericht); wer sich vor dieser Umstellung nur lokal gesperrt hatte, muss die Sperre
  * nach dem Update im neuen, serverseitigen Bereich erneut gezielt setzen.
+ *
+ * Bewusst OHNE weitere Anhebung: die neue Scheibe "soundPrefs" (Auftrag „Klang-Infrastruktur",
+ * lib/storage.ts::SliceKey) kam rein additiv hinzu — ein bestehender Envelope ohne dieses Feld
+ * wird von loadPersisted() einfach nicht befüllt, components/sound/sound-store.ts fällt dann auf
+ * den dokumentierten Default ("aus") zurück. Es gibt hier nichts, das falsch interpretiert werden
+ * könnte (anders als bei 2–4 oben, wo eine ENTFERNTE oder in ihrer FORM geänderte Scheibe sonst
+ * stillschweigend fehlinterpretiert worden wäre). Eine Anhebung würde stattdessen nur unnötig
+ * das Guthaben, die Favoriten und alle anderen bereits gespeicherten Daten jedes Bestandsnutzers
+ * verwerfen — nur für eine neue, unabhängige Einstellung.
  */
 export const SCHEMA_VERSION = 4;
 

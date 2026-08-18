@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
+import { useReelStopSound } from "../sound/useReelStopSound";
 import {
   betRtp,
   betKindsFor,
@@ -39,7 +41,11 @@ import {
  *    „knapp daneben“ kommt in keiner Meldung vor
  *  - kein Loss Disguised as Win: die Shell zeigt netto; eine Rückgabe unter Einsatz wird nie gefeiert
  *  - die Historie ist reine Protokollanzeige mit sichtbarem Hinweis auf die Unabhängigkeit der Runden
- *  - kein Ton, Pause bleibt sichtbar (Shell)
+ *  - Pause bleibt sichtbar (Shell)
+ *
+ * Klang: "stop" beim Anhalten des Kessels (useReelStopSound), danach "win" bei echtem
+ * Netto-Gewinn bzw. "settle" sonst (useRoundSettleSound) — beide genau einmal je Wurf. Keine
+ * Betonung eines Nachbarfachs des getroffenen Fachs, auch nicht klanglich (Regel 7).
  */
 export function RouletteGame({ game, simulateLoadError = false, onStatusChange }: GameEngineViewProps) {
   // Nur die amerikanische Variante hat den 38er-Kessel; die Live-Demo läuft auf dem europäischen.
@@ -105,6 +111,9 @@ export function RouletteGame({ game, simulateLoadError = false, onStatusChange }
     setPocket(value);
     setHistory((prev) => [value, ...prev].slice(0, 10));
   }, [last]);
+
+  useReelStopSound(last);
+  useRoundSettleSound(last, round.inlineError);
 
   const payout = PAYOUT_TO_ONE[kind];
   const rtp = betRtp(kind, variant);

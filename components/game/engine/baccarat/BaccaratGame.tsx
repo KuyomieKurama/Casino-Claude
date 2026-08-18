@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useRound } from "../useRound";
 import { GameShell } from "../GameShell";
+import { useSound } from "../sound/useEngineSound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
 import {
   BACCARAT_BET_IDS,
   isBaccaratBetId,
@@ -29,11 +31,16 @@ import {
  *    Verlust dargestellt — keine Hervorhebung, keine eigene Animation
  *  - kein Loss Disguised as Win: die Shell zeigt netto; ein Push (Unentschieden bei
  *    Spieler-/Bankwette) erscheint als ±0,00, nicht als Gewinn
- *  - kein Autoplay, keine Wiederholautomatik, kein Ton
+ *  - kein Autoplay, keine Wiederholautomatik
  *  - keine vorausgewählte Wette — ohne bewusste Auswahl startet keine Runde
  *  - der Ergebnisverlauf trägt einen sichtbaren Hinweis auf die Unabhängigkeit der Runden;
  *    er ist Protokoll, keine Vorhersage
  *  - keine Strategieempfehlung: die Ziehregeln werden sachlich erklärt, mehr nicht
+ *
+ * Klang: "card" beim Austeilen (derselbe Zeitpunkt wie der Ergebnisverlauf unten — ein Coup
+ * gibt alle Karten in einem Schritt zurück), danach "win" bei echtem Netto-Gewinn bzw. "settle"
+ * sonst (useRoundSettleSound) — ein Push (Unentschieden bei Spieler-/Bankwette, netMinor 0)
+ * bekommt deshalb "settle", nicht "win".
  */
 
 const BET_LABEL: Record<BaccaratBetId, string> = {
@@ -70,19 +77,24 @@ export function BaccaratGame({ game, simulateLoadError, onStatusChange }: GameEn
   const [showRules, setShowRules] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const lastLogged = useRef<string | null>(null);
+  const { play } = useSound();
+  useRoundSettleSound(round.last, round.inlineError);
 
   const bet = isBaccaratBetId(round.betId) ? round.betId : undefined;
   const detail = round.last?.detail as BaccaratDetail | undefined;
 
-  // Verlauf fortschreiben — reines Protokoll, ohne Einfluss auf kommende Runden.
+  // Verlauf fortschreiben — reines Protokoll, ohne Einfluss auf kommende Runden. Derselbe
+  // Ref-Wächter markiert zugleich, dass für diesen Coup noch kein "card" gespielt wurde: ein
+  // Coup teilt alle Karten in einem Schritt aus, daher genau ein "card" je Runde statt je Karte.
   useEffect(() => {
     const last = round.last;
     if (!last || lastLogged.current === last.roundId) return;
     const d = last.detail as BaccaratDetail | undefined;
     if (!d) return;
     lastLogged.current = last.roundId;
+    play("card");
     setHistory((prev) => [{ roundId: last.roundId, result: d.result, playerTotal: d.playerTotal, bankerTotal: d.bankerTotal }, ...prev].slice(0, 12));
-  }, [round.last]);
+  }, [round.last, play]);
 
   const betInfo = useMemo(
     () =>

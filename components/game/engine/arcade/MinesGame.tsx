@@ -9,6 +9,8 @@ import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
+import { useSound } from "../sound/useEngineSound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
 import { MINES_CELLS, MINES_COUNTS, MINES_DEFAULT_COUNT, MINES_GRID_SIZE, minesBetId, minesLadder, minesReturnMinor, type MinesCount } from "./mines-logic";
 
 /**
@@ -22,9 +24,16 @@ import { MINES_CELLS, MINES_COUNTS, MINES_DEFAULT_COUNT, MINES_GRID_SIZE, minesB
  * aufgedeckten Feldes und den aktuellen Multiplikator, niemals die übrigen Positionen — sichtbar
  * an `MinesServerState` unten, das `positions`/`hitCell` erst nach Rundenende überhaupt kennt.
  *
- * Bewusst NICHT vorhanden (Regel 7): kein Autoplay, keine Wiederhol-Automatik, kein Ton,
+ * Bewusst NICHT vorhanden (Regel 7): kein Autoplay, keine Wiederhol-Automatik,
  * keine Strategiehinweise („jetzt aufhören“), keine Feier bei Rückgabe unter Einsatz.
  * Farbe trägt nie allein: jedes Feld hat Symbol und Text.
+ *
+ * Klang: "click" beim Aufdecken eines Feldes und beim Auszahlen — beide sind die einzigen
+ * Spieleraktionen dieser Engine. "win" ausschließlich bei echtem Netto-Gewinn (netMinor > 0,
+ * dieselbe Größe wie die Nettoanzeige der Shell), sonst "settle" — auch beim Verlust der
+ * gesamten Runde (Mine getroffen, Rückgabe 0). Kein eigener Ton für ein sicheres Feld direkt
+ * neben einer Mine: Es gibt keinen Unterschied zwischen einem knapp verfehlten und einem
+ * beliebigen anderen sicheren Feld, beide lösen nur "click" aus (kein Near Miss, Regel 7).
  */
 
 type MinesRoundStatus = "open" | "hit" | "cashedOut" | "cleared";
@@ -85,6 +94,9 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
     setBetId(minesBetId(mineCount));
   }, [mineCount, setBetId]);
 
+  const { play } = useSound();
+  useRoundSettleSound(round.last, round.inlineError);
+
   const state = parseMinesServerState(round.interactiveState);
   const open = round.status === "playing";
   const finished = round.status === "finished";
@@ -100,11 +112,13 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
 
   const reveal = (cell: number) => {
     if (!open || !state || state.status !== "open" || revealed.includes(cell)) return;
+    play("click");
     void round.sendAction("reveal", { cell });
   };
 
   const cashOut = () => {
     if (!open || revealed.length === 0) return;
+    play("click");
     void round.sendAction("cashOut", {});
   };
 

@@ -54,6 +54,7 @@ components/
       useRound.ts       # Hook: Laden, Einsatz, Sperren, Buchung, Status-Management
       GameShell.tsx     # Rahmen-UI (h2, Status-Zeile, Buttons)
       registry.tsx      # Lazy-Loading-Registry (next/dynamic, ssr: false)
+  sound/                # SoundToggle (Kopfzeile + Einstellungen), SoundSettingsSection, useSound()-Hook
   {wallet,rg,user,promotions,feedback,home}/  # Weitere Module
 data/
   games.ts              # Mock-Spiele (keine RTP-Hand-Pflege!)
@@ -70,6 +71,7 @@ lib/                    # Reine Funktionen (kein React, kein State, kein Storage
   formatters.ts         # formatCredits*() – nur diese für Geld-Display
   rng.ts                # mulberry32; keine Math.random() in Engines
   paytable.ts           # buildPaytable(), uniformPaytable()
+  sound/                 # Web-Audio-Synthese (types.ts, synth.ts) — opt-in Ton, siehe „Verbotene Dark Patterns"
   {cn,validation,filters,ids}.ts  # Utilities
   safe-redirect.ts      # Sichere Redirect-URL-Prüfung
   auth-errors.ts        # Fehlerbehandlung für better-auth
@@ -120,7 +122,9 @@ public/thumbs/          # SVG-Thumbs (von generate-thumbs.mjs)
 
 ## Verbotene Dark Patterns
 
-Autoplay, Turbospin, betonter Near Miss, Loss Disguised as Win, vorausgewählte Bonusoptionen, Ton, Druck-Countdowns, künstliche Verknappung, Gewinnversprechen, Strategieempfehlungen, Tracking, Analytics, reale Marken, Personenfotos.
+Autoplay, Turbospin, betonter Near Miss, Loss Disguised as Win (auch akustisch — ein Jubelklang bei Rückgabe unter Einsatz ist verboten, siehe `lib/sound/`), vorausgewählte Bonusoptionen, eskalierende Spannungsklänge während einer laufenden Runde, ein standardmäßig aktiver Ton, Druck-Countdowns, künstliche Verknappung, Gewinnversprechen, Strategieempfehlungen, Tracking, Analytics, reale Marken, Personenfotos.
+
+**Präzisierung statt Streichung** (Auftrag „Klang-Infrastruktur"): Ton stand bisher pauschal auf der Verbotsliste, weil er in der Praxis fast immer zur Täuschung über den Rundenausgang oder zur künstlichen Spannungssteigerung eingesetzt wird — nicht, weil jeder Klang an sich schädlich wäre. Dezente, standardmäßig deaktivierte Interaktionsklänge (Klick, Kartenlegen, Einsatz, Walzen-/Radstopp) sowie ein zurückhaltender Klang bei echtem Netto-Gewinn und ein neutraler Klang bei Rundenabschluss ohne Gewinn sind deshalb erlaubt, solange sie den tatsächlichen Ausgang nie beschönigen und niemals automatisch aktiv sind (`lib/sound/`, `components/sound/useSound.ts`).
 
 ## Authentifizierung und Autorisierung
 
@@ -200,7 +204,7 @@ Kommentare: Erklären das Warum.
 
 ## Bewusst nicht vorhanden
 
-**Feature-Level**: Autoplay, Turbospin, betonter Near Miss, Loss Disguised as Win, vorausgewählte Bonusoptionen, Ton, Druck-Countdowns, künstliche Verknappung, Gewinnversprechen, Strategieempfehlungen, Tracking, Analytics, E-Mail-Versand (deshalb kein Passwort-Reset über UI), Auszahlungs- oder Einzahlungsfunktionalität, KYC.
+**Feature-Level**: Autoplay, Turbospin, betonter Near Miss, Loss Disguised as Win, vorausgewählte Bonusoptionen, Druck-Countdowns, künstliche Verknappung, Gewinnversprechen, Strategieempfehlungen, Tracking, Analytics, E-Mail-Versand (deshalb kein Passwort-Reset über UI), Auszahlungs- oder Einzahlungsfunktionalität, KYC. Ton ist seit dem Auftrag „Klang-Infrastruktur" als Opt-in-Funktion vorhanden (standardmäßig aus) — die verbleibenden Grenzen stehen unter „Verbotene Dark Patterns" oben, nicht mehr hier.
 
 **Infrastruktur**: Kein `src/`-Verzeichnis, keine CI-Workflows, keine `.github/`-Actions, kein E2E-Framework (Playwright/Cypress), kein `docs/`-Verzeichnis, keine `config/`.
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Info, Layers, Play } from "lucide-react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { formatCredits, formatCreditsWithUnit } from "@/lib/formatters";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { GameShell } from "../GameShell";
 import { useRound } from "../useRound";
+import { useSound } from "../sound/useEngineSound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
 import { RANKS, SUITS, availableActions, handValue, isBlackjack, type BlackjackAction, type Card, type PlayerHand, type RoundState, type Suit } from "./blackjack-logic";
 
 /**
@@ -28,10 +30,17 @@ import { RANKS, SUITS, availableActions, handValue, isBlackjack, type BlackjackA
  *  - kein Loss Disguised as Win — die Shell zeigt die Nettoveränderung, nichts wird gefeiert
  *  - keine Strategieempfehlung — die Regelerklärung nennt nur Regeln, nie „richtige“ Entscheidungen
  *  - kein knapp-verfehlt-Effekt: 22 wird wie jedes andere Überkaufen behandelt
- *  - kein Ton, Pause bleibt sichtbar
+ *  - Pause bleibt sichtbar
  *
  * Kein RTP und keine Auszahlungstabelle: Der Erwartungswert hängt von den Entscheidungen der
  * spielenden Person ab. Ohne Tabelle wird auch kein RTP ausgewiesen (Regel 6 / ENGINE-BRIEF §3).
+ *
+ * Klang: "card" jedes Mal, wenn sich die Gesamtzahl sichtbarer Karten erhöht — deckt Austeilen,
+ * jeden Hit, Double und den Aufdeck-/Zieh-Vorgang des Dealers in einem Aufruf ab, auch wenn dabei
+ * mehrere Karten auf einmal erscheinen (kein Ton pro Einzelkarte). "click" bei jeder gewählten
+ * Aktion (hit/stand/double/split). "win" nur bei echtem Netto-Gewinn, sonst "settle" — ein Push
+ * (Gleichstand, Einsatz zurück, netMinor 0) bekommt deshalb "settle", nicht "win", genauso wie
+ * ein Bust auf 22 (kein Unterschied zu einem Bust auf 30).
  */
 
 const SUIT_SYMBOL: Record<Suit, string> = { hearts: "♥", diamonds: "♦", clubs: "♣", spades: "♠" };
@@ -151,6 +160,9 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
     defaultStakeMinor: 100,
   });
 
+  const { play } = useSound();
+  useRoundSettleSound(r.last, r.inlineError);
+
   const state = parseBlackjackServerState(r.interactiveState);
   const roundOpen = r.status === "playing";
   // Server hat bereits abgerechnet (phase "done"), aber die Animationsverzögerung läuft noch —
@@ -158,12 +170,22 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
   const dealerBusy = roundOpen && state?.phase === "done";
   const dealerHidden = state !== null && state.phase === "player";
 
+  // "card" bei jeder Zunahme der sichtbaren Kartenzahl — deckt Austeilen, Hit, Double und den
+  // Dealer-Aufdeck-/Zug-Schritt ab, ohne pro Einzelkarte zu spielen (siehe Dateikommentar).
+  const visibleCardCount = state ? state.dealer.length + state.hands.reduce((sum, h) => sum + h.cards.length, 0) : 0;
+  const lastCardCount = useRef(0);
+  useEffect(() => {
+    if (visibleCardCount > lastCardCount.current) play("card");
+    lastCardCount.current = visibleCardCount;
+  }, [visibleCardCount, play]);
+
   const deal = () => {
     void r.startInteractive();
   };
 
   const act = (action: BlackjackAction) => {
     if (!state || state.phase !== "player" || dealerBusy) return;
+    play("click");
     void r.sendAction(action, {});
   };
 

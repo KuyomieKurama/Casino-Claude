@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@/types/user";
 import { AppProviders } from "@/state/AppProviders";
 import { installDialogPolyfill } from "@/test/dialog-polyfill";
+import { __resetStorageForTests } from "@/lib/storage";
+import { __resetSoundStoreForTests } from "@/components/sound/sound-store";
 
 installDialogPolyfill();
 
@@ -33,6 +35,9 @@ describe("SettingsPage", () => {
     refreshMock.mockClear();
     pushMock.mockClear();
     signOutMock.mockClear();
+    __resetSoundStoreForTests();
+    __resetStorageForTests();
+    window.localStorage.clear();
   });
 
   it("zeigt die Überschriftenfolge ohne Sprünge (h1 → h2)", () => {
@@ -67,5 +72,13 @@ describe("SettingsPage", () => {
   it("verwendet höchstens eine goldene Fläche (im Nutzerbereich bevorzugt keine)", () => {
     const { container } = renderSettings();
     expect(container.querySelectorAll('[class*="bg-gold"]').length).toBeLessThanOrEqual(1);
+  });
+
+  it("zeigt die ausführliche Ton-Einstellung mit Umschalter und Lautstärkeregler (Auftrag: Klang-Infrastruktur)", () => {
+    renderSettings();
+    expect(screen.getByRole("heading", { level: 2, name: "Ton" })).toBeInTheDocument();
+    const toggle = screen.getByRole("switch", { name: "Ton" });
+    expect(toggle).toHaveAttribute("aria-checked", "false"); // Standardzustand ist "aus"
+    expect(screen.getByLabelText("Lautstärke")).toBeDisabled();
   });
 });

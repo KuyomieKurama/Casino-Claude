@@ -8,7 +8,10 @@ import { SCHEMA_VERSION, STORAGE_KEY } from "@/lib/constants";
 
 // "rg" entfiel mit SCHEMA_VERSION 4 (lib/constants.ts) — Responsible Gaming lebt seither
 // ausschließlich in der Datenbank, siehe dortiger Versionskommentar.
-export type SliceKey = "wallet" | "catalogPrefs";
+//
+// "soundPrefs" (Auftrag „Klang-Infrastruktur") kam OHNE SCHEMA_VERSION-Anhebung hinzu: eine neue,
+// unabhängige Scheibe ist rein additiv (siehe Begründung in lib/constants.ts bei SCHEMA_VERSION).
+export type SliceKey = "wallet" | "catalogPrefs" | "soundPrefs";
 
 export type PersistedSlices = Partial<Record<SliceKey, unknown>>;
 
@@ -109,7 +112,7 @@ export function loadPersisted(): LoadResult {
     return { status: "unsupported-version", slices: {} };
   }
   const slices: PersistedSlices = {};
-  for (const key of ["wallet", "catalogPrefs"] as const) {
+  for (const key of ["wallet", "catalogPrefs", "soundPrefs"] as const) {
     if (key in parsed && parsed[key] !== undefined) slices[key] = parsed[key];
   }
   cache = { ...slices };

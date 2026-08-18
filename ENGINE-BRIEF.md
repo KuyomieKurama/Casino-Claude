@@ -15,11 +15,19 @@ Diese Datei ist die verbindliche Vorgabe für alle Engine-Implementierungen. Sie
    für interaktive Spiele (Blackjack, Mines) sogar richtig.
 4. **Keine Dark Patterns** (Regel 7 des Prompts), im Code zu kommentieren:
    - kein *Near Miss*: ein knapp verfehltes Ergebnis wird nie hervorgehoben oder betont animiert
-   - kein *Loss Disguised as Win*: Rückgabe unter Einsatz wird nie gefeiert; angezeigt wird netto
+   - kein *Loss Disguised as Win*: Rückgabe unter Einsatz wird nie gefeiert; angezeigt wird netto —
+     das gilt auch akustisch, ein Jubelklang bei Rückgabe unter Einsatz ist verboten
    - kein Autoplay, kein Turbospin, keine Wiederhol-Automatik
    - keine vorausgewählte Bonusoption
-   - kein Ton
+   - Ton ist opt-in und standardmäßig aus (`lib/sound/`, `components/sound/useSound.ts`); erlaubt
+     sind dezente Interaktionsklänge, ein zurückhaltender Klang bei echtem Netto-Gewinn und ein
+     neutraler Abschlussklang bei Verlust — verboten bleiben Jubel bei Rückgabe unter Einsatz,
+     eine Betonung von Near Miss und eskalierende Spannungsklänge während der laufenden Runde
    - Pause bleibt sichtbar und erreichbar
+
+   Präzisierung statt Streichung: Ton war zuvor pauschal verboten, weil er praktisch immer zur
+   Täuschung über den Rundenausgang oder zur künstlichen Spannungssteigerung genutzt wurde —
+   erlaubt ist inzwischen ausdrücklich nur, was den tatsächlichen Ausgang nie beschönigt.
 5. **Keine realen Marken**, keine Personenfotos, auch nicht im Live-Bereich.
 6. **Keine Strategieempfehlungen** in Texten („mit dieser Strategie gewinnst du sicher“ ist verboten).
    Sachliche Regelerklärungen sind erwünscht.

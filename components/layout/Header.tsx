@@ -8,6 +8,7 @@ import { Logo } from "./Logo";
 import { MobileMenu } from "./MobileMenu";
 import { BalanceDisplay } from "@/components/wallet/BalanceDisplay";
 import { SessionTimer } from "@/components/rg/SessionTimer";
+import { SoundToggle } from "@/components/sound/SoundToggle";
 import { useSession } from "@/state/SessionContext";
 import { useLogout } from "@/components/auth/useLogout";
 import { cn } from "@/lib/cn";
@@ -79,6 +80,9 @@ export function Header() {
         <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           <SessionTimer variant="compact" className="hidden xl:inline-flex" />
           <BalanceDisplay variant="header" />
+          {/* Kompakter Ton-Umschalter: unabhängig vom Anmeldezustand erreichbar, keine
+              Nutzergeste beim Laden — die Klang-Erzeugung startet erst beim ersten Klang. */}
+          <SoundToggle />
           {isAdmin ? (
             <Link
               href="/admin"

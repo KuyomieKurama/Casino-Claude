@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type KeyboardEvent, type Ref } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import { Play, RefreshCw } from "lucide-react";
 import type { GameEngineViewProps } from "@/types/engine";
 import { formatCredits, formatCreditsWithUnit, formatMultiplier } from "@/lib/formatters";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useRound } from "../useRound";
 import { GameShell } from "../GameShell";
+import { useSound } from "../sound/useEngineSound";
+import { useRoundSettleSound } from "../sound/useRoundSettleSound";
 import { HAND_SIZE, MAX_MULTIPLIER, PAYTABLE, type HandCategory, type PokerCard } from "./videopoker-logic";
 
 /**
@@ -24,12 +26,18 @@ import { HAND_SIZE, MAX_MULTIPLIER, PAYTABLE, type HandCategory, type PokerCard 
  *  - kein Loss Disguised as Win: die Shell zeigt netto; „Paar Buben oder besser“ gibt genau den
  *    Einsatz zurück und wird deshalb als ±0,00 dargestellt, nicht als Gewinn
  *  - kein Autoplay, keine automatische Kartenauswahl, keine Halte-Empfehlung (das wäre eine
- *    Strategieaussage), kein Ton
+ *    Strategieaussage)
  *  - keine vorausgewählten Halte-Karten — die Runde startet mit fünf ungehaltenen Karten
  *  - kein RTP-Ausweis: der Erwartungswert hängt von der Tauschentscheidung ab (siehe Logikdatei)
  *
  * Barrierefreiheit: Farbe ist nie die alleinige Information. Jede Karte trägt Rang, Farbsymbol
  * und den ausgeschriebenen Farbnamen; „Gehalten“ steht als Text auf der Karte.
+ *
+ * Klang: "card" beim Geben (Starthand) und erneut beim Aufdecken der Endhand nach dem Tausch —
+ * beides Momente, in denen neue Karten sichtbar werden. "click" beim Halten/Lösen einer Karte
+ * (die einzige Spieleraktion vor dem Tausch). "win" nur bei echtem Netto-Gewinn, sonst "settle" —
+ * "Paar Buben oder besser" gibt genau den Einsatz zurück (netMinor 0) und bekommt deshalb
+ * "settle", nicht "win".
  */
 
 const RANK_LABEL = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "B", "D", "K"] as const;
@@ -81,9 +89,34 @@ export function VideoPokerGame({ game, simulateLoadError, onStatusChange }: Game
   const [stakeAtStart, setStakeAtStart] = useState(0);
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+  const { play } = useSound();
+  useRoundSettleSound(round.last, round.inlineError);
+
   const state = parseVideoPokerServerState(round.interactiveState);
   /** Tauschphase: Karten liegen, die Runde ist gebucht, der Tausch steht noch aus. */
   const inHoldPhase = state !== null && state.finalHand === null && round.status === "playing";
+
+  // "card" genau einmal beim Geben (Starthand erscheint) und genau einmal beim Aufdecken der
+  // Endhand nach dem Tausch — je ein Ref pro Phase, zurückgesetzt sobald keine Hand mehr liegt
+  // (neue Runde). `state` ist bei jedem Render ein neues Objekt, deshalb entscheiden die Refs
+  // über das tatsächliche Abspielen, nicht die Häufigkeit der Effekt-Aufrufe.
+  const dealSoundPlayed = useRef(false);
+  const finalSoundPlayed = useRef(false);
+  useEffect(() => {
+    if (!state) {
+      dealSoundPlayed.current = false;
+      finalSoundPlayed.current = false;
+      return;
+    }
+    if (!dealSoundPlayed.current) {
+      dealSoundPlayed.current = true;
+      play("card");
+    }
+    if (state.finalHand && !finalSoundPlayed.current) {
+      finalSoundPlayed.current = true;
+      play("card");
+    }
+  }, [state, play]);
 
   const dealCards = () => {
     setHolds(NO_HOLDS);
@@ -99,9 +132,10 @@ export function VideoPokerGame({ game, simulateLoadError, onStatusChange }: Game
   const toggleHold = useCallback(
     (index: number) => {
       if (!inHoldPhase) return;
+      play("click");
       setHolds((prev) => prev.map((h, i) => (i === index ? !h : h)));
     },
-    [inHoldPhase],
+    [inHoldPhase, play],
   );
 
   /** Ziffern 1–5 halten oder geben die entsprechende Karte frei, solange der Tausch aussteht. */

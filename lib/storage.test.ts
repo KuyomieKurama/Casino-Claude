@@ -132,6 +132,27 @@ describe("Storage", () => {
     expect(readLegacySelfExclusionFlag()).toBe(false);
   });
 
+  it("speichert und liest die Scheibe 'soundPrefs' zurück, ohne SCHEMA_VERSION anzuheben (Auftrag: Klang-Infrastruktur)", () => {
+    vi.useFakeTimers();
+    writeSlice("soundPrefs", { enabled: true, volume: 0.7 });
+    vi.advanceTimersByTime(300);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const parsed = JSON.parse(raw ?? "{}");
+    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.soundPrefs).toEqual({ enabled: true, volume: 0.7 });
+    __resetStorageForTests();
+    const r = loadPersisted();
+    expect(r.status).toBe("ok");
+    expect(r.slices.soundPrefs).toEqual({ enabled: true, volume: 0.7 });
+  });
+
+  it("ein Envelope ohne 'soundPrefs' (z. B. vor dieser Funktion gespeichert) bleibt gültig — additive Scheibe, keine Anhebung nötig", () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 4, wallet: { demoBalanceMinor: 500 } }));
+    const r = loadPersisted();
+    expect(r.status).toBe("ok");
+    expect(r.slices.soundPrefs).toBeUndefined();
+  });
+
   it("blockiertes Storage → In-Memory-Fallback, isPersistent() ist false, nichts wirft", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("QuotaExceededError");

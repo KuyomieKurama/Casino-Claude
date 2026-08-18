@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { User } from "@/types/user";
 import { AppProviders } from "@/state/AppProviders";
+import { __resetStorageForTests } from "@/lib/storage";
+import { __resetSoundStoreForTests } from "@/components/sound/sound-store";
 import { Header } from "./Header";
 
 const usePathnameMock = vi.fn();
@@ -114,6 +116,26 @@ describe("Header — Responsible Gaming jederzeit erreichbar", () => {
     for (const link of rgLinks) {
       expect(link).toHaveAttribute("href", "/responsible-gaming");
     }
+  });
+});
+
+describe("Header — Ton-Umschalter (Auftrag: Klang-Infrastruktur)", () => {
+  beforeEach(() => {
+    __resetSoundStoreForTests();
+    __resetStorageForTests();
+    window.localStorage.clear();
+  });
+
+  test("ist unabhängig vom Anmeldezustand erreichbar und standardmäßig aus", () => {
+    renderHeader("/", null);
+    expect(screen.getByRole("switch", { name: "Ton" })).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("lässt sich per Klick umschalten", () => {
+    renderHeader("/", player);
+    const toggle = screen.getByRole("switch", { name: "Ton" });
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
   });
 });
 

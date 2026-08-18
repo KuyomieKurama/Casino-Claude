@@ -6,6 +6,8 @@ import { findPaytable } from "@/data/paytables";
 import { ROUND_DURATION_MS } from "@/lib/constants";
 import { useRound } from "@/components/game/engine/useRound";
 import { GameShell } from "@/components/game/engine/GameShell";
+import { useRoundSettleSound } from "@/components/game/engine/sound/useRoundSettleSound";
+import { useReelStopSound } from "@/components/game/engine/sound/useReelStopSound";
 import { cn } from "@/lib/cn";
 import { gridForOutcome, reelStrip, themeFor, type ReelGrid, type SlotSymbolId } from "./symbols";
 import { SlotSymbol } from "./SlotSymbol";
@@ -22,13 +24,20 @@ import { SlotSymbol } from "./SlotSymbol";
  *  - kein Autoplay, kein Turbospin — jede Runde ist ein expliziter Klick
  *  - kein Near Miss — Nullrunden zeigen ausschließlich verschiedene Symbole ohne Höchstwerte
  *  - kein Loss Disguised as Win — angezeigt wird die Nettoveränderung, nie eine Gewinnfanfare
- *  - keine vorausgewählte Bonusoption, kein Ton, Pause bleibt sichtbar
+ *  - keine vorausgewählte Bonusoption, Pause bleibt sichtbar
+ *
+ * Klang: "stop" beim Anhalten der Walzen (useReelStopSound), danach "win" bei echtem
+ * Netto-Gewinn bzw. "settle" sonst (useRoundSettleSound) — beide genau einmal je Runde. Eine
+ * Nullrunde mit verschiedenen Symbolen bekommt keinen eigenen, betonenden Ton (kein Near Miss).
  */
 export function SlotGame({ game, simulateLoadError = false, onStatusChange }: GameEngineViewProps) {
   const paytable = useMemo(() => findPaytable(game.id), [game.id]);
   const theme = useMemo(() => themeFor(game.id), [game.id]);
 
   const round = useRound({ game, server: true, roundDurationMs: ROUND_DURATION_MS, simulateLoadError, onStatusChange });
+
+  useReelStopSound(round.last);
+  useRoundSettleSound(round.last, round.inlineError);
 
   // Die Darstellung folgt dem Ergebnis: erst entscheidet die Tabelle, dann wird gerendert.
   const grid: ReelGrid = useMemo(

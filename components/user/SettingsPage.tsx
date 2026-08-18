@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
+import { SoundSettingsSection } from "@/components/sound/SoundSettingsSection";
 import { clearPersisted } from "@/lib/storage";
 
 /**
@@ -50,6 +51,11 @@ export function SettingsPage() {
           <Select label="Sprache" options={[{ value: "de", label: "Deutsch" }]} value="de" onChange={() => undefined} hint="Sprachauswahl ist im Prototyp eine Attrappe (nur Deutsch)." />
         </div>
       </Card>
+
+      {/* Auftrag „Klang-Infrastruktur": ausführliche Ton-Einstellung, additiv zwischen Profil und
+          den destruktiven Aktionen platziert — der kompakte Umschalter in der Kopfzeile
+          (components/layout/Header.tsx) teilt sich denselben Zustand über useSound(). */}
+      <SoundSettingsSection />
 
       <Card as="section" aria-labelledby="danger-title" className="space-y-3 border-danger/40">
         <h2 id="danger-title" className="text-md font-semibold text-primary">
