@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { checkIn } from "./check-in";
 import { user } from "./auth-schema";
 import {
@@ -345,5 +345,48 @@ export const ledgerEntry = pgTable(
   (t) => [
     uniqueIndex("ledger_entry_user_seq_unique").on(t.userId, t.seq),
     check("ledger_entry_type_check", checkIn(t.type, LEDGER_ENTRY_TYPE_VALUES)),
+  ],
+);
+
+/**
+ * Admin-Audit-Log (Admin-Auftrag §4): Append-only wie `ledgerEntry` — kein UPDATE, kein DELETE
+ * auf einer bestehenden Zeile in irgendeinem Repository. `before`/`after` sind bewusst `jsonb`
+ * ohne festes Schema: Der Audit-Eintrag soll jede Art von Admin-Schreiboperation dokumentieren
+ * können (Nutzerstatus, Spielstatus, …), ohne für jede Entität eine eigene Spalte zu brauchen.
+ * `actorUserId` referenziert `user.id` — ein Audit-Eintrag ohne existierenden Urheber ist ein
+ * Programmierfehler, kein gültiger Zustand (siehe server/admin/audit.ts: die Transaktion, die
+ * diesen Eintrag schreibt, rollt bei einem Fremdschlüsselfehler vollständig zurück, damit „kein
+ * Audit-Eintrag" tatsächlich „kein Commit" bedeutet).
+ */
+export const adminAuditLog = pgTable(
+  "admin_audit_log",
+  {
+    id: text("id").primaryKey(),
+    /**
+     * Global monoton wachsende Sequenznummer (Postgres `bigserial`), ausschließlich für die
+     * Sortierung/Blätterung. `created_at` allein reicht dafür NICHT: mehrere Admin-Aktionen
+     * innerhalb derselben Millisekunde (realistisch bei automatisierten Tests, aber auch bei
+     * schnell aufeinanderfolgenden echten Klicks) hätten sonst identische Zeitstempel, und `id`
+     * (ein zufälliges UUID, siehe lib/ids.ts) wäre als Tie-Breaker nicht chronologisch — die
+     * Blätterung könnte Zeilen doppelt zeigen oder überspringen. `seq` ist dasselbe Muster wie
+     * `ledgerEntry.seq`, hier aber global statt je Nutzer.
+     */
+    seq: bigserial("seq", { mode: "number" }).notNull(),
+    actorUserId: text("actor_user_id")
+      .notNull()
+      .references(() => user.id),
+    /** Kurzer, stabiler Aktionsname, z. B. "user.status.update" — keine Freitextbeschreibung. */
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Blätterung ist immer absteigend nach seq sortiert (neueste zuerst) — dieser Index bedient
+    // genau das, ohne bei wachsender Historie langsamer zu werden (kein Sequential Scan + Sort).
+    uniqueIndex("admin_audit_log_seq_unique").on(t.seq),
+    index("admin_audit_log_actor_idx").on(t.actorUserId),
   ],
 );

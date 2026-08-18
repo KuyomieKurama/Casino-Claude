@@ -45,6 +45,21 @@ export function getActiveOAuthProviders(): ActiveOAuthProvider[] {
   return PROVIDER_DEFINITIONS.filter(isActive).map(({ key, displayName, clientId, clientSecret }) => ({ key, displayName, clientId, clientSecret }));
 }
 
+export interface OAuthProviderStatus {
+  key: OAuthProviderKey;
+  displayName: string;
+  configured: boolean;
+}
+
+/**
+ * Für die Admin-Diagnose (Admin-Auftrag §1: „ob OAuth-Provider konfiguriert sind — ohne
+ * Geheimnisse anzuzeigen"). Anders als `getActiveOAuthProviders()` liefert diese Funktion NIE
+ * `clientId`/`clientSecret` — nur den Anzeigenamen und ein Boolean, ob beide Werte gesetzt sind.
+ */
+export function getOAuthProviderStatuses(): OAuthProviderStatus[] {
+  return PROVIDER_DEFINITIONS.map((definition) => ({ key: definition.key, displayName: definition.displayName, configured: isActive(definition) }));
+}
+
 /** Für server/auth/index.ts: baut die `socialProviders`-Option aus den aktiven Providern. */
 export function getActiveOAuthProviderMap(): Partial<Record<OAuthProviderKey, { clientId: string; clientSecret: string }>> {
   const map: Partial<Record<OAuthProviderKey, { clientId: string; clientSecret: string }>> = {};

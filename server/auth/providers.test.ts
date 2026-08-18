@@ -68,4 +68,23 @@ describe("server/auth/providers", () => {
     expect(map.discord).toEqual({ clientId: "discord-id", clientSecret: "discord-secret" });
     expect(map.google).toBeUndefined();
   });
+
+  test("getOAuthProviderStatuses liefert alle drei Provider mit configured-Flag, aber ohne Zugangsdaten", async () => {
+    process.env.OAUTH_GOOGLE_CLIENT_ID = "google-id";
+    process.env.OAUTH_GOOGLE_CLIENT_SECRET = "google-secret";
+
+    const { getOAuthProviderStatuses } = await import("./providers");
+    const statuses = getOAuthProviderStatuses();
+
+    expect(statuses).toHaveLength(3);
+    const google = statuses.find((s) => s.key === "google");
+    expect(google).toEqual({ key: "google", displayName: "Google", configured: true });
+    const github = statuses.find((s) => s.key === "github");
+    expect(github).toEqual({ key: "github", displayName: "GitHub", configured: false });
+    // Keine Zugangsdaten in der Antwort — nur configured-Booleans.
+    for (const status of statuses) {
+      expect(status).not.toHaveProperty("clientId");
+      expect(status).not.toHaveProperty("clientSecret");
+    }
+  });
 });

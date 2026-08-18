@@ -61,13 +61,3 @@ export const sampleTransactions: readonly Transaction[] = rows.map(
     isDemo: true as const,
   }),
 );
-
-/** Beispiel-Kennzahlen für das Admin-Dashboard (M3), gekennzeichnet als Mock. */
-export const sampleAdminMetrics = {
-  isSample: true,
-  demoSessionsToday: 42,
-  roundsToday: 1_318,
-  activeGames: 23,
-  inactiveGames: 1,
-  simulatedErrorsToday: 3,
-} as const;
