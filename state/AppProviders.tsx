@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Game } from "@/types/game";
 import type { User } from "@/types/user";
 import type { WalletBalance } from "@/types/wallet";
+import type { ResponsibleGaming } from "@/types/responsible-gaming";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PersistenceProvider } from "./PersistenceContext";
 import { SessionProvider } from "./SessionContext";
@@ -28,23 +29,29 @@ import { WalletProvider } from "./WalletContext";
  * server/wallet/wallet-read-model.ts gelesen. Ohne Prop verhält sich WalletProvider wie vor
  * dieser Änderung (hartkodierter Default plus LocalStorage) — bestehende Tests, die nur
  * `<AppProviders>` ohne Server-Kontext brauchen, bleiben unverändert lauffähig.
+ *
+ * `rgSnapshot` (optional, wie `walletSnapshot`): aus app/layout.tsx, dort über
+ * server/rg/rg-read-model.ts gelesen. Ohne Prop startet RgProvider mit dem Standardzustand eines
+ * brandneuen Nutzers (keine Sperre, kein Limit) — bestehende Tests bleiben unverändert lauffähig.
  */
 export function AppProviders({
   children,
   user = null,
   initialGames,
   walletSnapshot,
+  rgSnapshot,
 }: {
   children: ReactNode;
   user?: User | null;
   initialGames?: readonly Game[];
   walletSnapshot?: WalletBalance;
+  rgSnapshot?: ResponsibleGaming;
 }) {
   return (
     <ToastProvider>
       <PersistenceProvider>
         <SessionProvider user={user}>
-          <RgProvider>
+          <RgProvider initialRg={rgSnapshot}>
             <CatalogProvider initialGames={initialGames}>
               <WalletProvider initialWallet={walletSnapshot}>{children}</WalletProvider>
             </CatalogProvider>

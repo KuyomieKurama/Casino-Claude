@@ -244,3 +244,68 @@ describe("startNonInteractiveRound", () => {
     expect(result).toEqual({ ok: false, code: "INVALID_STAKE" });
   });
 });
+
+describe("Responsible-Gaming-Sperre blockiert den nicht-interaktiven Rundenstart (Auftrag „Server statt Client“)", () => {
+  test("ein selbstgesperrter Nutzer kann über den Service — und damit über jeden Aufrufer, inklusive einem direkten API-Aufruf unter Umgehung der Oberfläche — keine Runde starten", async () => {
+    const db = await createTestDatabase();
+    const modeId = await seedMode(db);
+    const userId = await seedUser(db, "u1");
+    const { activateSelfExclusion } = await import("@/server/repositories/rg-settings-repository");
+    await activateSelfExclusion(db, userId, new Date().toISOString());
+
+    const result = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k1" });
+
+    expect(result).toEqual({ ok: false, code: "RG_BLOCKED" });
+    // Beweis, dass wirklich nichts gebucht wurde: kein Wallet, keine Ledger-Zeile, keine Runde.
+    expect(await findWallet(db, userId)).toBeNull();
+    expect(await listLedgerEntries(db, userId, 10)).toEqual([]);
+  });
+
+  test("eine bereits abgeschlossene, wiederholte Anfrage (Idempotenzschlüssel) wird trotz nachträglicher Selbstsperre weiterhin aus dem Protokoll beantwortet, statt neu geprüft zu werden", async () => {
+    const db = await createTestDatabase();
+    const modeId = await seedMode(db);
+    const userId = await seedUser(db, "u1");
+    const first = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k1" });
+    expect(first.ok).toBe(true);
+    const { activateSelfExclusion } = await import("@/server/repositories/rg-settings-repository");
+    await activateSelfExclusion(db, userId, new Date().toISOString());
+
+    const replay = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k1" });
+
+    expect(replay.ok).toBe(true);
+    if (replay.ok && first.ok) expect(replay.data.roundId).toBe(first.data.roundId);
+  });
+
+  test("nach Ablauf einer Pause ist ein Rundenstart wieder möglich", async () => {
+    const db = await createTestDatabase();
+    const modeId = await seedMode(db);
+    const userId = await seedUser(db, "u1");
+    const { setPause } = await import("@/server/repositories/rg-settings-repository");
+    const now = new Date();
+    await setPause(db, userId, new Date(now.getTime() - 60_000).toISOString()); // bereits abgelaufen
+
+    const result = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k1" });
+
+    expect(result.ok).toBe(true);
+  });
+
+  test("nach Erreichen des Zeitlimits (aus play_session berechnet) wird der Rundenstart abgelehnt", async () => {
+    const db = await createTestDatabase();
+    const modeId = await seedMode(db);
+    const userId = await seedUser(db, "u1");
+    const { setSessionLimitMinutes } = await import("@/server/repositories/rg-settings-repository");
+    const { touchPlaySession } = await import("@/server/repositories/play-session-repository");
+    // Rundenstart prüft intern gegen die tatsächliche Serverzeit (nowIso()), nicht gegen einen vom
+    // Test frei wählbaren Zeitpunkt — die Sitzung beginnt deshalb real 6 Minuten in der
+    // Vergangenheit: innerhalb der 30-Minuten-Lücken-Schwelle (SESSION_GAP_MS), damit derselbe
+    // Rundenstart die Sitzung fortschreibt statt eine neue zu beginnen, aber über dem gleich
+    // gesetzten 5-Minuten-Limit.
+    const sessionStart = new Date(Date.now() - 6 * 60_000).toISOString();
+    await touchPlaySession(db, userId, sessionStart);
+    await setSessionLimitMinutes(db, userId, 5);
+
+    const result = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k1" });
+
+    expect(result).toEqual({ ok: false, code: "RG_BLOCKED" });
+  });
+});

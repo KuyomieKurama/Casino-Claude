@@ -14,7 +14,8 @@ import {
 } from "@/lib/wallet-policy";
 import type { Wallet } from "@/types/wallet";
 import { MAX_BALANCE_MINOR, START_BALANCE_MINOR } from "@/lib/constants";
-import { createId } from "@/lib/ids";
+import { createId, nowIso } from "@/lib/ids";
+import { assertRgNotBlocked } from "@/server/rg/rg-guard";
 // Ausnahme in eslint.config.mjs (server/**-Regel): reine, React-freie *-logic.ts-Importe — nur
 // für die maxReturnMinor-Obergrenze je Engine (Auftrag §4, wie schon engine-resolvers.ts).
 import { minesCountFromBetId, minesMaxReturnMinor } from "@/components/game/engine/arcade/mines-logic";
@@ -174,18 +175,29 @@ export async function startInteractiveRound(db: AppDatabase, input: StartInterac
   const seed = randomInt(0, 2 ** 31);
 
   return db.transaction(async (tx) => {
-    const { walletRecord: freshWallet, created } = await insertWalletIfMissing(tx, input.userId, START_BALANCE_MINOR);
-    if (created) {
-      await insertLedgerEntry(tx, { userId: input.userId, seq: 1, type: "demo_credit", amountMinor: START_BALANCE_MINOR, balanceAfterMinor: START_BALANCE_MINOR });
-    }
-
     const existing = await findByIdempotencyKey(tx, input.userId, input.idempotencyKey);
     if (existing) {
       if (!isInteractiveRoundTranscript(existing.transcript)) {
         throw new Error(`Runde „${existing.id}" (Idempotenzschlüssel) hat kein gültiges interaktives Transkript.`);
       }
-      const currentWallet = (await findWallet(tx, input.userId)) ?? freshWallet;
+      // ABSICHTLICH ohne erneute RG-Prüfung — dieselbe Begründung wie round-service.ts: nichts
+      // wird hier neu gebucht.
+      const currentWallet = await findWallet(tx, input.userId);
+      if (!currentWallet) {
+        throw new Error(`Wallet für Nutzer „${input.userId}" fehlt trotz bereits vorhandener Runde „${existing.id}" (Idempotenzschlüssel).`);
+      }
       return { ok: true, data: await toOpenOrSettledData(tx, existing, currentWallet, existing.transcript) };
+    }
+
+    // Responsible-Gaming-Sperre (Auftrag „Server statt Client") — derselbe Platz wie in
+    // round-service.ts: innerhalb der Transaktion, VOR der Wallet-Anlage/Startguthaben-Gutschrift
+    // und vor jeder Buchung eines neuen Einsatzes.
+    const rgCheck = await assertRgNotBlocked(tx, input.userId, nowIso());
+    if (!rgCheck.ok) return { ok: false, code: rgCheck.code };
+
+    const { walletRecord: freshWallet, created } = await insertWalletIfMissing(tx, input.userId, START_BALANCE_MINOR);
+    if (created) {
+      await insertLedgerEntry(tx, { userId: input.userId, seq: 1, type: "demo_credit", amountMinor: START_BALANCE_MINOR, balanceAfterMinor: START_BALANCE_MINOR });
     }
 
     let usedFreeSpin = false;

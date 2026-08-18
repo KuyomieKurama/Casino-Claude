@@ -125,4 +125,24 @@ describe("POST /api/rounds/start", () => {
     const body = (await response.json()) as { success: boolean; error?: string };
     expect(body).toEqual({ success: false, error: "INVALID_STAKE" });
   });
+
+  /**
+   * Der eigentliche Beweis (Auftrag „Server statt Client"): dieser Test ruft den echten
+   * Route-Handler auf — genau den Pfad, den ein direkter `fetch("/api/rounds/start", …)` unter
+   * Umgehung jeder Oberfläche nimmt. Selbstsperre lebt ausschließlich in der Datenbank
+   * (`rg_setting`), niemals im Request — der Client könnte hier keinen anderen Wert vortäuschen,
+   * selbst wenn er es versuchte.
+   */
+  test("Responsible-Gaming-Sperre: ein selbstgesperrter, angemeldeter Nutzer kann über einen direkten API-Aufruf keine Runde starten", async () => {
+    await db.insert(user).values({ id: "member-excluded", name: "Gesperrt", email: "excluded@example.com" });
+    const { activateSelfExclusion } = await import("@/server/repositories/rg-settings-repository");
+    await activateSelfExclusion(testDb, "member-excluded", new Date().toISOString());
+    getSessionMock.mockResolvedValueOnce({ user: { id: "member-excluded", email: "excluded@example.com", name: "Gesperrt", role: "user", status: "active", isGuest: false } });
+
+    const response = await POST(postRequest({ gameModeId: "g-dice-demo", stakeMinor: 100, idempotencyKey: "excluded-round-1", betId: "under-50" }));
+
+    expect(response.status).toBe(200); // Ablehnung ist ein Fachentscheid (200 + error), kein Transportfehler.
+    const body = (await response.json()) as { success: boolean; error?: string };
+    expect(body).toEqual({ success: false, error: "RG_BLOCKED" });
+  });
 });

@@ -7,7 +7,8 @@ import { insertLedgerEntry } from "@/server/repositories/ledger-repository";
 import { checkRaiseAllowed, splitStakeAcrossBalances, type WalletRejectionCode } from "@/lib/wallet-policy";
 import type { Wallet } from "@/types/wallet";
 import { MAX_BALANCE_MINOR } from "@/lib/constants";
-import { createId } from "@/lib/ids";
+import { createId, nowIso } from "@/lib/ids";
+import { assertRgNotBlocked } from "@/server/rg/rg-guard";
 import type { InteractiveEngineRunner, InteractiveRoundTranscript } from "./interactive/types";
 import { isInteractiveRoundTranscript } from "./interactive/types";
 import { blackjackRunner, minesRunner, videoPokerRunner } from "./interactive/runners";
@@ -174,6 +175,11 @@ async function processAction<TState>(
       additionalMinor,
     );
     if (!raiseCheck.ok) return { ok: false, code: raiseCheck.code };
+    // Responsible-Gaming-Sperre (Auftrag „Server statt Client"): nur Aktionen mit Zusatzeinsatz
+    // (Verdoppeln, Teilen) buchen neues Geld — Aktionen ohne Einsatzänderung (hit, stand, reveal,
+    // cashOut, draw) bleiben unabhängig vom RG-Status möglich, dieselbe Runde zu Ende zu spielen.
+    const rgCheck = await assertRgNotBlocked(tx, input.userId, nowIso());
+    if (!rgCheck.ok) return { ok: false, code: rgCheck.code };
     const wallet = await findWallet(tx, input.userId);
     if (!wallet) throw new Error(`Wallet für Nutzer „${input.userId}" fehlt — Zusatzeinsatz kann nicht gebucht werden.`);
     const split = splitStakeAcrossBalances(toWallet(wallet), additionalMinor);

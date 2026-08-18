@@ -14,7 +14,8 @@ import {
 } from "@/lib/wallet-policy";
 import type { Wallet } from "@/types/wallet";
 import { MAX_BALANCE_MINOR, START_BALANCE_MINOR } from "@/lib/constants";
-import { createId } from "@/lib/ids";
+import { createId, nowIso } from "@/lib/ids";
+import { assertRgNotBlocked } from "@/server/rg/rg-guard";
 
 /**
  * Rundenservice für die sechs nicht-interaktiven Spielfamilien (Auftrag §3). Autorisierung
@@ -146,6 +147,32 @@ export async function startNonInteractiveRound(db: AppDatabase, input: StartRoun
   }
 
   return db.transaction(async (tx) => {
+    const existing = await findByIdempotencyKey(tx, input.userId, input.idempotencyKey);
+    if (existing) {
+      // Idempotenz (Auftrag §3/§8): derselbe Schlüssel liefert das bereits gebuchte Ergebnis
+      // zurück, ohne ein zweites Mal zu buchen. `status !== "settled"` sollte praktisch nie
+      // eintreten (jede offene Runde wird innerhalb derselben Transaktion sofort abgeschlossen,
+      // siehe Dateikommentar) — kein stiller Fallback, sondern ein sichtbarer Ablehnungsgrund.
+      // ABSICHTLICH ohne erneute RG-Prüfung: nichts wird hier neu gebucht, eine nachträgliche
+      // Sperre darf ein bereits abgeschlossenes Ergebnis nicht rückwirkend verstecken.
+      if (existing.status !== "settled") return { ok: false, code: "ROUND_IN_FLIGHT" };
+      const currentWallet = await findWallet(tx, input.userId);
+      if (!currentWallet) {
+        // Eine bereits abgeschlossene Runde setzt eine gebuchte Wallet-Zeile voraus (sie wurde
+        // beim ursprünglichen Rundenstart angelegt) — ihr Fehlen wäre ein Dateninkonsistenz-
+        // Fehler, kein Nutzerzustand. Kein stiller Fallback bei einem Geldwert.
+        throw new Error(`Wallet für Nutzer „${input.userId}" fehlt trotz bereits abgeschlossener Runde „${existing.id}".`);
+      }
+      return { ok: true, data: toData(existing, currentWallet) };
+    }
+
+    // Responsible-Gaming-Sperre (Auftrag „Server statt Client", der eigentliche Kern): läuft
+    // INNERHALB dieser Transaktion, gegen den Datenbankstand — vor JEDER Buchung, einschließlich
+    // der Wallet-Anlage/Startguthaben-Gutschrift unten. Ein gesperrter Nutzer bekommt dadurch bei
+    // einem abgelehnten Rundenstart weder ein neues Wallet noch eine Startguthaben-Buchung.
+    const rgCheck = await assertRgNotBlocked(tx, input.userId, nowIso());
+    if (!rgCheck.ok) return { ok: false, code: rgCheck.code };
+
     const { walletRecord: freshWallet, created } = await insertWalletIfMissing(tx, input.userId, START_BALANCE_MINOR);
     if (created) {
       // Auftrag §7: Startguthaben ist eine Buchung, kein stiller Anfangswert.
@@ -156,17 +183,6 @@ export async function startNonInteractiveRound(db: AppDatabase, input: StartRoun
         amountMinor: START_BALANCE_MINOR,
         balanceAfterMinor: START_BALANCE_MINOR,
       });
-    }
-
-    const existing = await findByIdempotencyKey(tx, input.userId, input.idempotencyKey);
-    if (existing) {
-      // Idempotenz (Auftrag §3/§8): derselbe Schlüssel liefert das bereits gebuchte Ergebnis
-      // zurück, ohne ein zweites Mal zu buchen. `status !== "settled"` sollte praktisch nie
-      // eintreten (jede offene Runde wird innerhalb derselben Transaktion sofort abgeschlossen,
-      // siehe Dateikommentar) — kein stiller Fallback, sondern ein sichtbarer Ablehnungsgrund.
-      if (existing.status !== "settled") return { ok: false, code: "ROUND_IN_FLIGHT" };
-      const currentWallet = (await findWallet(tx, input.userId)) ?? freshWallet;
-      return { ok: true, data: toData(existing, currentWallet) };
     }
 
     let usedFreeSpin = false;

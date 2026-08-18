@@ -226,3 +226,18 @@ describe("startInteractiveRound — Freirunde", () => {
     expect(entries.some((e) => e.type === "free_spin")).toBe(true);
   });
 });
+
+describe("Responsible-Gaming-Sperre blockiert den interaktiven Rundenstart (Auftrag „Server statt Client“)", () => {
+  test("ein selbstgesperrter Nutzer kann keine interaktive Runde (Blackjack, Mines, Video Poker) starten — auch nicht über einen direkten API-Aufruf", async () => {
+    const db = await createTestDatabase();
+    const modeId = await seedMode(db, "mines", "g-mines-demo");
+    const userId = await seedUser(db);
+    const { activateSelfExclusion } = await import("@/server/repositories/rg-settings-repository");
+    await activateSelfExclusion(db, userId, new Date().toISOString());
+
+    const result = await startInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 100, idempotencyKey: "k1", betId: "m3" });
+
+    expect(result).toEqual({ ok: false, code: "RG_BLOCKED" });
+    expect(await findWallet(db, userId)).toBeNull();
+  });
+});

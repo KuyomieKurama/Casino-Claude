@@ -19,7 +19,9 @@ describe("Migration", () => {
     );
     const tableNames = result.rows.map((row) => row.table_name);
     // Phase 0 (Katalog) + Phase 1 (Auth, server/db/auth-schema.ts) + Phase 3a (Wallet-Ledger) +
-    // Phase 3b (Aktionsprotokoll interaktiver Runden, server/db/schema.ts): zwölf Tabellen insgesamt.
+    // Phase 3b (Aktionsprotokoll interaktiver Runden) + Responsible Gaming serverseitig
+    // (`rg_setting`, `play_session`, Auftrag „Server statt Client", server/db/schema.ts):
+    // vierzehn Tabellen insgesamt.
     expect(tableNames).toEqual([
       "account",
       "game",
@@ -28,7 +30,9 @@ describe("Migration", () => {
       "game_round_action",
       "ledger_entry",
       "login_attempt",
+      "play_session",
       "provider",
+      "rg_setting",
       "session",
       "user",
       "verification",

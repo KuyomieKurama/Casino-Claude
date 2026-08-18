@@ -337,6 +337,33 @@ describe("applyRoundAction — Blackjack (Zusatzeinsatz)", () => {
     expect(after?.demoBalanceMinor).toBe(100); // unverändert — kein stiller Teilabzug
   });
 
+  test("Responsible-Gaming-Sperre (Auftrag „Server statt Client“): ein selbstgesperrter Nutzer kann double (Zusatzeinsatz) nicht buchen", async () => {
+    // Seed suchen, unter dem "double" grundsätzlich zulässig ist (derselbe Suchlauf wie oben).
+    let workingSeed: number | null = null;
+    for (let seed = 1; seed < 200 && workingSeed === null; seed++) {
+      const probeDb = await createTestDatabase();
+      const round = await seedBlackjackRound(probeDb, { seed, stakeMinor: 200 });
+      const probe = await applyRoundAction(probeDb, { userId: USER_ID, roundId: round.id, seq: 1, action: "double", payload: {} });
+      if (probe.ok) workingSeed = seed;
+    }
+    expect(workingSeed).not.toBeNull();
+    if (workingSeed === null) return;
+
+    const db = await createTestDatabase();
+    const round = await seedBlackjackRound(db, { seed: workingSeed, stakeMinor: 200 });
+    const { activateSelfExclusion } = await import("@/server/repositories/rg-settings-repository");
+    await activateSelfExclusion(db, USER_ID, new Date().toISOString());
+    const before = await findWallet(db, USER_ID);
+
+    const result = await applyRoundAction(db, { userId: USER_ID, roundId: round.id, seq: 1, action: "double", payload: {} });
+
+    expect(result).toEqual({ ok: false, code: "RG_BLOCKED" });
+    const after = await findWallet(db, USER_ID);
+    expect(after?.demoBalanceMinor).toBe(before?.demoBalanceMinor); // kein Zusatzeinsatz gebucht
+    const entries = await listLedgerEntries(db, USER_ID, 10);
+    expect(entries.some((e) => e.type === "demo_bet" && e.roundId === round.id)).toBe(false);
+  });
+
   test("hit nach stand wird abgelehnt", async () => {
     const db = await createTestDatabase();
     let seed = 1;

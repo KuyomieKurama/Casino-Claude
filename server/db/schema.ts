@@ -11,7 +11,7 @@ import {
   GAME_ROUND_STATUS_VALUES,
   LEDGER_ENTRY_TYPE_VALUES,
 } from "./enums";
-import { MAX_BALANCE_MINOR } from "@/lib/constants";
+import { DEFAULT_REMINDER_INTERVAL_MINUTES, MAX_BALANCE_MINOR } from "@/lib/constants";
 
 /**
  * Katalog-Fundament: `provider` → `game` (Titel) → `game_mode` (Modus).
@@ -247,6 +247,72 @@ export const gameRoundAction = pgTable(
     uniqueIndex("game_round_action_round_seq_unique").on(t.roundId, t.seq),
     check("game_round_action_action_check", checkIn(t.action, GAME_ROUND_ACTION_VALUES)),
     check("game_round_action_seq_check", sql`${t.seq} >= 1`),
+  ],
+);
+
+/**
+ * Responsible-Gaming-Einstellungen je Nutzer (Auftrag „Server statt Client"): serverseitiges
+ * Gegenstück zu `types/responsible-gaming.ts` (Feld für Feld, minus `sessionStartedAt` — das
+ * kommt aus der aktiven `play_session`, nicht aus dieser Tabelle). Genau eine Zeile je Nutzer
+ * (PK = user_id, wie `wallet` oben), bei Bedarf per `INSERT ... ON CONFLICT DO UPDATE` angelegt
+ * (server/repositories/rg-settings-repository.ts) — ein neuer Nutzer ohne eigene Zeile gilt als
+ * „keine Sperre, kein Limit, Standard-Erinnerungsintervall" (server/rg/rg-guard.ts), nie als
+ * Fehler.
+ *
+ * `lift_requested_at`: trägt den in `types/responsible-gaming.ts` nicht abgebildeten Zwei-
+ * Schritt-Ablauf zum Aufheben einer Selbstsperre (Auftrag §3: „darf niemals versehentlich durch
+ * einen einzelnen Klick geschehen"). Ein `requestLift` setzt dieses Feld, `confirmLift` verlangt
+ * es gesetzt UND innerhalb `RG_LIFT_CONFIRM_WINDOW_MS` (lib/constants.ts) — ein einzelner
+ * `confirmLift`-Aufruf ohne vorausgehenden `requestLift` hebt dadurch nichts auf, selbst bei
+ * einem direkten API-Aufruf unter Umgehung des Zwei-Schritt-Dialogs.
+ */
+export const rgSetting = pgTable(
+  "rg_setting",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id),
+    sessionLimitMinutes: integer("session_limit_minutes"),
+    reminderIntervalMinutes: integer("reminder_interval_minutes").notNull().default(DEFAULT_REMINDER_INTERVAL_MINUTES),
+    pausedUntil: timestamp("paused_until", { withTimezone: true }),
+    selfExcluded: boolean("self_excluded").notNull().default(false),
+    selfExcludedAt: timestamp("self_excluded_at", { withTimezone: true }),
+    liftRequestedAt: timestamp("lift_requested_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("rg_setting_session_limit_check", sql`${t.sessionLimitMinutes} IS NULL OR ${t.sessionLimitMinutes} > 0`),
+    check("rg_setting_reminder_interval_check", sql`${t.reminderIntervalMinutes} > 0`),
+  ],
+);
+
+/**
+ * Serverseitiges Gegenstück zur bisherigen 30-Minuten-Lücken-Heuristik aus dem früheren
+ * `state/rg-reducer.ts` (jetzt `lib/responsible-gaming.ts::SESSION_GAP_MS`): Höchstens eine
+ * AKTIVE Sitzung je Nutzer gleichzeitig (`ended_at IS NULL`), erzwungen über den partiellen
+ * Unique-Index unten — dasselbe Muster wie `game_round_user_open_unique`. Wird eine Sitzung
+ * länger als `SESSION_GAP_MS` nicht berührt, schließt `server/repositories/play-session-
+ * repository.ts::touchPlaySession` sie (setzt `ended_at`) und legt eine neue an, statt die
+ * bestehende Zeile weiterzuschreiben — `started_at` der aktiven Zeile ist damit immer der
+ * tatsächliche Beginn der laufenden Sitzung, nie ein über Lücken hinweg fortgeschriebener Wert.
+ */
+export const playSession = pgTable(
+  "play_session",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    lastActiveAt: timestamp("last_active_at", { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    lastReminderAt: timestamp("last_reminder_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("play_session_user_active_unique")
+      .on(t.userId)
+      .where(sql`${t.endedAt} IS NULL`),
+    check("play_session_active_after_start_check", sql`${t.lastActiveAt} >= ${t.startedAt}`),
   ],
 );
 

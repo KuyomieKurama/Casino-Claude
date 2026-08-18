@@ -1,18 +1,40 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ResponsibleGaming } from "@/types/responsible-gaming";
-import { writeSlice } from "@/lib/storage";
 import { nowIso } from "@/lib/ids";
 import { DEFAULT_REMINDER_INTERVAL_MINUTES } from "@/lib/constants";
-import { usePersistence } from "./PersistenceContext";
-import { createInitialRgState, getRgStatus, rgReducer, toPersistedRg, type RgState, type RgStatus } from "./rg-reducer";
+import { getRgStatus, type RgStatus } from "@/lib/responsible-gaming";
+import { readLegacySelfExclusionFlag } from "@/lib/storage";
+import {
+  postRgActivateSelfExclusion,
+  postRgConfirmLiftSelfExclusion,
+  postRgEndPause,
+  postRgMarkReminderShown,
+  postRgPause,
+  postRgRequestLiftSelfExclusion,
+  postRgSetReminderInterval,
+  postRgSetSessionLimit,
+  postRgStartNewSession,
+  postRgTouch,
+} from "./rg-api-client";
+
+/**
+ * Responsible Gaming bezieht seinen Zustand vom Server (Auftrag „Server statt Client"):
+ * Selbstsperre, Pause und Zeitlimit werden dort durchgesetzt (server/rg/**, server/rounds/*.ts),
+ * nicht mehr nur hier angezeigt. Dieser Provider tickt lokal (Anzeige, `useRgStatus`) und
+ * spiegelt `rg` — die ENTSCHEIDUNG, ob ein Rundenstart tatsächlich durchgeht, liegt beim Server.
+ *
+ * Kein LocalStorage mehr (SCHEMA_VERSION 4, lib/constants.ts): `rg` kommt initial als SSR-Prop
+ * aus app/layout.tsx (server/rg/rg-read-model.ts), danach aus den Antworten der Mutationen unten
+ * bzw. einem periodischen Heartbeat (`POST /api/rg/touch`) — dasselbe Muster wie
+ * state/WalletContext.tsx mit `initialWallet`.
+ */
 
 type RgValue = {
-  state: RgState;
   rg: ResponsibleGaming;
   hydrated: boolean;
-  /** Status zum Zeitpunkt des Aufrufs — für Entscheidungen (Wallet), nicht für Anzeige. */
+  /** Status zum Zeitpunkt des Aufrufs — für Entscheidungen (z. B. UI-Gating), nicht für Anzeige. */
   getStatus: () => RgStatus;
   pause: (minutes: number) => void;
   endPause: () => void;
@@ -26,37 +48,97 @@ type RgValue = {
 
 const RgContext = createContext<RgValue | null>(null);
 
-// Der Startwert wird beim ersten Render festgelegt; die Hydration überschreibt ihn.
-const BOOT_ISO = "1970-01-01T00:00:00.000Z";
+function defaultResponsibleGaming(): ResponsibleGaming {
+  return { sessionStartedAt: nowIso(), reminderIntervalMinutes: DEFAULT_REMINDER_INTERVAL_MINUTES, selfExcluded: false };
+}
 
-export function RgProvider({ children }: { children: ReactNode }) {
-  const persistence = usePersistence();
-  const [state, dispatch] = useReducer(rgReducer, BOOT_ISO, createInitialRgState);
+export type RgProviderProps = {
+  children: ReactNode;
+  /**
+   * Serverseitig gelesener RG-Stand (app/layout.tsx ⇒ server/rg/rg-read-model.ts), beim ersten
+   * Render bereits bekannt — kein Nachladen, kein Skeleton (anders als früher: es gibt keine
+   * LocalStorage-Hydration mehr, die abgewartet werden müsste). Ohne Prop (bestehende
+   * Komponententests ohne Server-Kontext) gilt derselbe Standardzustand wie für einen brandneuen
+   * Nutzer: keine Sperre, kein Limit, Sitzung beginnt jetzt.
+   */
+  initialRg?: ResponsibleGaming;
+};
 
+export function RgProvider({ children, initialRg }: RgProviderProps) {
+  const [rg, setRg] = useState<ResponsibleGaming>(() => initialRg ?? defaultResponsibleGaming());
+
+  const getStatus = useCallback((): RgStatus => getRgStatus(rg, Date.now()), [rg]);
+
+  const applyResult = useCallback((result: { ok: true; rg: ResponsibleGaming } | { ok: false }) => {
+    // Kein stiller Fallback bei einem Netzwerk-/Serverfehler: die Anzeige bleibt einfach beim
+    // zuletzt bekannten Stand, statt einen geratenen neuen Wert zu übernehmen — dieselbe Regel
+    // wie beim Rundenstart (useRound.ts zeigt eine sichtbare Ablehnung statt eines stillen Wechsels).
+    if (result.ok) setRg(result.rg);
+  }, []);
+
+  const pause = useCallback((minutes: number) => {
+    void postRgPause(minutes).then(applyResult);
+  }, [applyResult]);
+  const endPause = useCallback(() => {
+    void postRgEndPause().then(applyResult);
+  }, [applyResult]);
+  const setSessionLimit = useCallback((minutes: number | undefined) => {
+    void postRgSetSessionLimit(minutes ?? null).then(applyResult);
+  }, [applyResult]);
+  const setReminderInterval = useCallback((minutes: number) => {
+    void postRgSetReminderInterval(minutes).then(applyResult);
+  }, [applyResult]);
+  const selfExclude = useCallback(() => {
+    void postRgActivateSelfExclusion().then(applyResult);
+  }, [applyResult]);
+  /**
+   * Zwei GETRENNTE Server-Aufrufe (Auftrag §3) — der zweite (`confirmLift`) wirkt nur, wenn der
+   * erste (`requestLift`) tatsächlich vorausging. `state/rg-api-client.ts` bildet das 1:1 ab; ein
+   * direkter API-Aufruf unter Umgehung dieser Funktion (also nur `confirmLift` allein) bewirkt
+   * serverseitig nichts (server/repositories/rg-settings-repository.ts).
+   */
+  const liftSelfExclusion = useCallback(() => {
+    void postRgRequestLiftSelfExclusion().then((requested) => {
+      if (!requested.ok) return;
+      void postRgConfirmLiftSelfExclusion().then(applyResult);
+    });
+  }, [applyResult]);
+  const markReminderShown = useCallback(() => {
+    void postRgMarkReminderShown().then(applyResult);
+  }, [applyResult]);
+  const startNewSession = useCallback(() => {
+    void postRgStartNewSession().then(applyResult);
+  }, [applyResult]);
+
+  /**
+   * Migration einer vor der Umstellung LOKAL gesetzten Selbstsperre (Auftrag: „darf durch die
+   * Umstellung nicht verlorengehen … Nutzer nicht stillschweigend entsperrt"). Es gibt keine
+   * echte Migration von LocalStorage in die Datenbank (siehe SCHEMA_VERSION-Kommentar,
+   * lib/constants.ts) — ein alter Eintrag würde ohne diese Prüfung beim nächsten Laden einfach
+   * verworfen, und der Server-Anfangszustand (`initialRg`) zeigt für einen Nutzer ohne eigene
+   * `rg_setting`-Zeile „nicht gesperrt". Statt das unkommentiert hinzunehmen, wird ein gefundener
+   * lokaler Sperrvermerk EINMALIG beim ersten Laden auf den Server übertragen — im Zweifel
+   * bleibt der Nutzer gesperrt, statt unbemerkt freigeschaltet zu werden (dieselbe Regel wie
+   * „kein stiller Fallback, der im Fehlerfall öffnet").
+   */
+  const legacyMigrationRan = useRef(false);
   useEffect(() => {
-    if (persistence.hydrated && !state.hydrated) {
-      const now = nowIso();
-      // Ohne gespeicherte Scheibe beginnt die Sitzung jetzt — nicht 1970.
-      dispatch({
-        type: "HYDRATE",
-        slice: persistence.slices.rg ?? {
-          rg: { sessionStartedAt: now, reminderIntervalMinutes: DEFAULT_REMINDER_INTERVAL_MINUTES, selfExcluded: false },
-          lastActiveAt: now,
-        },
-        now,
-      });
-    }
-  }, [persistence.hydrated, persistence.slices.rg, state.hydrated]);
+    if (legacyMigrationRan.current) return;
+    legacyMigrationRan.current = true;
+    if (rg.selfExcluded) return; // bereits serverseitig gesperrt — nichts zu tun
+    if (!readLegacySelfExclusionFlag()) return;
+    void postRgActivateSelfExclusion().then(applyResult);
+    // Nur einmal beim ersten Client-Render prüfen — bewusst ohne `rg` als Abhängigkeit (der
+    // Ref-Schutz übernimmt das „nur einmal", eine erneute Prüfung bei jeder rg-Änderung wäre
+    // unnötig und könnte eine bewusste, gerade erst erfolgte Aufhebung sofort wieder aufheben).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // Heartbeat (Auftrag §4): zählt als Aktivität, dasselbe Intervall wie der frühere clientseitige
+  // TOUCH-Dispatch (minütlich + beim Zurückkehren in den Tab) — nur jetzt gegen den Server.
   useEffect(() => {
-    if (state.hydrated) writeSlice("rg", toPersistedRg(state));
-  }, [state]);
-
-  // Aktivitätsstempel: minütlich und beim Zurückkehren in den Tab (Zeitstempel, keine Zähler).
-  useEffect(() => {
-    if (!state.hydrated) return;
     const touch = () => {
-      if (document.visibilityState === "visible") dispatch({ type: "TOUCH", now: nowIso() });
+      if (document.visibilityState === "visible") void postRgTouch().then(applyResult);
     };
     const id = setInterval(touch, 60_000);
     document.addEventListener("visibilitychange", touch);
@@ -64,23 +146,12 @@ export function RgProvider({ children }: { children: ReactNode }) {
       clearInterval(id);
       document.removeEventListener("visibilitychange", touch);
     };
-  }, [state.hydrated]);
-
-  const getStatus = useCallback(() => getRgStatus(state.rg, Date.now()), [state.rg]);
-  const pause = useCallback((minutes: number) => dispatch({ type: "PAUSE", minutes, now: nowIso() }), []);
-  const endPause = useCallback(() => dispatch({ type: "END_PAUSE", now: nowIso() }), []);
-  const setSessionLimit = useCallback((minutes: number | undefined) => dispatch({ type: "SET_SESSION_LIMIT", minutes }), []);
-  const setReminderInterval = useCallback((minutes: number) => dispatch({ type: "SET_REMINDER_INTERVAL", minutes }), []);
-  const selfExclude = useCallback(() => dispatch({ type: "SELF_EXCLUDE", now: nowIso() }), []);
-  const liftSelfExclusion = useCallback(() => dispatch({ type: "LIFT_SELF_EXCLUSION", now: nowIso() }), []);
-  const markReminderShown = useCallback(() => dispatch({ type: "MARK_REMINDER_SHOWN", now: nowIso() }), []);
-  const startNewSession = useCallback(() => dispatch({ type: "START_NEW_SESSION", now: nowIso() }), []);
+  }, [applyResult]);
 
   const value = useMemo<RgValue>(
     () => ({
-      state,
-      rg: state.rg,
-      hydrated: state.hydrated,
+      rg,
+      hydrated: true,
       getStatus,
       pause,
       endPause,
@@ -91,7 +162,7 @@ export function RgProvider({ children }: { children: ReactNode }) {
       markReminderShown,
       startNewSession,
     }),
-    [state, getStatus, pause, endPause, setSessionLimit, setReminderInterval, selfExclude, liftSelfExclusion, markReminderShown, startNewSession],
+    [rg, getStatus, pause, endPause, setSessionLimit, setReminderInterval, selfExclude, liftSelfExclusion, markReminderShown, startNewSession],
   );
 
   return <RgContext.Provider value={value}>{children}</RgContext.Provider>;

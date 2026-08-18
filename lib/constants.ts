@@ -19,8 +19,18 @@ export const STORAGE_KEY = "velora.demo.v1";
  * entfernt, seit Phase 3b laufen alle Runden serverseitig. Ein alter LocalStorage-Eintrag mit
  * einer noch offenen "pendingRound" würde ohne diese Anhebung stillschweigend ignoriert
  * (das Feld existiert im neuen Typ schlicht nicht mehr) statt sauber verworfen zu werden.
+ *
+ * 4: die Scheibe "rg" entfiel vollständig (state/RgContext.tsx, Auftrag „Server statt Client") —
+ * Selbstsperre, Pause und Zeitlimit leben jetzt ausschließlich in der Datenbank (`rg_setting`,
+ * `play_session`, server/db/schema.ts) und werden serverseitig durchgesetzt, nicht mehr nur
+ * angezeigt. Eine alte, lokal gesetzte Selbstsperre in "rg" würde ohne diese Anhebung
+ * stillschweigend verworfen (nie in die Datenbank übernommen) UND der Nutzer stillschweigend
+ * entsperrt wirken — genau das verhindert der "unsupported-version"-Pfad (lib/storage.ts): alte
+ * Daten werden sichtbar verworfen, nicht geraten. Eine echte Migration nach Postgres gibt es
+ * nicht (siehe Bericht); wer sich vor dieser Umstellung nur lokal gesperrt hatte, muss die Sperre
+ * nach dem Update im neuen, serverseitigen Bereich erneut gezielt setzen.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** Startguthaben 1.000,00 Credits (§8.6). */
 export const START_BALANCE_MINOR: CreditsMinor = 100_000;
@@ -32,6 +42,15 @@ export const MAX_BALANCE_MINOR: CreditsMinor = 99_999_999_99;
 export const DEFAULT_REMINDER_INTERVAL_MINUTES = 30;
 export const PAUSE_OPTIONS_MINUTES: readonly number[] = [15, 60, 24 * 60];
 export const SESSION_LIMIT_OPTIONS_MINUTES: readonly number[] = [15, 30, 60, 120];
+
+/**
+ * Zeitfenster, innerhalb dessen ein `requestLift` (server/rg/rg-settings-service.ts) durch ein
+ * anschließendes, GESONDERTES `confirmLift` bestätigt werden muss — sonst verfällt die Anfrage.
+ * Erzwingt serverseitig, was der Zwei-Schritt-Dialog (components/rg/LimitDialog.tsx) an der
+ * Oberfläche zeigt: eine Selbstsperre lässt sich nicht mit einem einzelnen Aufruf aufheben, auch
+ * nicht per direktem API-Aufruf unter Umgehung der Oberfläche.
+ */
+export const RG_LIFT_CONFIRM_WINDOW_MS = 10 * 60_000;
 
 export const SEARCH_DEBOUNCE_MS = 200;
 export const LOBBY_PAGE_SIZE = 12;

@@ -6,7 +6,9 @@ import { SCHEMA_VERSION, STORAGE_KEY } from "@/lib/constants";
  * Behandelt: fehlender Schlüssel, defektes JSON, unbekannte Version, blockiertes Storage.
  */
 
-export type SliceKey = "wallet" | "catalogPrefs" | "rg";
+// "rg" entfiel mit SCHEMA_VERSION 4 (lib/constants.ts) — Responsible Gaming lebt seither
+// ausschließlich in der Datenbank, siehe dortiger Versionskommentar.
+export type SliceKey = "wallet" | "catalogPrefs";
 
 export type PersistedSlices = Partial<Record<SliceKey, unknown>>;
 
@@ -107,11 +109,41 @@ export function loadPersisted(): LoadResult {
     return { status: "unsupported-version", slices: {} };
   }
   const slices: PersistedSlices = {};
-  for (const key of ["wallet", "catalogPrefs", "rg"] as const) {
+  for (const key of ["wallet", "catalogPrefs"] as const) {
     if (key in parsed && parsed[key] !== undefined) slices[key] = parsed[key];
   }
   cache = { ...slices };
   return { status: unavailable ? "unavailable" : "ok", slices };
+}
+
+/**
+ * Einmalige Rückwärtskompatibilitäts-Prüfung (SCHEMA_VERSION 4, siehe lib/constants.ts): eine VOR
+ * der serverseitigen Umstellung lokal gesetzte Selbstsperre ("rg.selfExcluded": true in einer
+ * älteren Envelope-Version) darf beim Umstieg nicht stillschweigend verloren gehen — sonst wäre
+ * ein zuvor gesperrter Nutzer nach dem Update unbemerkt wieder spielberechtigt. `loadPersisted()`
+ * verwirft eine fremde `schemaVersion` bewusst vollständig ("unsupported-version"); dieser
+ * Lesezugriff umgeht das GEZIELT, nur um diese eine sicherheitsrelevante Eigenschaft zu prüfen —
+ * state/RgContext.tsx überträgt einen gefundenen Treffer einmalig auf den Server
+ * (POST /api/rg/self-exclusion), statt ihn nur anzuzeigen. Nie werfend, nie schreibend.
+ */
+export function readLegacySelfExclusionFlag(): boolean {
+  const s = storage();
+  if (!s) return false;
+  let raw: string | null;
+  try {
+    raw = s.getItem(STORAGE_KEY);
+  } catch {
+    return false;
+  }
+  if (!raw) return false;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) return false;
+    const rg = parsed.rg;
+    return isRecord(rg) && rg.selfExcluded === true;
+  } catch {
+    return false;
+  }
 }
 
 function bindFlushListeners() {

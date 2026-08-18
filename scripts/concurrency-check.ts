@@ -204,10 +204,12 @@ async function checkInteractiveActionRace(db: Db): Promise<boolean> {
   console.log("\n=== Test D: zwei gleichzeitige Aktionen (Blackjack „double\") auf derselben Runde ===");
   console.log("(server/rounds/round-action-service.ts::applyRoundAction, game-round-repository.ts::findRoundForUpdate)");
 
-  const userId = uniqueId("user-d");
-  await db.insert(authSchema.user).values({ id: userId, name: "Test D", email: `${userId}@example.com` });
-
   for (let attempt = 0; attempt < 8; attempt++) {
+    // Eigenes Konto je Versuch (statt eines über alle Versuche geteilten): ein vorheriger,
+    // verworfener Versuch (natürlicher Blackjack, der bereits Einsatz und Auszahlung gebucht
+    // hätte) darf den erwarteten Saldo des NÄCHSTEN Versuchs nicht verfälschen.
+    const userId = uniqueId(`user-d${attempt}`);
+    await db.insert(authSchema.user).values({ id: userId, name: "Test D", email: `${userId}@example.com` });
     const modeId = uniqueId(`mode-d${attempt}`);
     await seedCatalogFixture(db, modeId, "blackjack");
     const stakeMinor = 100;
@@ -229,12 +231,23 @@ async function checkInteractiveActionRace(db: Db): Promise<boolean> {
     // Grundeinsatz + EINEN Zusatzeinsatz gesunken sein, nie um zwei Zusatzeinsätze.
     const bookings = (await listLedgerEntries(db, userId, 20)).filter((e) => e.roundId === roundId && e.type === "demo_bet");
     const wallet = await findWallet(db, userId);
-    const expectedDemoBalance = START_BALANCE_MINOR - stakeMinor - stakeMinor; // Grundeinsatz + genau ein Zusatzeinsatz
+    // "double" deckt beim Einzelblatt eine Karte auf und beendet die Hand sofort (unveränderte
+    // Fachlogik, components/game/engine/blackjack/blackjack-logic.ts) — der Ausgang (Sieg,
+    // Niederlage, Push) hängt vom ECHTEN, hier bewusst ungemockten Zufall ab und ist nicht
+    // vorhersagbar. Der erwartete Saldo muss deshalb die tatsächlich gemeldete Rückgabe der EINEN
+    // angenommenen Aktion einrechnen, statt pauschal einen Verlust zu unterstellen — sonst würde
+    // dieser Test bei einem gewonnenen "double" fälschlich als Nebenläufigkeitsfehler durchfallen,
+    // obwohl serverseitig alles korrekt gebucht wurde.
+    const successful = a.ok ? a : b.ok ? b : null;
+    const settledReturnMinor = successful && successful.data.status === "settled" ? successful.data.returnMinor : 0;
+    const expectedDemoBalance = START_BALANCE_MINOR - stakeMinor - stakeMinor + settledReturnMinor;
 
     console.log(`Versuch ${attempt + 1}: ${successCount} von 2 gleichzeitigen "double"-Aufrufen angenommen.`);
     console.log(`Aktionsprotokoll der Runde: ${actions.length} Zeile(n) (erwartet: 1 — nur EIN "double" wurde tatsächlich angewendet).`);
     console.log(`demo_bet-Buchungen dieser Runde insgesamt: ${bookings.length} (erwartet: 2 — Grundeinsatz + ein Zusatzeinsatz).`);
-    console.log(`Saldo danach: ${wallet?.demoBalanceMinor} (erwartet: ${expectedDemoBalance} — NICHT ${expectedDemoBalance - stakeMinor}, das wäre eine doppelte Buchung).`);
+    console.log(
+      `Saldo danach: ${wallet?.demoBalanceMinor} (erwartet: ${expectedDemoBalance}, d. h. Grundeinsatz + Zusatzeinsatz minus gemeldeter Rückgabe ${settledReturnMinor} — eine doppelte Buchung würde stattdessen ${expectedDemoBalance - stakeMinor} ergeben).`,
+    );
 
     const ok = successCount === 1 && actions.length === 1 && bookings.length === 2 && wallet?.demoBalanceMinor === expectedDemoBalance;
     console.log(ok ? "ERGEBNIS: BESTANDEN" : "ERGEBNIS: FEHLGESCHLAGEN");
