@@ -27,7 +27,17 @@ export type WalletRejectionCode =
    * `WalletRejection` arbeiten kann, egal ob die Ablehnung vom lokalen Reducer oder von der
    * Server-Antwort stammt.
    */
-  | "SERVER_ERROR";
+  | "SERVER_ERROR"
+  /**
+   * Einsatzbezogene Aktion (Rundenstart, Spieleraktion) ohne gültige Sitzung (Auftrag „Spielen
+   * nur angemeldet"). Bewusst ein EIGENER Code statt Wiederverwendung eines bestehenden — anders
+   * als z. B. RG_BLOCKED oder INSUFFICIENT_FUNDS ist das kein Fachentscheid über ein vorhandenes
+   * Konto, sondern das Fehlen eines Kontos selbst. Die Oberfläche kann diesen Code gezielt von
+   * den übrigen unterscheiden, um zur Anmeldung zu führen, statt eine generische Fehlermeldung zu
+   * zeigen. Wird ausschließlich in den Route Handlern selbst geprüft (app/api/rounds/**), nicht
+   * in den Services darunter — dieselbe Schichtung wie die übrigen Ablehnungsgründe.
+   */
+  | "UNAUTHENTICATED";
 
 /** Discriminated Union statt Exceptions — der Aufrufer kann den Ablehnungsgrund nicht vergessen. */
 export type PolicyResult<T> = { ok: true; value: T } | { ok: false; code: WalletRejectionCode };

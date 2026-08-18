@@ -110,6 +110,7 @@ const messages: Record<WalletRejectionCode, string> = {
   RETURN_OUT_OF_RANGE: "Das Rundenergebnis liegt außerhalb des für diese Runde deklarierten Rahmens.",
   RAISE_NOT_ALLOWED: "Der Einsatz dieser Runde lässt sich nicht erhöhen.",
   SERVER_ERROR: "Der Server ist gerade nicht erreichbar oder hat unerwartet geantwortet. Bitte versuche es erneut.",
+  UNAUTHENTICATED: "Zum Spielen ist eine Anmeldung nötig. Bitte melde dich an.",
 };
 
 /**

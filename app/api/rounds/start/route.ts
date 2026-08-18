@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { auth } from "@/server/auth";
 import { getSession } from "@/server/auth/guards";
-import { startGuestSession } from "@/server/rounds/guest-session";
 import { startNonInteractiveRound, type StartRoundData } from "@/server/rounds/round-service";
 import { startRoundRequestSchema } from "@/server/rounds/schemas";
 import type { WalletRejectionCode } from "@/lib/wallet-policy";
@@ -14,15 +12,20 @@ import type { WalletRejectionCode } from "@/lib/wallet-policy";
  * Antwortformat einheitlich `{ success, data?, error? }` (Auftrag §3); `error` ist immer einer
  * der bestehenden `WalletRejectionCode`-Werte, damit der Client dieselben deutschen Meldungen
  * weiterverwenden kann (state/wallet-reducer.ts::rejectionMessage).
+ *
+ * Anmeldepflicht (Auftrag „Spielen nur angemeldet"): ohne gültige Sitzung wird JEDE Anfrage mit
+ * 401 und dem eigenständigen Code UNAUTHENTICATED abgelehnt — kein Gastkonto wird mehr angelegt
+ * (die frühere Gastspiel-Mechanik, server/auth/guests.ts + server/rounds/guest-session.ts, wurde
+ * entfernt). Die eigentliche Durchsetzung passiert HIER, vor jedem Aufruf von
+ * server/rounds/round-service.ts — der Service selbst nimmt weiterhin keine Autorisierungs-
+ * entscheidung vor, sondern verlangt eine bereits geprüfte `userId`.
  */
 export const runtime = "nodejs";
 
 type RoundApiResponse = { success: true; data: StartRoundData } | { success: false; error: WalletRejectionCode };
 
-function jsonWithCookie(body: RoundApiResponse, status: number, setCookieHeader: string | null): NextResponse {
-  const response = NextResponse.json(body, { status });
-  if (setCookieHeader) response.headers.append("set-cookie", setCookieHeader);
-  return response;
+function json(body: RoundApiResponse, status: number): NextResponse {
+  return NextResponse.json(body, { status });
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -30,29 +33,22 @@ export async function POST(request: Request): Promise<Response> {
   try {
     rawBody = await request.json();
   } catch {
-    return jsonWithCookie({ success: false, error: "INVALID_STAKE" }, 400, null);
+    return json({ success: false, error: "INVALID_STAKE" }, 400);
   }
 
   const parsed = startRoundRequestSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return jsonWithCookie({ success: false, error: "INVALID_STAKE" }, 400, null);
+    return json({ success: false, error: "INVALID_STAKE" }, 400);
   }
 
-  // Autorisierung: die userId kommt ausschließlich aus der geprüften Sitzung (oder einem hier
-  // frisch angelegten Gastkonto) — niemals aus dem Request-Body. server/rounds/round-service.ts
-  // übernimmt sie unverändert weiter, ohne sie selbst zu bestimmen.
-  let userId: string;
-  let setCookieHeader: string | null = null;
+  // Autorisierung: die userId kommt ausschließlich aus der geprüften Sitzung — niemals aus dem
+  // Request-Body. server/rounds/round-service.ts übernimmt sie unverändert weiter, ohne sie
+  // selbst zu bestimmen.
   const session = await getSession();
-  if (session) {
-    userId = session.user.id;
-  } else {
-    // Gastspiel (Auftrag §6): erster Rundenstart ohne Sitzung legt ein Gastkonto an und bindet
-    // es über das Antwort-Cookie an den Browser.
-    const guest = await startGuestSession(db, auth);
-    userId = guest.userId;
-    setCookieHeader = guest.setCookieHeader;
+  if (!session) {
+    return json({ success: false, error: "UNAUTHENTICATED" }, 401);
   }
+  const userId = session.user.id;
 
   try {
     const result = await startNonInteractiveRound(db, {
@@ -64,13 +60,11 @@ export async function POST(request: Request): Promise<Response> {
       ...(parsed.data.betId === undefined ? {} : { betId: parsed.data.betId }),
       ...(parsed.data.bet === undefined ? {} : { bet: parsed.data.bet }),
     });
-    return result.ok
-      ? jsonWithCookie({ success: true, data: result.data }, 200, setCookieHeader)
-      : jsonWithCookie({ success: false, error: result.code }, 200, setCookieHeader);
+    return result.ok ? json({ success: true, data: result.data }, 200) : json({ success: false, error: result.code }, 200);
   } catch (error: unknown) {
     // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace"). Serverseitig
     // bleibt der Fehler sichtbar (Plattform-Log), der Client sieht nur einen sachlichen Code.
     console.error("[api/rounds/start] unerwarteter Fehler:", error);
-    return jsonWithCookie({ success: false, error: "SERVER_ERROR" }, 500, setCookieHeader);
+    return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

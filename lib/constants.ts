@@ -32,8 +32,8 @@ export const STORAGE_KEY = "velora.demo.v1";
  */
 export const SCHEMA_VERSION = 4;
 
-/** Startguthaben 1.000,00 Credits (§8.6). */
-export const START_BALANCE_MINOR: CreditsMinor = 100_000;
+/** Startguthaben 10.000,00 Credits, einmalig als erste Ledger-Buchung bei Wallet-Anlage (§8.6). */
+export const START_BALANCE_MINOR: CreditsMinor = 1_000_000;
 export const TOP_UP_OPTIONS_MINOR: readonly CreditsMinor[] = [10_000, 50_000];
 
 /** Obergrenze für das Demo-Guthaben, damit Anzeige und Formatierung stabil bleiben. */
