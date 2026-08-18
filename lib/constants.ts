@@ -13,8 +13,14 @@ export const STORAGE_KEY = "velora.demo.v1";
  * Daten mit schemaVersion 1 (inklusive dieser beiden Scheiben) laufen dadurch beim nächsten
  * Laden in den bereits vorhandenen "unsupported-version"-Pfad (lib/storage.ts) und werden
  * verworfen statt fehlinterpretiert — siehe lib/storage.test.ts.
+ *
+ * 3: das Feld "pendingRound" entfiel aus der "wallet"-Scheibe (state/wallet-reducer.ts::
+ * toPersistedWallet) — der lokale Rundenpfad (START_ROUND/SETTLE_ROUND/RAISE_ROUND_STAKE) wurde
+ * entfernt, seit Phase 3b laufen alle Runden serverseitig. Ein alter LocalStorage-Eintrag mit
+ * einer noch offenen "pendingRound" würde ohne diese Anhebung stillschweigend ignoriert
+ * (das Feld existiert im neuen Typ schlicht nicht mehr) statt sauber verworfen zu werden.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Startguthaben 1.000,00 Credits (§8.6). */
 export const START_BALANCE_MINOR: CreditsMinor = 100_000;

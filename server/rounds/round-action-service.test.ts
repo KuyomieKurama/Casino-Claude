@@ -303,6 +303,40 @@ describe("applyRoundAction — Blackjack (Zusatzeinsatz)", () => {
     expect(betEntries[0]?.amountMinor).toBe(-200);
   });
 
+  /**
+   * Serverseitiges Gegenstück zu einer entfernten Aussage aus dem früheren, lokalen
+   * RAISE_ROUND_STAKE-Pfad (state/wallet-reducer.ts, vor Phase 3b): eine Erhöhung ohne Deckung
+   * wird abgelehnt, ohne den Kontostand zu verändern. checkRaiseAllowed selbst (die Vierfach-
+   * Obergrenze) ist als reine Funktion bereits vollständig in lib/wallet-policy.test.ts geprüft —
+   * hier wird bewiesen, dass round-action-service.ts sie tatsächlich mit dem echten Kontostand
+   * verdrahtet (INSUFFICIENT_FUNDS aus debitForStake, nicht nur aus der reinen Regel).
+   */
+  test("double ohne ausreichende Deckung wird abgelehnt, ohne den Kontostand zu verändern", async () => {
+    // Seed suchen, unter dem "double" grundsätzlich zulässig ist (derselbe Suchlauf wie oben).
+    let workingSeed: number | null = null;
+    for (let seed = 1; seed < 200 && workingSeed === null; seed++) {
+      const probeDb = await createTestDatabase();
+      const round = await seedBlackjackRound(probeDb, { seed, stakeMinor: 200 });
+      const probe = await applyRoundAction(probeDb, { userId: USER_ID, roundId: round.id, seq: 1, action: "double", payload: {} });
+      if (probe.ok) workingSeed = seed;
+    }
+    expect(workingSeed).not.toBeNull();
+    if (workingSeed === null) return;
+
+    const db = await createTestDatabase();
+    const round = await seedBlackjackRound(db, { seed: workingSeed, stakeMinor: 200 });
+    // Guthaben bis auf 100 herunterbuchen — der Zusatzeinsatz beim Verdoppeln (200) übersteigt das.
+    const before = await findWallet(db, USER_ID);
+    if (!before) throw new Error("Testaufbau fehlgeschlagen: Wallet fehlt.");
+    await debitForStake(db, USER_ID, { fromBonusMinor: 0, fromDemoMinor: before.demoBalanceMinor - 100 });
+
+    const result = await applyRoundAction(db, { userId: USER_ID, roundId: round.id, seq: 1, action: "double", payload: {} });
+
+    expect(result).toEqual({ ok: false, code: "INSUFFICIENT_FUNDS" });
+    const after = await findWallet(db, USER_ID);
+    expect(after?.demoBalanceMinor).toBe(100); // unverändert — kein stiller Teilabzug
+  });
+
   test("hit nach stand wird abgelehnt", async () => {
     const db = await createTestDatabase();
     let seed = 1;

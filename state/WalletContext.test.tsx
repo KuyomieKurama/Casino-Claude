@@ -54,7 +54,7 @@ describe("WalletContext — Server-Saldo beim Laden (Auftrag §1)", () => {
 
   it("überschreibt einen veralteten LocalStorage-Stand aus einem früheren Besuch (kein Aufblitzen des alten Werts)", () => {
     // Simuliert einen früheren Besuch mit einem längst überholten Kontostand.
-    writeSlice("wallet", { wallet: { demoBalanceMinor: 1, bonusBalanceMinor: 0, freeSpins: 0 }, transactions: [], nextSeq: 1, pendingRound: null });
+    writeSlice("wallet", { wallet: { demoBalanceMinor: 1, bonusBalanceMinor: 0, freeSpins: 0 }, transactions: [], nextSeq: 1 });
     flushNow();
 
     render(

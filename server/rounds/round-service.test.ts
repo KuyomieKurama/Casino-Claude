@@ -9,8 +9,10 @@ vi.mock("node:crypto", async (importOriginal) => {
   return { ...actual, randomInt: vi.fn(() => 12345) };
 });
 
+import { eq } from "drizzle-orm";
 import { createTestDatabase, seedMinimalCatalog, type TestDatabase } from "@/server/db/test-harness";
 import { user } from "@/server/db/auth-schema";
+import { wallet as walletTable } from "@/server/db/schema";
 import { createGuestAccount, upgradeGuestToEmailAccount } from "@/server/auth/guests";
 import { PgGameModeRepository } from "@/server/repositories/game-mode-repository";
 import { findWallet, debitForStake } from "@/server/repositories/wallet-repository";
@@ -115,6 +117,34 @@ describe("startNonInteractiveRound", () => {
     const entries = await listLedgerEntries(db, userId, 20);
     // Startguthaben + genau ein Einsatz + genau eine Rückgabe — nicht sechs Buchungen.
     expect(entries).toHaveLength(3);
+  });
+
+  /**
+   * Serverseitiges Gegenstück zu einer entfernten Aussage aus dem früheren, lokalen START_ROUND-Pfad
+   * (state/wallet-reducer.ts, vor Phase 3b): Bonusguthaben wird zuerst eingesetzt, der Rest kommt
+   * aus dem Demo-Guthaben. Die reine Regel (lib/wallet-policy.ts::splitStakeAcrossBalances) ist
+   * bereits vollständig in lib/wallet-policy.test.ts geprüft — hier wird bewiesen, dass der Server
+   * sie tatsächlich beim Einsatz-Abbuchen verdrahtet, nicht nur, dass die Funktion selbst korrekt ist.
+   */
+  test("Bonusguthaben wird vor dem Demo-Guthaben eingesetzt", async () => {
+    const db = await createTestDatabase();
+    const modeId = await seedMode(db);
+    const userId = await seedUser(db, "u1");
+    // Erstzugriff legt das Wallet mit dem Startguthaben an.
+    await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 10, idempotencyKey: "warmup" });
+    // Bonusgutschrift manuell nachziehen (Vergabe ist nicht Teil dieser Phase, siehe Auftrag).
+    await db.update(walletTable).set({ bonusBalanceMinor: 300 }).where(eq(walletTable.userId, userId));
+    const before = await findWallet(db, userId);
+    expect(before?.bonusBalanceMinor).toBe(300);
+
+    const result = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 500, idempotencyKey: "k-split", betId: "under-50" });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const after = await findWallet(db, userId);
+    // 500 Einsatz: erst die 300 Bonus (auf 0), der Rest (200) kommt aus dem Demo-Guthaben.
+    expect(after?.bonusBalanceMinor).toBe(0);
+    expect(after?.demoBalanceMinor).toBe((before?.demoBalanceMinor ?? 0) - 200 + result.data.returnMinor);
   });
 
   test("Konsistenz: Summe der Ledger-Beträge entspricht dem materialisierten Saldo nach mehreren Runden", async () => {

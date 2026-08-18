@@ -149,6 +149,31 @@ describe("useRound — serverseitige, nicht-interaktive Runden (Phase 3a)", () =
     expect(screen.getByTestId("error").textContent).toBe("SERVER_ERROR");
   });
 
+  it("simulierter Ladefehler führt in den Fehlerzustand, Wiederholung lädt erneut", async () => {
+    // Prüft load()/simulateLoadError — Choreografie, die unabhängig vom Rundenpfad gilt (früher
+    // in useRound.test.tsx neben dem inzwischen entfernten lokalen resolve()-Pfad mitgetestet).
+    function ErrorHarness() {
+      const round = useRound({ game, roundDurationMs: 10, server: true, simulateLoadError: true });
+      return (
+        <div>
+          <span data-testid="load-status">{round.status}</span>
+          <button onClick={round.load}>erneut</button>
+        </div>
+      );
+    }
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <AppProviders>
+        <ErrorHarness />
+      </AppProviders>,
+    );
+    await settleTimers(800);
+    expect(screen.getByTestId("load-status").textContent).toBe("error");
+    await user.click(screen.getByText("erneut"));
+    await settleTimers(800);
+    expect(screen.getByTestId("load-status").textContent).toBe("ready");
+  });
+
   it("Doppelklick-Schutz: zwei Klicks im selben Task lösen nur einen fetch-Aufruf aus", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(

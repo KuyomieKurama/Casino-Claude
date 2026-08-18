@@ -13,7 +13,6 @@ import {
   createInitialWalletState,
   toPersistedWallet,
   walletReducer,
-  type StartRoundInput,
   type WalletAction,
   type WalletCtx,
   type WalletRejection,
@@ -29,11 +28,6 @@ type WalletValue = {
   /** Rückgabe: null = angenommen, sonst die Ablehnung des Reducers. */
   topUp: (amountMinor: CreditsMinor) => WalletRejection | null;
   reset: () => WalletRejection | null;
-  startRound: (input: StartRoundInput) => WalletRejection | null;
-  /** `returnMinor` nur bei interaktiven Runden; der Reducer prüft die deklarierte Obergrenze. */
-  settleRound: (roundId: string, returnMinor?: CreditsMinor) => WalletRejection | null;
-  /** Zusatzeinsatz in einer laufenden interaktiven Runde (Verdoppeln, Teilen). */
-  raiseRoundStake: (roundId: string, additionalMinor: CreditsMinor) => WalletRejection | null;
   grantBonus: (input: { bonusMinor: CreditsMinor; freeSpins: number; sourceId: string }) => WalletRejection | null;
   clearRejection: () => void;
   /**
@@ -68,8 +62,8 @@ export function WalletProvider({ children, initialWallet }: WalletProviderProps)
   // Kein sampleTransactions-Seed mehr (Auftrag §2): Wallet-Seite und Historie lesen inzwischen
   // aus dem Server-Ledger (app/(user)/wallet, app/(user)/history), nicht mehr aus
   // state.transactions — Beispieldaten dürften dort sonst als echte Buchungen erscheinen.
-  // state.transactions bleibt für die noch lokalen interaktiven Spiele (Blackjack, Video Poker,
-  // Mines, siehe wallet-reducer.ts) bestehen, startet für echte Nutzer aber leer.
+  // state.transactions protokolliert seit Phase 3b nur noch TOP_UP/RESET/GRANT_BONUS (Rundenbuchungen
+  // laufen ausschließlich serverseitig, siehe state/wallet-reducer.ts), startet für echte Nutzer leer.
   const [state, dispatch] = useReducer(walletReducer, undefined, createInitialWalletState);
   const stateRef = useRef(state);
   // Bei jedem Render gilt der echte React-Zustand. Zwischen zwei Rendern schreibt `run()` den
@@ -81,7 +75,8 @@ export function WalletProvider({ children, initialWallet }: WalletProviderProps)
     [user?.id, getStatus],
   );
 
-  // Erst hydrieren, wenn auch RG hydriert ist — sonst könnte eine offene Runde mit falschem Kontext abgeschlossen werden.
+  // Erst hydrieren, wenn auch RG hydriert ist — makeCtx() liest getStatus().blocked, das soll beim
+  // Hydrieren bereits den echten Stand tragen, nicht den RG-Initialwert.
   // `serverWallet: initialWallet` sorgt dafür, dass der Saldo NACH der lokalen Wiederherstellung
   // immer auf den beim Laden gelesenen Serverstand korrigiert wird (state/wallet-reducer.ts::
   // applyServerWallet) — ein wiederkehrender Nutzer sieht dadurch nie einen veralteten Wert aus
@@ -118,15 +113,6 @@ export function WalletProvider({ children, initialWallet }: WalletProviderProps)
 
   const topUp = useCallback((amountMinor: CreditsMinor) => run({ type: "TOP_UP", amountMinor, ctx: makeCtx() }), [run, makeCtx]);
   const reset = useCallback(() => run({ type: "RESET", ctx: makeCtx() }), [run, makeCtx]);
-  const startRound = useCallback((input: StartRoundInput) => run({ type: "START_ROUND", input, ctx: makeCtx() }), [run, makeCtx]);
-  const settleRound = useCallback(
-    (roundId: string, returnMinor?: CreditsMinor) => run({ type: "SETTLE_ROUND", roundId, ctx: makeCtx(), ...(returnMinor === undefined ? {} : { returnMinor }) }),
-    [run, makeCtx],
-  );
-  const raiseRoundStake = useCallback(
-    (roundId: string, additionalMinor: CreditsMinor) => run({ type: "RAISE_ROUND_STAKE", roundId, additionalMinor, ctx: makeCtx() }),
-    [run, makeCtx],
-  );
   const grantBonus = useCallback(
     (input: { bonusMinor: CreditsMinor; freeSpins: number; sourceId: string }) => run({ type: "GRANT_BONUS", ...input, ctx: makeCtx() }),
     [run, makeCtx],
@@ -150,14 +136,11 @@ export function WalletProvider({ children, initialWallet }: WalletProviderProps)
       lastRejection: state.lastRejection,
       topUp,
       reset,
-      startRound,
-      settleRound,
-      raiseRoundStake,
       grantBonus,
       clearRejection,
       syncServerWallet,
     }),
-    [state, topUp, reset, startRound, settleRound, raiseRoundStake, grantBonus, clearRejection, syncServerWallet],
+    [state, topUp, reset, grantBonus, clearRejection, syncServerWallet],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

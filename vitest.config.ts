@@ -15,6 +15,28 @@ export default defineConfig({
     exclude: ["node_modules", ".next"],
     // Einige Tests simulieren Millionen Runden, um RTP-Aussagen zu belegen.
     testTimeout: 120_000,
+    // 24 Testdateien erzeugen mit createTestDatabase() (server/db/test-harness.ts) je Test eine
+    // frische PGlite-Instanz inkl. echter Migration. Isoliert dauert das ~1,5 s (gemessen).
+    // Vitests Standard-Pool ist "forks" mit einem Fork je verfügbarem CPU-Kern — laufen mehrere
+    // dieser Dateien parallel, konkurrieren ihre PGlite-Starts um CPU-Zeit. Ein Stresstest mit
+    // 16 gleichzeitigen PGlite-Instanzen in einem Prozess zeigte Einzelzeiten bis zu ~15 s statt
+    // 1,5 s isoliert — das erklärt den beobachteten "Hook timed out in 10000ms" in
+    // server/auth/create-auth.test.ts (beforeEach dort ruft createTestDatabase() vor jedem der
+    // 14 Tests neu auf). 30 s hookTimeout gibt reichlich Sicherheitsabstand (2x das gemessene
+    // Worst-Case-Szenario), OHNE das eigentliche Problem (Ressourcenkonkurrenz) zu ignorieren —
+    // siehe poolOptions.forks.maxForks unten, das die Zahl gleichzeitiger PGlite-Starts begrenzt.
+    hookTimeout: 30_000,
+    poolOptions: {
+      forks: {
+        // Begrenzt gleichzeitige Testdatei-Prozesse fest auf 4 (unabhängig von der Kernzahl der
+        // Maschine): Der Engpass ist nicht fehlende CPU-Leistung, sondern dass viele parallele
+        // PGlite-Instanzen (WASM-Postgres, je eigener Speicher- und Migrationsaufwand) sich
+        // gegenseitig ausbremsen, siehe Messung oben. 4 gleichzeitige Prozesse halten die
+        // PGlite-Konkurrenz niedrig, ohne die Laufzeit der Gesamtsuite unnötig zu verlängern
+        // (die meisten der 75 Testdateien sind reine Logiktests ohne Datenbank und sehr schnell).
+        maxForks: 4,
+      },
+    },
     env: {
       // Baseline für alle Tests, die lib/env.ts oder server/auth/create-auth.ts importieren
       // (Phase 1). Keine echten Geheimnisse/Verbindungen: reine Test-Fixture-Werte, nie

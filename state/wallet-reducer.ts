@@ -1,33 +1,28 @@
 import type { CreditsMinor } from "@/types/money";
 import type { Transaction, TransactionType } from "@/types/transaction";
 import type { Wallet, WalletBalance } from "@/types/wallet";
-import { MAX_BALANCE_MINOR, START_BALANCE_MINOR } from "@/lib/constants";
-import {
-  availableMinor,
-  checkFreeSpinAvailable,
-  checkFundsAvailable,
-  checkMaxBalanceAfterCredit,
-  checkRaiseAllowed,
-  checkRgNotBlocked,
-  checkRoundNotInFlight,
-  checkSettleReturnOverride,
-  checkStakeRange,
-  computeRaisedMaxReturn,
-  resolveRoundMaxReturn,
-  splitStakeAcrossBalances,
-  type WalletRejectionCode,
-} from "@/lib/wallet-policy";
+import { START_BALANCE_MINOR } from "@/lib/constants";
+import { availableMinor, checkMaxBalanceAfterCredit, checkRoundNotInFlight, type WalletRejectionCode } from "@/lib/wallet-policy";
 
 /**
- * Wallet-Reducer. Hier — und nur hier — gelten die Invarianten aus §6:
- *  1. Guthaben nie negativ; Einsätze über dem Bestand werden abgelehnt, nicht gekappt.
+ * Wallet-Reducer für die Aktionen, die weiterhin lokalen Zustand verändern: Aufladen, Zurücksetzen,
+ * Bonusgutschrift, Hydration und die Anzeige-Übernahme eines serverseitig gemeldeten Saldos. Für
+ * diese Aktionen gelten hier — und nur hier — die Geld-Invarianten aus §6:
+ *  1. Guthaben nie negativ; Gutschriften über der Obergrenze werden abgelehnt, nicht gekappt.
  *  2. Jede Guthabenänderung erzeugt genau eine Transaktion.
  *  3. balanceAfterMinor entspricht immer dem Guthaben nach dem Vorgang.
- *  4. Bei roundInFlight === true wird keine zweite Runde angenommen.
- *  5. Bei aktiver Selbstsperre oder Pause werden alle einsatzbezogenen Aktionen abgelehnt.
- * Die Entscheidungsregeln selbst stehen in lib/wallet-policy.ts (rein, ohne React/State) — hier
- * werden nur noch Zustandsübergänge vollzogen und Transaktionen gebucht. Die UI prüft nichts
- * davon selbst; sie zeigt nur lastRejection an.
+ *
+ * Rundenstart und -abschluss liefen früher zusätzlich lokal über diesen Reducer
+ * (START_ROUND/SETTLE_ROUND/RAISE_ROUND_STAKE) — das ist mit Phase 3b entfallen: alle Runden
+ * werden ausschließlich serverseitig aufgelöst und gebucht (server/rounds/*.ts,
+ * server/repositories/*.ts). Dort gelten dieselben Invarianten zusätzlich um Idempotenz
+ * (ein Rundenstart bucht serverseitig genau einmal, egal wie oft derselbe Idempotenzschlüssel
+ * ankommt) und, aus diesem Auftrag ausdrücklich ausgeklammert, Responsible-Gaming-Prüfung.
+ * Ein zweiter, lokaler Buchungsweg existiert absichtlich nicht mehr — zwei Pfade zum Buchen von
+ * Guthaben wären eine dauerhafte Fehlerquelle. Die Entscheidungsregeln für die verbliebenen
+ * Aktionen stehen weiterhin in lib/wallet-policy.ts (rein, ohne React/State) — hier werden nur
+ * noch Zustandsübergänge vollzogen und Transaktionen gebucht. Die UI prüft nichts davon selbst;
+ * sie zeigt nur lastRejection an.
  */
 
 // Re-Export, damit bestehende Importe aus state/wallet-reducer unverändert funktionieren.
@@ -36,27 +31,11 @@ export { availableMinor } from "@/lib/wallet-policy";
 
 export type WalletRejection = { code: WalletRejectionCode; message: string; at: string };
 
-export type PendingRound = {
-  roundId: string;
-  gameId: string;
-  stakeMinor: CreditsMinor;
-  returnMinor: CreditsMinor;
-  outcomeKey: string;
-  seed: number;
-  usedFreeSpin: boolean;
-  startedAt: string;
-  interactive: boolean;
-  maxReturnMinor: CreditsMinor;
-  /** Grundeinsatz beim Start — begrenzt, wie weit RAISE_ROUND_STAKE gehen darf. */
-  baseStakeMinor: CreditsMinor;
-};
-
 export type WalletState = {
   hydrated: boolean;
   wallet: Wallet;
   transactions: Transaction[];
   nextSeq: number;
-  pendingRound: PendingRound | null;
   lastRejection: WalletRejection | null;
 };
 
@@ -68,26 +47,6 @@ export type WalletCtx = {
   rgBlocked: boolean;
 };
 
-export type StartRoundInput = {
-  roundId: string;
-  gameId: string;
-  stakeMinor: CreditsMinor;
-  minStakeMinor: CreditsMinor;
-  maxStakeMinor: CreditsMinor;
-  /** Bereits berechnetes Ergebnis (reine Funktion aus Seed + Tabelle), damit die Runde bei Abbruch nachvollziehbar bleibt. */
-  returnMinor: CreditsMinor;
-  outcomeKey: string;
-  seed: number;
-  useFreeSpin?: boolean;
-  /**
-   * Interaktive Runde (Blackjack, Mines): das Ergebnis steht erst nach Spielerentscheidungen fest.
-   * Dann MUSS `maxReturnMinor` gesetzt sein — der Reducer akzeptiert beim Abschluss nur Rückgaben
-   * bis zu dieser im Voraus deklarierten Obergrenze. Die UI kann also keinen Betrag erfinden.
-   */
-  interactive?: boolean;
-  maxReturnMinor?: CreditsMinor;
-};
-
 export type WalletAction =
   | {
       type: "HYDRATE";
@@ -97,30 +56,26 @@ export type WalletAction =
        * Phase 3b (Auftrag: Guthabenanzeige zeigt durchgängig den Serverstand): der beim Laden
        * server-seitig gelesene Wallet-Stand (state/WalletContext.tsx, app/layout.tsx ⇒
        * server/wallet/wallet-read-model.ts). Wird — falls vorhanden — NACH der lokalen
-       * Wiederherstellung (inkl. einer eventuell hier abgeschlossenen unterbrochenen Runde,
-       * siehe unten) über die Saldofelder gelegt: der Server ist die Wahrheit, ein evtl.
-       * veralteter LocalStorage-Stand gewinnt nie. `roundInFlight`/`pendingRound` bleiben
-       * unberührt (wie bei SERVER_WALLET_SYNC) — der Server kennt lokale interaktive Runden
-       * (Blackjack, Mines, Video Poker) nicht, das bleibt bis Phase 3c reine Client-Sache.
-       * Optional, damit bestehende HYDRATE-Aufrufe (Tests, ohne Server-Kontext) unverändert
-       * funktionieren.
+       * Wiederherstellung über die Saldofelder gelegt: der Server ist die Wahrheit, ein evtl.
+       * veralteter LocalStorage-Stand gewinnt nie. `roundInFlight` bleibt unberührt (wie bei
+       * SERVER_WALLET_SYNC) — dieser Reducer bucht seit Phase 3b keine Runden mehr, das Feld
+       * existiert nur noch, weil `types/wallet.ts::Wallet` serverseitig (server/rounds/*.ts,
+       * lib/wallet-policy.ts) als vollständiger Typ wiederverwendet wird und dort nicht entfernt
+       * werden darf. Optional, damit bestehende HYDRATE-Aufrufe (Tests, ohne Server-Kontext)
+       * unverändert funktionieren.
        */
       serverWallet?: WalletBalance;
     }
   | { type: "TOP_UP"; amountMinor: CreditsMinor; ctx: WalletCtx }
   | { type: "RESET"; ctx: WalletCtx }
-  | { type: "START_ROUND"; input: StartRoundInput; ctx: WalletCtx }
-  | { type: "SETTLE_ROUND"; roundId: string; ctx: WalletCtx; returnMinor?: CreditsMinor; outcomeKey?: string }
-  | { type: "RAISE_ROUND_STAKE"; roundId: string; additionalMinor: CreditsMinor; ctx: WalletCtx }
   | { type: "GRANT_BONUS"; bonusMinor: CreditsMinor; freeSpins: number; sourceId: string; ctx: WalletCtx }
   | { type: "CLEAR_REJECTION" }
   /**
-   * Phase 3a: Guthabenstand nach einer serverseitig aufgelösten, nicht-interaktiven Runde
-   * (`state/WalletContext.tsx::syncServerWallet`). Die Buchung selbst (Einsatz, Ergebnis, Ledger)
-   * ist zu diesem Zeitpunkt bereits serverseitig abgeschlossen — hier wird NUR die Anzeige
-   * nachgeführt, es wird keine weitere Transaktion erzeugt (die liegt bereits im Server-Ledger)
-   * und `roundInFlight`/`pendingRound` bleiben unberührt, damit eine parallel laufende
-   * interaktive Runde (Blackjack, Mines) davon nicht betroffen ist.
+   * Phase 3a: Guthabenstand nach einer serverseitig aufgelösten Runde
+   * (`state/WalletContext.tsx::syncServerWallet`, `components/game/engine/useRound.ts`). Die
+   * Buchung selbst (Einsatz, Ergebnis, Ledger) ist zu diesem Zeitpunkt bereits serverseitig
+   * abgeschlossen — hier wird NUR die Anzeige nachgeführt, es wird keine weitere Transaktion
+   * erzeugt (die liegt bereits im Server-Ledger) und `roundInFlight` bleibt unberührt.
    */
   | { type: "SERVER_WALLET_SYNC"; wallet: WalletBalance };
 
@@ -140,7 +95,6 @@ export function createInitialWalletState(seedTransactions: readonly Transaction[
     wallet: { ...initialWallet },
     transactions: [...seedTransactions],
     nextSeq,
-    pendingRound: null,
     lastRejection: null,
   };
 }
@@ -219,7 +173,8 @@ function parseWallet(v: unknown): Wallet | null {
     demoBalanceMinor: v.demoBalanceMinor,
     bonusBalanceMinor: v.bonusBalanceMinor,
     freeSpins: v.freeSpins,
-    // roundInFlight wird nie „wahr“ hydriert; eine offene Runde wird über pendingRound abgeschlossen.
+    // roundInFlight wird nie „wahr“ hydriert — es gibt seit Phase 3b keinen lokalen Rundenzustand
+    // mehr, der das rechtfertigen würde (siehe Kommentar am WalletAction-Union oben).
     roundInFlight: false,
   };
 }
@@ -248,61 +203,17 @@ function parseTransactions(v: unknown): Transaction[] | null {
   return out;
 }
 
-function parsePendingRound(v: unknown): PendingRound | null {
-  if (!isRecord(v)) return null;
-  if (typeof v.roundId !== "string" || typeof v.gameId !== "string") return null;
-  if (!isNonNegativeInt(v.stakeMinor) || !isNonNegativeInt(v.returnMinor)) return null;
-  if (typeof v.outcomeKey !== "string" || typeof v.seed !== "number" || typeof v.startedAt !== "string") return null;
-  return {
-    roundId: v.roundId,
-    gameId: v.gameId,
-    stakeMinor: v.stakeMinor,
-    returnMinor: v.returnMinor,
-    outcomeKey: v.outcomeKey,
-    seed: v.seed,
-    usedFreeSpin: v.usedFreeSpin === true,
-    startedAt: v.startedAt,
-    interactive: v.interactive === true,
-    maxReturnMinor: isNonNegativeInt(v.maxReturnMinor) ? v.maxReturnMinor : v.returnMinor,
-    baseStakeMinor: isNonNegativeInt(v.baseStakeMinor) ? v.baseStakeMinor : v.stakeMinor,
-  };
-}
-
-/** Persistierte Form der Wallet-Scheibe. */
+/**
+ * Persistierte Form der Wallet-Scheibe. SCHEMA_VERSION wurde erhöht (lib/constants.ts), als das
+ * Feld `pendingRound` hier entfiel — alte LocalStorage-Einträge mit diesem Feld werden dadurch
+ * beim nächsten Laden verworfen statt fehlinterpretiert (lib/storage.ts, "unsupported-version").
+ */
 export function toPersistedWallet(state: WalletState) {
   return {
     wallet: state.wallet,
     transactions: state.transactions,
     nextSeq: state.nextSeq,
-    pendingRound: state.pendingRound,
   };
-}
-
-function settle(state: WalletState, ctx: WalletCtx, override?: CreditsMinor): WalletState {
-  const round = state.pendingRound;
-  if (!round) return reject(state, "NO_PENDING_ROUND", ctx.now);
-
-  // Nicht-interaktive Runden schließen immer mit dem beim Start festgelegten Ergebnis ab.
-  // Interaktive Runden dürfen ein abweichendes Ergebnis liefern — die Grenzen dafür prüft die Policy.
-  let returnMinor = round.returnMinor;
-  if (override !== undefined) {
-    const overrideCheck = checkSettleReturnOverride(round, override);
-    if (!overrideCheck.ok) return reject(state, overrideCheck.code, ctx.now);
-    returnMinor = overrideCheck.value;
-  }
-
-  const wallet: Wallet = {
-    ...state.wallet,
-    demoBalanceMinor: Math.min(MAX_BALANCE_MINOR, state.wallet.demoBalanceMinor + returnMinor),
-    roundInFlight: false,
-  };
-  const next = book(
-    state,
-    wallet,
-    { type: "demo_win", amountMinor: returnMinor, gameId: round.gameId, roundId: round.roundId },
-    ctx,
-  );
-  return { ...next, pendingRound: null };
 }
 
 /**
@@ -328,26 +239,14 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
       if (!wallet || !transactions) return applyServerWallet({ ...state, hydrated: true }, action.serverWallet);
       const maxSeq = transactions.reduce((m, t) => Math.max(m, t.seq), 0);
       const nextSeq = typeof slice.nextSeq === "number" && slice.nextSeq > maxSeq ? slice.nextSeq : maxSeq + 1;
-      const pendingRound = parsePendingRound(slice.pendingRound);
-      let next: WalletState = {
+      const next: WalletState = {
         ...state,
         hydrated: true,
         wallet,
         transactions,
         nextSeq,
-        pendingRound,
         lastRejection: null,
       };
-      // Eine beim letzten Besuch unterbrochene Runde wird jetzt abgeschlossen — Einsatz und
-      // Ergebnis waren bereits festgelegt, es geht kein Guthaben verloren. Das läuft ausschließlich
-      // gegen den LOKALEN Stand: der Server kennt diese Runde nicht (interaktive Engines sind bis
-      // Phase 3c rein lokal), ein Abgleich hier wäre finanziell falsch (siehe Kommentar am
-      // `serverWallet`-Feld). Die anschließende applyServerWallet() korrigiert danach trotzdem den
-      // sichtbaren SALDO auf den Serverstand — der bekannte Rest-Kompromiss dieser Übergangsphase.
-      if (pendingRound) {
-        next = { ...next, wallet: { ...next.wallet, roundInFlight: true } };
-        next = settle(next, action.ctx);
-      }
       return applyServerWallet(next, action.serverWallet);
     }
 
@@ -386,112 +285,6 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
       };
       // Auch eine reine Freirunden-Gutschrift wird als Transaktion protokolliert (Betrag 0).
       return book(state, wallet, { type: "bonus_grant", amountMinor: bonusMinor, roundId: action.sourceId }, ctx);
-    }
-
-    case "START_ROUND": {
-      const { input, ctx } = action;
-      const rgCheck = checkRgNotBlocked(ctx.rgBlocked);
-      if (!rgCheck.ok) return reject(state, rgCheck.code, ctx.now);
-      const inFlightCheck = checkRoundNotInFlight(state.wallet.roundInFlight || state.pendingRound !== null);
-      if (!inFlightCheck.ok) return reject(state, inFlightCheck.code, ctx.now);
-      const { stakeMinor } = input;
-      const stakeRangeCheck = checkStakeRange(stakeMinor, input.minStakeMinor, input.maxStakeMinor);
-      if (!stakeRangeCheck.ok) return reject(state, stakeRangeCheck.code, ctx.now);
-      if (!Number.isInteger(input.returnMinor) || input.returnMinor < 0) return reject(state, "INVALID_STAKE", ctx.now);
-      const maxReturnCheck = resolveRoundMaxReturn(input.interactive === true, input.returnMinor, input.maxReturnMinor);
-      if (!maxReturnCheck.ok) return reject(state, maxReturnCheck.code, ctx.now);
-      const maxReturnMinor = maxReturnCheck.value;
-
-      if (input.useFreeSpin) {
-        const freeSpinCheck = checkFreeSpinAvailable(state.wallet.freeSpins);
-        if (!freeSpinCheck.ok) return reject(state, freeSpinCheck.code, ctx.now);
-        const wallet: Wallet = { ...state.wallet, freeSpins: state.wallet.freeSpins - 1, roundInFlight: true };
-        const next = book(state, wallet, { type: "free_spin", amountMinor: 0, gameId: input.gameId, roundId: input.roundId }, ctx);
-        return {
-          ...next,
-          pendingRound: {
-            roundId: input.roundId,
-            gameId: input.gameId,
-            stakeMinor: 0,
-            returnMinor: input.returnMinor,
-            outcomeKey: input.outcomeKey,
-            seed: input.seed,
-            usedFreeSpin: true,
-            startedAt: ctx.now,
-            interactive: input.interactive === true,
-            maxReturnMinor,
-            baseStakeMinor: 0,
-          },
-        };
-      }
-
-      const fundsCheck = checkFundsAvailable(state.wallet, stakeMinor);
-      if (!fundsCheck.ok) return reject(state, fundsCheck.code, ctx.now);
-
-      // Bonusguthaben zuerst, dann Demo-Guthaben; beides bleibt ≥ 0.
-      const { fromBonus, fromDemo } = splitStakeAcrossBalances(state.wallet, stakeMinor);
-      const wallet: Wallet = {
-        ...state.wallet,
-        bonusBalanceMinor: state.wallet.bonusBalanceMinor - fromBonus,
-        demoBalanceMinor: state.wallet.demoBalanceMinor - fromDemo,
-        roundInFlight: true,
-      };
-      const next = book(state, wallet, { type: "demo_bet", amountMinor: -stakeMinor, gameId: input.gameId, roundId: input.roundId }, ctx);
-      return {
-        ...next,
-        pendingRound: {
-          roundId: input.roundId,
-          gameId: input.gameId,
-          stakeMinor,
-          returnMinor: input.returnMinor,
-          outcomeKey: input.outcomeKey,
-          seed: input.seed,
-          usedFreeSpin: false,
-          startedAt: ctx.now,
-          interactive: input.interactive === true,
-          maxReturnMinor,
-          baseStakeMinor: stakeMinor,
-        },
-      };
-    }
-
-    /**
-     * Zusatzeinsatz innerhalb einer laufenden interaktiven Runde (Blackjack: Verdoppeln, Teilen).
-     * Er wird als eigene Buchung erfasst, damit die Historie den tatsächlich gesetzten Betrag zeigt
-     * und die Kette weiter aufgeht. Der Rahmen der Runde (maxReturnMinor) wächst im selben
-     * Verhältnis mit — die UI kann dadurch keinen größeren Rahmen erschleichen, denn der Faktor
-     * stammt aus der beim Start deklarierten Obergrenze, nicht aus der Aktion.
-     */
-    case "RAISE_ROUND_STAKE": {
-      const { roundId, additionalMinor, ctx } = action;
-      const round = state.pendingRound;
-      if (!round || round.roundId !== roundId) return reject(state, "NO_PENDING_ROUND", ctx.now);
-      const raiseCheck = checkRaiseAllowed(round, additionalMinor);
-      if (!raiseCheck.ok) return reject(state, raiseCheck.code, ctx.now);
-      const fundsCheck = checkFundsAvailable(state.wallet, additionalMinor);
-      if (!fundsCheck.ok) return reject(state, fundsCheck.code, ctx.now);
-
-      const { fromBonus, fromDemo } = splitStakeAcrossBalances(state.wallet, additionalMinor);
-      const wallet: Wallet = {
-        ...state.wallet,
-        bonusBalanceMinor: state.wallet.bonusBalanceMinor - fromBonus,
-        demoBalanceMinor: state.wallet.demoBalanceMinor - fromDemo,
-      };
-      const next = book(state, wallet, { type: "demo_bet", amountMinor: -additionalMinor, gameId: round.gameId, roundId: round.roundId }, ctx);
-      return {
-        ...next,
-        pendingRound: {
-          ...round,
-          stakeMinor: round.stakeMinor + additionalMinor,
-          maxReturnMinor: computeRaisedMaxReturn(round, additionalMinor),
-        },
-      };
-    }
-
-    case "SETTLE_ROUND": {
-      const { roundId, ctx } = action;
-      if (!state.pendingRound || state.pendingRound.roundId !== roundId) return reject(state, "NO_PENDING_ROUND", ctx.now);
-      return settle(state, ctx, action.returnMinor);
     }
 
     case "SERVER_WALLET_SYNC": {

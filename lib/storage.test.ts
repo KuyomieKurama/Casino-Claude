@@ -58,6 +58,28 @@ describe("Storage", () => {
     expect(r.slices).toEqual({});
   });
 
+  it("alte Daten aus Schema-Version 2 (inkl. des inzwischen entfernten pendingRound-Felds) werden sauber verworfen", () => {
+    // SCHEMA_VERSION wurde von 2 auf 3 angehoben (lib/constants.ts), als der lokale Rundenpfad
+    // entfernt wurde (state/wallet-reducer.ts) — "wallet.pendingRound" gibt es im neuen Typ nicht
+    // mehr. Alte Daten mit einer noch offenen Runde in diesem Feld dürfen nicht stillschweigend
+    // ignoriert werden, sondern müssen denselben "unsupported-version"-Pfad durchlaufen.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        wallet: {
+          wallet: { demoBalanceMinor: 500, bonusBalanceMinor: 0, freeSpins: 0 },
+          transactions: [],
+          nextSeq: 1,
+          pendingRound: { roundId: "r1", gameId: "g1", stakeMinor: 100, returnMinor: 0, outcomeKey: "pending", seed: 1, startedAt: "2026-01-01T00:00:00.000Z" },
+        },
+      }),
+    );
+    const r = loadPersisted();
+    expect(r.status).toBe("unsupported-version");
+    expect(r.slices).toEqual({});
+  });
+
   it("schreibt gedrosselt in einen Schlüssel mit schemaVersion und liest die Scheiben zurück", () => {
     vi.useFakeTimers();
     writeSlice("wallet", { demoBalanceMinor: 123 });
@@ -67,7 +89,7 @@ describe("Storage", () => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw ?? "{}");
-    expect(parsed.schemaVersion).toBe(2);
+    expect(parsed.schemaVersion).toBe(3);
     expect(parsed.wallet).toEqual({ demoBalanceMinor: 123 });
     expect(Object.keys(window.localStorage).filter((k) => k.startsWith("velora"))).toEqual([STORAGE_KEY]);
     __resetStorageForTests();
