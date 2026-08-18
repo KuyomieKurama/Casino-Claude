@@ -3,15 +3,15 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { Coins, Dices, Heart, LogOut, ShieldCheck, TrendingUp } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useSession } from "@/state/SessionContext";
+import { useLogout } from "@/components/auth/useLogout";
 import { useWallet } from "@/state/WalletContext";
 import { useCatalog } from "@/state/CatalogContext";
 import { useRgStatus } from "@/state/RgContext";
 import { availableMinor } from "@/state/wallet-reducer";
 import { rgReasonText } from "@/state/rg-reducer";
 import { games } from "@/data/catalog";
-import { formatCredits, formatCreditsSigned, formatDate, formatDuration } from "@/lib/formatters";
+import { formatCredits, formatCreditsSigned, formatDuration } from "@/lib/formatters";
 import { Card } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { DemoBadge } from "@/components/ui/Badge";
@@ -22,11 +22,11 @@ import { cn } from "@/lib/cn";
 
 /** Dashboard (§8.8): Guthaben, gespielte Runden, Favoritenzahl, Nettostatistik, zuletzt gespielt, RG-Kurzstatus. */
 export function Dashboard() {
-  const { user, logout } = useSession();
+  const { user } = useSession();
+  const logout = useLogout();
   const { wallet, transactions, hydrated } = useWallet();
   const { favorites } = useCatalog();
   const rg = useRgStatus(5000);
-  const router = useRouter();
   const { toast } = useToast();
 
   const stats = useMemo(() => {
@@ -45,16 +45,13 @@ export function Dashboard() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl text-primary sm:text-3xl">Hallo, {user.displayName}</h1>
-          <p className="mt-1 text-sm text-muted">
-            Demo-Konto seit {formatDate(user.createdAt)} · {user.email}
-          </p>
+          <p className="mt-1 text-sm text-muted">{user.email}</p>
         </div>
         <Button
           variant="outline"
-          onClick={() => {
-            logout();
+          onClick={async () => {
             toast({ tone: "info", title: "Abgemeldet.", description: "Demo-Guthaben und Favoriten bleiben auf diesem Gerät erhalten." });
-            router.push("/");
+            await logout("/");
           }}
           iconLeft={<LogOut className="size-4" aria-hidden="true" />}
         >

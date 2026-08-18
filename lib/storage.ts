@@ -6,7 +6,7 @@ import { SCHEMA_VERSION, STORAGE_KEY } from "@/lib/constants";
  * Behandelt: fehlender Schlüssel, defektes JSON, unbekannte Version, blockiertes Storage.
  */
 
-export type SliceKey = "session" | "wallet" | "catalogPrefs" | "rg" | "admin";
+export type SliceKey = "wallet" | "catalogPrefs" | "rg";
 
 export type PersistedSlices = Partial<Record<SliceKey, unknown>>;
 
@@ -107,7 +107,7 @@ export function loadPersisted(): LoadResult {
     return { status: "unsupported-version", slices: {} };
   }
   const slices: PersistedSlices = {};
-  for (const key of ["session", "wallet", "catalogPrefs", "rg", "admin"] as const) {
+  for (const key of ["wallet", "catalogPrefs", "rg"] as const) {
     if (key in parsed && parsed[key] !== undefined) slices[key] = parsed[key];
   }
   cache = { ...slices };

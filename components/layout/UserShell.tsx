@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Gift, Heart, History, Settings, ShieldCheck, UserRound, Wallet } from "lucide-react";
-import { useSession } from "@/state/SessionContext";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
 const userNav = [
@@ -19,31 +17,14 @@ const userNav = [
 ];
 
 /**
- * Zugriffsprüfung für den Nutzerbereich im Layout, nicht in jeder Seite (§7):
- * ohne Nutzer → /login?next=…; vor der Hydration Skeleton, nie ein Platzhalterwert.
+ * Navigationshülle für den Nutzerbereich. Die Zugriffsprüfung selbst läuft davor, serverseitig
+ * in app/(user)/layout.tsx (requireUser über server/auth/guards.ts) — diese Komponente zeigt
+ * nur noch die Seitennavigation und rendert die Kindelemente. Kein Gating, kein Hydration-
+ * Skeleton mehr nötig: Wer hier ankommt, ist bereits als angemeldet bestätigt, bevor überhaupt
+ * gerendert wird (vormals components/layout/RequireUser.tsx).
  */
-export function RequireUser({ children }: { children: ReactNode }) {
-  const { hydrated, user } = useSession();
-  const router = useRouter();
+export function UserShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (hydrated && !user) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-  }, [hydrated, user, router, pathname]);
-
-  if (!hydrated || !user) {
-    return (
-      <div className="grid gap-6 pt-6 md:grid-cols-[220px_1fr]" aria-busy="true">
-        <Skeleton className="hidden h-72 md:block" />
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-        <span className="sr-only">Nutzerbereich wird geladen …</span>
-      </div>
-    );
-  }
 
   return (
     <div className="grid gap-6 pt-6 md:grid-cols-[220px_1fr]">

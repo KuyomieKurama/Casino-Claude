@@ -39,6 +39,25 @@ describe("Storage", () => {
     expect(r.slices).toEqual({});
   });
 
+  it("alte Daten aus Schema-Version 1 (inkl. der inzwischen entfernten session-/admin-Scheiben) werden sauber verworfen", () => {
+    // SCHEMA_VERSION wurde mit der serverseitigen Authentifizierung von 1 auf 2 angehoben
+    // (lib/constants.ts) — genau weil die Scheiben "session" (Client-Sitzung, Passwort-Attrappe)
+    // und "admin" (Demo-Admin-Umschalter) entfielen. Alte, noch im Browser liegende Daten mit
+    // diesen Scheiben dürfen NICHT als teilweise gültig interpretiert werden.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        session: { user: { id: "u1", displayName: "Alt", email: "alt@beispiel.de" }, adminEnabled: true },
+        admin: {},
+        wallet: { demoBalanceMinor: 500 },
+      }),
+    );
+    const r = loadPersisted();
+    expect(r.status).toBe("unsupported-version");
+    expect(r.slices).toEqual({});
+  });
+
   it("schreibt gedrosselt in einen Schlüssel mit schemaVersion und liest die Scheiben zurück", () => {
     vi.useFakeTimers();
     writeSlice("wallet", { demoBalanceMinor: 123 });
@@ -48,7 +67,7 @@ describe("Storage", () => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw ?? "{}");
-    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.schemaVersion).toBe(2);
     expect(parsed.wallet).toEqual({ demoBalanceMinor: 123 });
     expect(Object.keys(window.localStorage).filter((k) => k.startsWith("velora"))).toEqual([STORAGE_KEY]);
     __resetStorageForTests();

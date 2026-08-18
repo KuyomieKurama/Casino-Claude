@@ -108,6 +108,20 @@ describe("Design-Tokens: zugesagte WCAG-Kontraste (app/globals.css)", () => {
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 
+  // Nachtrag (§7): bg-elevated (Modal, Drawer, Popover) trug bisher keine eigene
+  // Kontrastprüfung, obwohl genau diese Flächen Text darstellen — bg-elevated ist heller als
+  // bg-surface, der Kontrast zu Text also tendenziell (leicht) niedriger, nie automatisch durch
+  // die bg-surface-Prüfungen oben mitabgedeckt.
+  it("text-primary auf bg-elevated erreicht AAA (>= 7:1)", () => {
+    const ratio = contrastRatio(readColorToken("text-primary"), readColorToken("bg-elevated"));
+    expect(ratio).toBeGreaterThanOrEqual(7);
+  });
+
+  it("text-muted auf bg-elevated erreicht mindestens AA (>= 4,5:1)", () => {
+    const ratio = contrastRatio(readColorToken("text-muted"), readColorToken("bg-elevated"));
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
   it.each(["gold", "teal", "success", "warning", "danger"])(
     "%s auf bg-surface erreicht mindestens AA (>= 4,5:1)",
     (tokenName) => {

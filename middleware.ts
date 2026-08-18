@@ -16,7 +16,18 @@ import { getSessionCookie } from "better-auth/cookies";
  */
 export function middleware(request: NextRequest): NextResponse {
   const hasSessionCookie = Boolean(getSessionCookie(request));
-  if (hasSessionCookie) return NextResponse.next();
+  if (hasSessionCookie) {
+    // Reine Plumbing-Ergänzung, KEINE Autorisierungslogik (siehe Warnung oben): app/(user)/layout.tsx
+    // und app/admin/page.tsx prüfen die Sitzung serverseitig erneut (server/auth/guards.ts, echter
+    // Datenbankzugriff) und brauchen dafür den ursprünglich angefragten Pfad, um bei einer dort
+    // erkannten ungültigen Sitzung (Cookie vorhanden, aber abgelaufen/widerrufen) ebenfalls mit
+    // `?next=<pfad>` weiterleiten zu können. Server Components haben sonst keinen Zugriff auf den
+    // aktuellen Pfad — deshalb hier als Request-Header weitergereicht, denselben Wert, den die
+    // Middleware unten ohnehin schon für ihre eigene Weiterleitung berechnet.
+    const forwardedHeaders = new Headers(request.headers);
+    forwardedHeaders.set("x-pathname", request.nextUrl.pathname + request.nextUrl.search);
+    return NextResponse.next({ request: { headers: forwardedHeaders } });
+  }
 
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);

@@ -7,7 +7,14 @@ export const PRODUCT_NAME = "Velora Casino Demo";
 export const PRODUCT_SHORT_NAME = PRODUCT_NAME.replace(/\s*Casino Demo$/, "");
 
 export const STORAGE_KEY = "velora.demo.v1";
-export const SCHEMA_VERSION = 1;
+/**
+ * 2: die Scheiben "session" und "admin" entfielen mit der serverseitigen Authentifizierung
+ * (Auftrag §4) — Sitzung und Rolle kommen jetzt vom Server, nicht mehr aus LocalStorage. Alte
+ * Daten mit schemaVersion 1 (inklusive dieser beiden Scheiben) laufen dadurch beim nächsten
+ * Laden in den bereits vorhandenen "unsupported-version"-Pfad (lib/storage.ts) und werden
+ * verworfen statt fehlinterpretiert — siehe lib/storage.test.ts.
+ */
+export const SCHEMA_VERSION = 2;
 
 /** Startguthaben 1.000,00 Credits (§8.6). */
 export const START_BALANCE_MINOR: CreditsMinor = 100_000;

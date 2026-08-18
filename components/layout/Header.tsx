@@ -6,7 +6,6 @@ import { LogIn, ShieldCheck, UserRound } from "lucide-react";
 import { Logo } from "./Logo";
 import { BalanceDisplay } from "@/components/wallet/BalanceDisplay";
 import { SessionTimer } from "@/components/rg/SessionTimer";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { useSession } from "@/state/SessionContext";
 import { cn } from "@/lib/cn";
 
@@ -24,7 +23,9 @@ const navItems = [
  */
 export function Header() {
   const pathname = usePathname();
-  const { hydrated, user } = useSession();
+  // Kommt bereits serverseitig feststehend an (app/layout.tsx → server/auth/guards.ts) — kein
+  // Hydration-Skeleton mehr nötig, der erste gerenderte Markup zeigt bereits den echten Zustand.
+  const { user } = useSession();
 
   return (
     <header className="glass signature-bottom sticky top-[var(--demo-stripe-height)] z-40 h-[var(--header-height)]">
@@ -59,9 +60,7 @@ export function Header() {
         <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           <SessionTimer variant="compact" className="hidden lg:inline-flex" />
           <BalanceDisplay variant="header" />
-          {!hydrated ? (
-            <Skeleton className="hidden h-10 w-24 md:block" />
-          ) : user ? (
+          {user ? (
             <Link
               href="/profile"
               className="hidden h-11 items-center gap-2 rounded-control border border-border-subtle px-3 text-sm font-medium text-primary transition-state hover:border-gold md:inline-flex"

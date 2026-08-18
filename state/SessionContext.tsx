@@ -1,74 +1,27 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { User } from "@/types/user";
-import { writeSlice } from "@/lib/storage";
-import { createId, nowIso } from "@/lib/ids";
-import { usePersistence } from "./PersistenceContext";
-import { initialSessionState, sessionReducer, toPersistedSession, type SessionState } from "./session-reducer";
 
 type SessionValue = {
-  state: SessionState;
-  hydrated: boolean;
   user: User | null;
   isLoggedIn: boolean;
-  adminEnabled: boolean;
-  /** Passwort wird hier bewusst NICHT entgegengenommen — Validieren und Verwerfen passiert im Formular. */
-  login: (input: { email: string; rememberMe: boolean }) => void;
-  register: (input: { displayName: string; email: string }) => void;
-  logout: () => void;
-  checkExpiry: () => void;
-  dismissExpired: () => void;
-  setAdminEnabled: (enabled: boolean) => void;
-  updateProfile: (displayName: string) => void;
 };
 
 const SessionContext = createContext<SessionValue | null>(null);
 
-export function SessionProvider({ children }: { children: ReactNode }) {
-  const persistence = usePersistence();
-  const [state, dispatch] = useReducer(sessionReducer, initialSessionState);
-
-  useEffect(() => {
-    if (persistence.hydrated && !state.hydrated) {
-      dispatch({ type: "HYDRATE", slice: persistence.slices.session, now: nowIso() });
-    }
-  }, [persistence.hydrated, persistence.slices.session, state.hydrated]);
-
-  useEffect(() => {
-    if (state.hydrated) writeSlice("session", toPersistedSession(state));
-  }, [state]);
-
-  const login = useCallback((input: { email: string; rememberMe: boolean }) => {
-    dispatch({ type: "LOGIN", email: input.email, rememberMe: input.rememberMe, now: nowIso(), id: createId("u") });
-  }, []);
-  const register = useCallback((input: { displayName: string; email: string }) => {
-    dispatch({ type: "REGISTER", displayName: input.displayName, email: input.email, now: nowIso(), id: createId("u") });
-  }, []);
-  const logout = useCallback(() => dispatch({ type: "LOGOUT" }), []);
-  const checkExpiry = useCallback(() => dispatch({ type: "CHECK_EXPIRY", now: nowIso() }), []);
-  const dismissExpired = useCallback(() => dispatch({ type: "DISMISS_EXPIRED" }), []);
-  const setAdminEnabled = useCallback((enabled: boolean) => dispatch({ type: "SET_ADMIN_ENABLED", enabled }), []);
-  const updateProfile = useCallback((displayName: string) => dispatch({ type: "UPDATE_PROFILE", displayName }), []);
-
-  const value = useMemo<SessionValue>(
-    () => ({
-      state,
-      hydrated: state.hydrated,
-      user: state.user,
-      isLoggedIn: state.user !== null,
-      adminEnabled: state.adminEnabled,
-      login,
-      register,
-      logout,
-      checkExpiry,
-      dismissExpired,
-      setAdminEnabled,
-      updateProfile,
-    }),
-    [state, login, register, logout, checkExpiry, dismissExpired, setAdminEnabled, updateProfile],
-  );
-
+/**
+ * Schreibgeschützter Spiegel der Serversitzung (Auftrag §4): `user` kommt als Prop aus
+ * app/layout.tsx herein (Server Component, server/auth/guards.ts::getSession()) — kein
+ * LocalStorage, kein Reducer, keine clientseitige TTL-Logik mehr. Anmelden, Registrieren und
+ * Abmelden verändern diesen Context NICHT direkt: Sie laufen über
+ * components/auth/authClient.ts gegen den Server, und `router.refresh()` (LoginForm, RegisterForm,
+ * useLogout) lässt app/layout.tsx die Sitzung anschließend neu lesen. Deshalb gibt es hier auch
+ * kein `hydrated`-Flag mehr — die Sitzung steht bereits im ersten, serverseitig gerenderten
+ * Markup fest, ein Hydration-Skeleton wäre nur noch ein unnötiger Sprung.
+ */
+export function SessionProvider({ user, children }: { user: User | null; children: ReactNode }) {
+  const value = useMemo<SessionValue>(() => ({ user, isLoggedIn: user !== null }), [user]);
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
