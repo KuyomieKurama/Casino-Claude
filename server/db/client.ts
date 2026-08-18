@@ -2,7 +2,11 @@ import "server-only";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { env } from "@/lib/env";
-import * as schema from "./schema";
+import * as authSchema from "./auth-schema";
+import * as catalogSchema from "./schema";
+
+/** Zusammengeführtes Schema (Katalog + Auth) — eine Drizzle-Instanz für die ganze Anwendung. */
+const schema = { ...catalogSchema, ...authSchema };
 
 /**
  * Verbindungs-Pool für die laufende Anwendung (spätere Route Handler/Server Components,

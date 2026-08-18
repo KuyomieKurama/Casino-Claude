@@ -28,8 +28,12 @@
  */
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import * as schema from "../db/schema";
+import * as authSchema from "../db/auth-schema";
+import * as catalogSchema from "../db/schema";
+import { bootstrapAdmin } from "../auth/bootstrap-admin";
 import { seedCatalog } from "./seed";
+
+const schema = { ...catalogSchema, ...authSchema };
 
 function requireDatabaseUrl(): string {
   const value = process.env.DATABASE_URL;
@@ -50,6 +54,18 @@ async function main(): Promise<void> {
   try {
     const result = await seedCatalog(db);
     console.log(`Seed abgeschlossen: ${result.providerCount} Anbieter, ${result.gameCount} Titel, ${result.gameModeCount} Modi.`);
+
+    // Admin-Bootstrap: siehe server/auth/bootstrap-admin.ts — der einzige Ort, an dem eine
+    // Rolle auf "admin" gesetzt wird. Ohne gesetzte ADMIN_BOOTSTRAP_EMAIL passiert nichts.
+    const adminBootstrapEmail = process.env.ADMIN_BOOTSTRAP_EMAIL;
+    if (adminBootstrapEmail) {
+      const { promoted } = await bootstrapAdmin(db, adminBootstrapEmail);
+      console.log(
+        promoted
+          ? `Admin-Bootstrap: „${adminBootstrapEmail}" ist jetzt Admin.`
+          : `Admin-Bootstrap: Kein Konto mit „${adminBootstrapEmail}" gefunden — zuerst regulär registrieren, dann erneut seeden.`,
+      );
+    }
   } finally {
     await pool.end();
   }

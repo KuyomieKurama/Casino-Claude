@@ -55,3 +55,22 @@ export const ENGINE_KEY_VALUES = [
   "wheel",
 ] as const;
 export type EngineKey = (typeof ENGINE_KEY_VALUES)[number];
+
+/**
+ * Rollen/Status-Werte für `user` (server/db/auth-schema.ts, Phase 1).
+ *
+ * Kein better-auth-Plugin liefert dieses exakte Schema: Das `admin`-Plugin der Bibliothek
+ * modelliert Sperren über `banned`/`banReason`/`banExpires` (bool/text/timestamp), nicht über
+ * ein `text` + `CHECK`-Statusfeld wie im übrigen Projekt üblich. Deshalb werden `role` und
+ * `status` als eigene Spalten geführt (im Auftrag als Fallback ausdrücklich vorgesehen: „sonst
+ * role selbst im Schema führen").
+ */
+export const USER_ROLE_VALUES = ["user", "admin"] as const;
+export type UserRole = (typeof USER_ROLE_VALUES)[number];
+
+export const USER_STATUS_VALUES = ["active", "disabled"] as const;
+export type UserStatus = (typeof USER_STATUS_VALUES)[number];
+
+/** Ziel eines Login-Versuchs für die gestaffelte Rate-Begrenzung, siehe server/auth/rate-limit.ts. */
+export const LOGIN_ATTEMPT_SUBJECT_KIND_VALUES = ["email", "ip"] as const;
+export type LoginAttemptSubjectKind = (typeof LOGIN_ATTEMPT_SUBJECT_KIND_VALUES)[number];

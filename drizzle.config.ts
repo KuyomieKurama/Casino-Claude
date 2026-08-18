@@ -17,7 +17,9 @@ if (!databaseUrl) {
 
 export default defineConfig({
   dialect: "postgresql",
-  schema: "./server/db/schema.ts",
+  // Katalog- (Phase 0) und Auth-Schema (Phase 1) liegen in getrennten Dateien (Domänentrennung,
+  // siehe server/db/auth-schema.ts) — drizzle-kit liest beide für Introspektion/Migration ein.
+  schema: ["./server/db/schema.ts", "./server/db/auth-schema.ts"],
   out: "./server/db/migrations",
   dbCredentials: { url: databaseUrl },
 });

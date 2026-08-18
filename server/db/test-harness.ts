@@ -1,7 +1,10 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import * as schema from "./schema";
+import * as authSchema from "./auth-schema";
+import * as catalogSchema from "./schema";
+
+const schema = { ...catalogSchema, ...authSchema };
 
 /**
  * Test-Werkzeug, KEIN Test selbst (Dateiname endet nicht auf `.test.ts`, damit Vitest sie

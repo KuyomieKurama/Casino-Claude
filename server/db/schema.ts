@@ -1,15 +1,6 @@
 import { sql } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  check,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  type AnyPgColumn,
-} from "drizzle-orm/pg-core";
+import { bigint, boolean, check, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { checkIn } from "./check-in";
 import { CATALOG_STATUS_VALUES, ENGINE_KEY_VALUES, GAME_CATEGORY_VALUES, GAME_MODE_KIND_VALUES } from "./enums";
 
 /**
@@ -34,20 +25,6 @@ import { CATALOG_STATUS_VALUES, ENGINE_KEY_VALUES, GAME_CATEGORY_VALUES, GAME_MO
  * z. B. `Game.releasedAt`), statt sich auf Drizzles abweichendes `mode: "string"`-Format
  * (Postgres-Stil mit Leerzeichen statt „T") zu verlassen.
  */
-
-/**
- * Baut eine `CHECK (spalte IN (...))`-Bedingung aus einer festen Werteliste.
- *
- * Bewusst `sql.raw` statt gebundener Parameter: Ein generiertes Migrations-SQL-File wird von
- * drizzle-kit als reiner Text ausgeführt, nicht als vorbereitetes Statement mit Bindings — `$1,
- * $2, …`-Platzhalter in einer CHECK-Klausel wären dort unauflösbare Parameter und die Migration
- * würde fehlschlagen. Sicher ist das hier trotzdem: `values` kommt ausschließlich aus den
- * festen Konstanten in `./enums.ts`, nie aus Nutzereingaben.
- */
-function checkIn(column: AnyPgColumn, values: readonly string[]): ReturnType<typeof sql> {
-  const literals = values.map((value) => `'${value.replace(/'/g, "''")}'`).join(", ");
-  return sql`${column} in (${sql.raw(literals)})`;
-}
 
 export const provider = pgTable("provider", {
   id: text("id").primaryKey(),
