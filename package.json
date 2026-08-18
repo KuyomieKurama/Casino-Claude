@@ -11,8 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:seed": "node --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs server/seed/run-seed.ts",
+    "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/.bin/drizzle-kit migrate",
+    "db:seed": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs server/seed/run-seed.ts",
     "check:concurrency": "node --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs scripts/concurrency-check.ts"
   },
   "dependencies": {

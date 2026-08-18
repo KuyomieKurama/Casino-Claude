@@ -447,28 +447,48 @@ sudo chown velora:velora /opt/velora/velora-casino-demo/.env.local
 
 ---
 
-> **Stolperstein: `drizzle-kit` liest `.env`/`.env.local` nicht automatisch**
+> **`npm run db:migrate` und `npm run db:seed` laden `.env`/`.env.local` selbst**
 >
-> Nur Next.js selbst lädt `.env`/`.env.local` automatisch beim Start (`npm run dev`,
+> Nur Next.js selbst lud `.env`/`.env.local` bislang automatisch beim Start (`npm run dev`,
 > `npm run build`, `npm start`). `drizzle-kit` (hinter `npm run db:migrate` und `npm run
 > db:generate`) und das eigenständige Seed-Skript (`npm run db:seed`, hinter
-> `server/seed/run-seed.ts`) sind reine Node-Skripte ohne diesen automatischen Lademechanismus —
-> `drizzle.config.ts` liest `process.env.DATABASE_URL` direkt und bricht ohne vorher geladene
-> Umgebung mit „DATABASE_URL fehlt" ab, obwohl `.env.local` korrekt befüllt ist.
+> `server/seed/run-seed.ts`) sind reine Node-Skripte ohne den Next.js-eigenen Lademechanismus —
+> `drizzle.config.ts` liest `process.env.DATABASE_URL` direkt. Deshalb übergeben die beiden
+> npm-Skripte in `package.json` Node selbst die Flags `--env-file-if-exists=.env` und
+> `--env-file-if-exists=.env.local` (Node 22, kein zusätzliches Paket nötig). Geprüftes Verhalten
+> (Node 22.23.2):
+> - Fehlt eine der beiden Dateien, bricht der Aufruf **nicht** ab — Node überspringt sie
+>   kommentarlos. Fehlt `DATABASE_URL` am Ende trotzdem, erscheint weiterhin die gewohnte
+>   Fehlermeldung „DATABASE_URL fehlt …".
+> - `.env.local` hat Vorrang vor `.env` (dieselbe Rangfolge wie bei Next.js), weil es als
+>   letztes der beiden Flags übergeben wird — bei doppelten Schlüsseln gewinnt die zuletzt
+>   geladene Datei.
+> - Eine bereits in der Prozessumgebung gesetzte Variable (z. B. via systemd
+>   `EnvironmentFile=.env.local`, siehe Abschnitt „Service-Datei") wird **nicht** überschrieben —
+>   die Datei ergänzt nur, was in der Umgebung noch fehlt.
 >
-> **Konkreter Weg, die Umgebung vor diesen beiden Befehlen explizit zu laden:**
+> `sudo -u velora npm run db:migrate` bzw. `db:seed` funktionieren dadurch ohne vorheriges
+> `source .env.local` und ohne `--preserve-env`:
+> ```bash
+> cd /opt/velora/velora-casino-demo
+> sudo -u velora npm run db:migrate
+> sudo -u velora npm run db:seed
+> ```
+>
+> **Fallback**, falls die Zugangsdaten in einer abweichend benannten Datei liegen (z. B.
+> `.env.production`) — dafür greift keins der beiden Flags automatisch, die Umgebung muss dann
+> weiterhin manuell vorgeschaltet werden:
 > ```bash
 > cd /opt/velora/velora-casino-demo
 > set -a   # danach exportiert `source` automatisch jede gesetzte Variable in die Umgebung
-> source .env.local
+> source .env.production
 > set +a
 >
 > sudo -u velora --preserve-env npm run db:migrate
 > sudo -u velora --preserve-env npm run db:seed
 > ```
-> `--preserve-env` ist nötig, weil `sudo` die Umgebung sonst zurücksetzt und die gerade per
-> `source` geladenen Variablen wieder verwirft — ohne dieses Flag landet man wieder beim selben
-> „DATABASE_URL fehlt"-Fehler, obwohl `.env.local` diesmal geladen wurde.
+> `--preserve-env` ist auch hier nötig, weil `sudo` die Umgebung sonst zurücksetzt und die gerade
+> per `source` geladenen Variablen wieder verwirft.
 
 ### Datenbank initialisieren
 
@@ -485,7 +505,7 @@ sudo -u velora npm run db:migrate
 **Fehlerbehandlung:**
 - `ECONNREFUSED localhost:5432`: PostgreSQL läuft nicht; prüfe `systemctl status postgresql` oder `docker compose logs`
 - `role "velora" does not exist`: Benutzer nicht angelegt; siehe Abschnitt PostgreSQL
-- `DATABASE_URL fehlt`, obwohl `.env.local` befüllt ist: siehe Stolperstein oben — die Umgebung muss vor diesem Befehl explizit geladen werden
+- `DATABASE_URL fehlt`, obwohl `.env.local` befüllt ist: Datei liegt nicht im aktuellen Arbeitsverzeichnis (`cd /opt/velora/velora-casino-demo` fehlt) oder trägt einen abweichenden Namen — siehe Kasten oben für den Fallback mit manuellem `source`
 
 ---
 
@@ -871,7 +891,7 @@ sudo journalctl -u velora -f
 **Reihenfolge wichtig:**
 1. Code
 2. `npm ci`
-3. `npm run db:migrate` (vor dem Build, weil Migrationen Tabellen ändern) — Umgebung vorher wie im Abschnitt „Datenbank initialisieren" beschrieben explizit laden (`set -a; source .env.local; set +a`), sonst bricht der Befehl mit „DATABASE_URL fehlt" ab
+3. `npm run db:migrate` (vor dem Build, weil Migrationen Tabellen ändern) — lädt `.env.local` inzwischen selbst (siehe Abschnitt „Datenbank initialisieren"), kein manuelles `source` mehr nötig, solange die Datei `.env.local` oder `.env` heißt
 4. `npm run build`
 5. `systemctl restart`
 

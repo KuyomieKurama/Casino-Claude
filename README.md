@@ -28,6 +28,10 @@ npm run db:seed    # Optional: Test-Daten, ADMIN_BOOTSTRAP_EMAIL wird Admin
 npm run dev        # http://localhost:3000
 ```
 
+`db:migrate` und `db:seed` laden `.env`/`.env.local` selbst (per Node-eigenem `--env-file-if-exists`,
+siehe „Umgebungsvariablen für db:migrate/db:seed" unten) — ein vorheriges manuelles Setzen der
+Umgebung ist nicht mehr nötig.
+
 Für eine **produktionsreife Installation auf Ubuntu/Debian** siehe [docs/INSTALLATION.md](docs/INSTALLATION.md). Diese Anleitung deckt Systemvorbereitung, PostgreSQL-Setup, OAuth-Konfiguration, nginx-Reverse-Proxy mit HTTPS und Betrieb ab.
 
 Weitere Befehle:
@@ -108,6 +112,36 @@ Die Callback-URL ist immer `{BETTER_AUTH_URL}/api/auth/callback/{provider}`. Bei
 - Produktion: `https://velora.example.com/api/auth/callback/google`
 
 Diese URL muss beim OAuth-Provider (Google, GitHub, Discord) als "Authorized Redirect URI" eintragen sein. Detaillierte Schritte sind außerhalb dieses Dokuments, finden sich aber im Provider-Dashboard unter OAuth/Consent Screen.
+
+### Umgebungsvariablen für db:migrate/db:seed
+
+Next.js lädt `.env`/`.env.local` automatisch (`npm run dev`, `build`, `start`). `drizzle-kit`
+(hinter `npm run db:migrate`) und `server/seed/run-seed.ts` (hinter `npm run db:seed`) sind reine
+Node-Skripte ohne diesen Next.js-eigenen Mechanismus — deshalb übergeben die beiden npm-Skripte
+Node selbst die Flags `--env-file-if-exists=.env` und `--env-file-if-exists=.env.local` (Node 22,
+kein zusätzliches Paket nötig). Verhalten, geprüft gegen Node 22.23.2:
+
+- **Fehlt eine der beiden Dateien**, bricht der Aufruf nicht ab — Node überspringt sie kommentarlos.
+  Fehlt `DATABASE_URL` am Ende trotzdem, erscheint die gewohnte, verständliche Fehlermeldung
+  („DATABASE_URL fehlt oder hat ein ungültiges Protokoll …").
+- **`.env.local` hat Vorrang vor `.env`** (dieselbe Rangfolge wie bei Next.js), weil es als
+  letztes der beiden `--env-file-if-exists`-Flags übergeben wird — bei doppelten Schlüsseln
+  gewinnt die zuletzt geladene Datei.
+- **Bereits in der Umgebung gesetzte Variablen werden nicht überschrieben** (z. B. von einem
+  vorgeschalteten `export` oder von systemd `EnvironmentFile=`). Das ist bei einem Server
+  wichtig, der `DATABASE_URL` über systemd bereitstellt: Die Datei ergänzt dann nur fehlende
+  Werte, statt eine bewusst gesetzte Produktionsvariable zu überschreiben.
+
+**Fallback für abweichend benannte Dateien** (z. B. `.env.production`): Diese lädt keins der
+beiden Flags automatisch. Umgebung manuell vorschalten:
+
+```bash
+set -a
+source .env.production
+set +a
+npm run db:migrate
+npm run db:seed
+```
 
 Ohne OAuth sind Passwort-basierte Registrierung und Anmeldung immer verfügbar.
 
