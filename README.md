@@ -28,6 +28,8 @@ npm run db:seed    # Optional: Test-Daten, ADMIN_BOOTSTRAP_EMAIL wird Admin
 npm run dev        # http://localhost:3000
 ```
 
+Für eine **produktionsreife Installation auf Ubuntu/Debian** siehe [docs/INSTALLATION.md](docs/INSTALLATION.md). Diese Anleitung deckt Systemvorbereitung, PostgreSQL-Setup, OAuth-Konfiguration, nginx-Reverse-Proxy mit HTTPS und Betrieb ab.
+
 Weitere Befehle:
 
 ```bash
