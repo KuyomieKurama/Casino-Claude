@@ -56,7 +56,7 @@ node scripts/generate-thumbs.mjs   # Vorschaubilder neu erzeugen
 ```
 app/               Routen und Layouts (App Router); (user)-Gruppe für eingeloggte Bereiche
   api/auth/        better-auth Route Handler
-middleware.ts      Cookie-Präsenz prüfen, Umleitung nach /login
+middleware.ts      Reines Plumbing (x-pathname-Header); Umleitung nach /login passiert in layout.tsx/page.tsx
 components/
   ui/              zustandslose Primitive (Button, Input, Modal, Toast …) — kennen keine Fachlogik
   layout/          Header, Bottom-Nav, Footer, systemweite Hinweise

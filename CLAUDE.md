@@ -59,11 +59,11 @@ Pfad-Alias: `@/*` → Root (nicht `src/`; das Projekt hat kein `src/`).
 ```
 app/                    # App Router; Routengruppe (user) für eingeloggte Bereiche
   api/auth/[...all]/    # better-auth Route Handler
-  (user)/               # Protected, serverseitig geprüft (middleware.ts + server/auth/guards.ts)
+  (user)/               # Protected, serverseitig geprüft (server/auth/guards.ts via layout.tsx)
   admin/                # Admin-Seite, requireAdmin() geprüft
   login/                # Öffentlich
   register/             # Öffentlich
-middleware.ts           # Cookie-Präsenz prüfen, Umleitung nach /login?next=… (KEINE Autorisierung!)
+middleware.ts           # Reines Plumbing: reicht Pfad als x-pathname-Header durch, KEINE Umleitung, KEINE Autorisierung!
 components/
   ui/                   # Zustandslose Primitive (kein Context, keine Fachlogik)
   layout/               # Header, Footer, BottomNavigation, SystemNotices
@@ -152,11 +152,11 @@ Autoplay, Turbospin, betonter Near Miss, Loss Disguised as Win (auch akustisch �
 **Technologie**: better-auth 1.6.30 mit PostgreSQL. Session-Cookies, optional OAuth (Google, GitHub, Discord).
 
 **Authentifizierung (Identität prüfen)**:
-- `middleware.ts` (Edge Runtime): Prüft AUSSCHLIESSLICH Cookie-Präsenz; leitet nicht-angemeldete Nutzer nach `/login?next=…` um.
-  - **Warnung**: Keine Autorisierungslogik hier! Ein vorhandener Cookie könnte abgelaufen oder widerrufen sein. Die echte Prüfung erfolgt im Server.
+- `middleware.ts` (Edge Runtime): Trifft keine Autorisierungs- oder Weiterleitungsentscheidung mehr. Reicht jeden Request nur durch und ergänzt den Header `x-pathname` (Pfad + Query), damit Server Components den ursprünglich angefragten Pfad für ihre eigene Weiterleitung kennen.
+  - **Warnung**: Absichtlich KEINE Weiterleitung mehr hier (Regression, siehe Kommentar in `middleware.ts`) — ein aus der Edge-Middleware zurückgegebener Location-Header wird von der Next.js-Laufzeit selbst gegen eine absolute URL validiert; ein relativer Wert erzeugte in Produktion `TypeError: Invalid URL`, eine absolute URL aus `request.url` hinter einem Reverse Proxy fälschlich `https://localhost:3000`. Keine der beiden Varianten ist hier sicher — deshalb übernehmen ausschließlich die folgenden Stellen die Weiterleitung.
 - `server/auth/guards.ts`: `requireUser()` und `requireAdmin()` mit Datenbankzugriff; wird in Server Components und Route Handlern verwendet.
   - Prüft Sitzung gegen die Datenbank, nicht nur den Cookie.
-  - Bei ungültiger Sitzung Umleitung nach `/login?next=…`.
+  - Bei ungültiger Sitzung Umleitung nach `/login?next=…` über `redirect()` aus `next/navigation` (in `app/(user)/layout.tsx` bzw. jeder `app/admin/*`-Seite), nicht mehr in der Middleware.
 
 **Autorisierung (Rollen prüfen)**:
 - **Normal-Nutzer**: Jeder angemeldete Nutzer (`requireUser()`).

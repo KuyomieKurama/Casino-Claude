@@ -1,50 +1,62 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSessionCookie } from "better-auth/cookies";
 
 /**
- * Middleware, Edge-Runtime: prüft AUSSCHLIESSLICH, ob überhaupt ein Session-Cookie vorhanden
- * ist, und leitet sonst nach `/login?next=…` um.
+ * Middleware, Edge-Runtime: reines Plumbing. Trifft WEDER eine Autorisierungsentscheidung NOCH
+ * eine Weiterleitung. Reicht jeden Request unverändert durch und ergänzt nur einen Header, den
+ * Server Components sonst nicht bekommen könnten (siehe unten).
  *
- * WARNUNG AN KÜNFTIGE ÄNDERUNGEN: Hier darf NIEMALS Autorisierungslogik (Rollenprüfung,
- * Sperrstatus, Admin-Check o. Ä.) ergänzt werden. Die Middleware läuft auf der Edge-Runtime
- * ohne Datenbankzugriff — sie kann `role`/`status` gar nicht verlässlich prüfen, sondern nur
- * `getSessionCookie()` (reine Cookie-Präsenzprüfung, kein Sitzungsabgleich mit der Datenbank,
- * siehe node_modules/better-auth/dist/cookies/index.d.mts). Ein hier "bestandener" Nutzer kann
- * eine längst widerrufene oder abgelaufene Sitzung haben. Die eigentliche Prüfung passiert in
- * server/auth/guards.ts (requireUser/requireAdmin) in Server Components und Route Handlern, wo
- * ein echter Datenbankzugriff möglich ist.
+ * VORGESCHICHTE — warum hier bewusst NICHTS mehr passiert außer Durchreichen:
+ *
+ * Frühere Fassungen leiteten bei fehlendem Session-Cookie selbst nach /login um und bauten dafür
+ * den Location-Header hier in der Middleware:
+ *
+ *   1. Erst absolut aus `request.url` / `request.nextUrl.origin`: das erbt hinter einem Reverse
+ *      Proxy IMMER die interne Origin von `next start -H 127.0.0.1`
+ *      (__NEXT_PRIVATE_ORIGIN, node_modules/next/dist/server/lib/start-server.js) und leitete
+ *      Nutzer fälschlich auf `https://localhost:3000` statt auf die tatsächlich aufgerufene
+ *      Domain um.
+ *   2. Als Korrektur relativ per roher `NextResponse` mit selbst gesetztem Location-Header
+ *      (`NextResponse.redirect()` verlangt ohnehin eine absolute URL und schied damit aus):
+ *      das ließ `next start` in Produktion bei JEDEM Aufruf eines geschützten Pfads mit
+ *      `TypeError: Invalid URL` (ERR_INVALID_URL) abstürzen. Grund: die Next.js-Edge-Laufzeit
+ *      validiert den Location-Header jeder aus der Middleware zurückgegebenen Response selbst
+ *      gegen eine absolute URL (`new URL(location)`, ohne Basis) — unabhängig davon, ob
+ *      `NextResponse.redirect()` oder eine rohe `NextResponse` mit manuell gesetztem
+ *      Location-Header verwendet wird. Der ursprüngliche Test dieser Datei hat das nicht
+ *      gefunden, weil er die exportierte Funktion direkt aufrief und den Rückgabewert prüfte —
+ *      diese Validierung findet aber erst beim tatsächlichen Ausliefern der Response durch die
+ *      Next.js-Laufzeit statt, nicht im Rückgabewert der Funktion selbst.
+ *
+ * Beide Varianten scheitern strukturell daran, dass der Middleware kein sicher verfügbarer,
+ * vertrauenswürdiger absoluter Origin-Wert zur Verfügung steht: `BETTER_AUTH_URL` liegt in
+ * `lib/env.ts` (server-only, in der Edge-Runtime nicht nutzbar) und dürfte laut ESLint-Regel
+ * ohnehin nirgends sonst per `process.env` gelesen werden; `Host`- bzw.
+ * `X-Forwarded-Host`-Header sind clientseitig fälschbar und ohne Allowlist-Prüfung ein
+ * Host-Header-Injection-Risiko. Die einzige robuste Lösung: die Middleware trifft gar keine
+ * Weiterleitungsentscheidung mehr — das beseitigt die gesamte Fehlerklasse, statt sie zu
+ * umschiffen. Das ist ohnehin nur konsequent: die Middleware durfte laut ihrem eigenen früheren
+ * Kommentar schon vorher keine Autorisierungsentscheidung treffen (kein Datenbankzugriff in der
+ * Edge-Runtime, ein vorhandenes Cookie kann abgelaufen oder widerrufen sein), war also immer nur
+ * ein optimistischer Vorab-Check ohne eigene Aussagekraft.
+ *
+ * Die eigentliche, verlässliche Prüfung (echter Datenbankzugriff über server/auth/guards.ts,
+ * requireUser()/requireAdmin()) findet jetzt ausschließlich in app/(user)/layout.tsx und jeder
+ * app/admin/*-Seite statt. Diese leiten bei fehlender/ungültiger Sitzung selbst über
+ * `redirect()` aus `next/navigation` um — das läuft nicht über die oben beschriebene
+ * Edge-Response-Validierung und akzeptiert relative Ziele (`app/(user)/layout.test.tsx`,
+ * `app/admin/page.test.tsx` u. a. laufen unverändert grün und sind vom Origin-Fehler
+ * nachweislich nicht betroffen).
+ *
+ * x-pathname: Server Components haben keinen Zugriff auf den aktuellen Anfrage-Pfad (nur die
+ * Middleware sieht `request.nextUrl`). app/(user)/layout.tsx braucht ihn, um bei fehlender
+ * Sitzung mit `?next=<pfad>` weiterzuleiten. Wird jetzt IMMER gesetzt (früher nur, wenn ein
+ * Cookie vorhanden war) — die Middleware unterscheidet ja nicht mehr zwischen beiden Fällen,
+ * sie reicht in jedem Fall nur durch.
  */
 export function middleware(request: NextRequest): NextResponse {
-  const hasSessionCookie = Boolean(getSessionCookie(request));
-  if (hasSessionCookie) {
-    // Reine Plumbing-Ergänzung, KEINE Autorisierungslogik (siehe Warnung oben): app/(user)/layout.tsx
-    // und app/admin/page.tsx prüfen die Sitzung serverseitig erneut (server/auth/guards.ts, echter
-    // Datenbankzugriff) und brauchen dafür den ursprünglich angefragten Pfad, um bei einer dort
-    // erkannten ungültigen Sitzung (Cookie vorhanden, aber abgelaufen/widerrufen) ebenfalls mit
-    // `?next=<pfad>` weiterleiten zu können. Server Components haben sonst keinen Zugriff auf den
-    // aktuellen Pfad — deshalb hier als Request-Header weitergereicht, denselben Wert, den die
-    // Middleware unten ohnehin schon für ihre eigene Weiterleitung berechnet.
-    const forwardedHeaders = new Headers(request.headers);
-    forwardedHeaders.set("x-pathname", request.nextUrl.pathname + request.nextUrl.search);
-    return NextResponse.next({ request: { headers: forwardedHeaders } });
-  }
-
-  // WARNUNG AN KÜNFTIGE ÄNDERUNGEN: Der Location-Header MUSS relativ bleiben. `next start
-  // -H 127.0.0.1` setzt intern __NEXT_PRIVATE_ORIGIN fest auf `http://localhost:3000`
-  // (node_modules/next/dist/server/lib/start-server.js) — nicht per Umgebungsvariable
-  // überschreibbar. `request.url` (und damit `new URL(path, request.url)` sowie
-  // `request.nextUrl.origin`) erbt hinter einem Reverse Proxy IMMER diese interne Origin,
-  // egal welche Domain der Nutzer tatsächlich aufgerufen hat — daher NIEMALS eine absolute
-  // URL aus request.url/nextUrl.origin für Redirects bauen. `NextResponse.redirect()` selbst
-  // erzwingt zudem eine absolute URL (validateURL in next/dist/server/web/utils.js wirft bei
-  // einem relativen String), deshalb hier bewusst eine rohe NextResponse mit relativem
-  // Location-Header statt NextResponse.redirect(). Der Browser löst einen relativen
-  // Location-Header immer gegen die tatsächlich aufgerufene URL auf — das ist zugleich
-  // sicherer als eine Lösung über den Host- bzw. X-Forwarded-Host-Header, weil dieser von
-  // keinem Proxy erzwungen wird und damit von einem Client manipulierbar wäre.
-  const next = request.nextUrl.pathname + request.nextUrl.search;
-  const location = `/login?${new URLSearchParams({ next }).toString()}`;
-  return new NextResponse(null, { status: 307, headers: { location } });
+  const forwardedHeaders = new Headers(request.headers);
+  forwardedHeaders.set("x-pathname", request.nextUrl.pathname + request.nextUrl.search);
+  return NextResponse.next({ request: { headers: forwardedHeaders } });
 }
 
 export const config = {
