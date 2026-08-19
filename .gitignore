@@ -9,3 +9,7 @@ next-env.d.ts
 # Verbindungsdaten und Geheimnisse (siehe lib/env.ts, .env.example) — nie einchecken.
 .env*
 !.env.example
+
+# Ausgabeverzeichnis von scripts/backup-db.sh (Standardziel) — enthält Datenbankinhalte,
+# gehört nicht ins Repository.
+backups/

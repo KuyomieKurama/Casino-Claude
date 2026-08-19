@@ -4,6 +4,13 @@ import { getSession } from "@/server/auth/guards";
 import { startNonInteractiveRound, type StartRoundData } from "@/server/rounds/round-service";
 import { startRoundRequestSchema } from "@/server/rounds/schemas";
 import type { WalletRejectionCode } from "@/lib/wallet-policy";
+import { env } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
+
+// Stacktrace nur außerhalb der Produktion: lib/logger.ts kann NODE_ENV nicht selbst lesen
+// (process.env ist ausschließlich in lib/env.ts erlaubt), deshalb wird der bereits validierte
+// Wert hier als Parameter übergeben.
+const logger = createLogger({ includeStack: env.NODE_ENV !== "production" });
 
 /**
  * Rundenstart für die sechs nicht-interaktiven Spielfamilien (Auftrag §3). `runtime = "nodejs"`:
@@ -64,7 +71,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch (error: unknown) {
     // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace"). Serverseitig
     // bleibt der Fehler sichtbar (Plattform-Log), der Client sieht nur einen sachlichen Code.
-    console.error("[api/rounds/start] unerwarteter Fehler:", error);
+    logger.error("Unerwarteter Fehler beim Rundenstart", { route: "api/rounds/start", userId, gameModeId: parsed.data.gameModeId, error });
     return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

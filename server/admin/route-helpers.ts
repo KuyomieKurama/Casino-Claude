@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
 import { requireAdmin, UnauthenticatedError, UnauthorizedError, type AuthSession } from "@/server/auth/guards";
+
+// Stacktrace nur außerhalb der Produktion: lib/logger.ts kann NODE_ENV nicht selbst lesen
+// (process.env ist ausschließlich in lib/env.ts erlaubt), deshalb wird der bereits validierte
+// Wert hier als Parameter übergeben.
+const logger = createLogger({ includeStack: env.NODE_ENV !== "production" });
 
 /**
  * Gemeinsame Klammer für alle `app/api/admin/**​/route.ts`-Handler (Admin-Auftrag „Übergreifend":
@@ -30,7 +37,7 @@ export async function withAdminSession(handler: (session: AuthSession) => Promis
   try {
     return await handler(session);
   } catch (error: unknown) {
-    console.error("[admin-api] unerwarteter Fehler:", error);
+    logger.error("Unerwarteter Fehler in der Admin-API", { route: "admin-api", userId: session.user.id, error });
     return adminJson({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

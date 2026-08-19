@@ -138,7 +138,7 @@ const eslintConfig = [
   },
   {
     files: ["**/*.{ts,tsx,js,mjs}"],
-    ignores: ["lib/env.ts", "server/seed/run-seed.ts", "**/*.test.{ts,tsx}", "test/**", "scripts/**", "drizzle.config.ts", "next.config.ts"],
+    ignores: ["lib/env.ts", "server/seed/run-seed.ts", "**/*.test.{ts,tsx}", "test/**", "scripts/**", "drizzle.config.ts", "next.config.ts", "middleware.ts"],
     rules: noProcessEnvOutsideEnvModule,
   },
 ];

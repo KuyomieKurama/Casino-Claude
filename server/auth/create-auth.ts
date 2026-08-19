@@ -4,6 +4,7 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import * as authSchema from "@/server/db/auth-schema";
 import type { AppDatabase } from "@/server/db/types";
 import { env } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { getActiveOAuthProviderMap } from "./providers";
 import { loginRateLimitPlugin } from "./rate-limit-plugin";
 import { REMEMBER_ME_SESSION_SECONDS, SHORT_SESSION_SECONDS } from "./session-durations";
@@ -40,16 +41,16 @@ let hasWarnedAboutDisabledIpRateLimit = false;
 function warnIfIpRateLimitDisabled(ipRateLimitEnabled: boolean): void {
   if (ipRateLimitEnabled || hasWarnedAboutDisabledIpRateLimit) return;
   hasWarnedAboutDisabledIpRateLimit = true;
-  // Bewusster Betriebshinweis, kein Debug-Log; kein Logging-Framework im Projekt vorhanden
-  // (siehe Auftrag, „Ausdrücklich nicht Teil dieser Aufgabe").
-  console.warn(
-    "[auth] IP-basiertes Login-Rate-Limit ist DEAKTIVIERT: TRUSTED_PROXY_IPS ist nicht gesetzt. " +
-      "Ohne bekannten, vertrauenswürdigen Reverse-Proxy würde better-auth einem beliebigen, vom " +
-      "Client frei wählbaren X-Forwarded-For-Header vertrauen — ein Angreifer könnte das IP-Limit " +
-      "damit beliebig oft umgehen. Es gilt deshalb ausschließlich das E-Mail-Limit (5 " +
-      "Versuche/15 Minuten). Was tun: Läuft die Anwendung hinter einem bekannten Reverse-Proxy, " +
+  // Bewusster, einmaliger Betriebshinweis über den zentralen Logger (lib/logger.ts).
+  logger.warn(
+    "IP-basiertes Login-Rate-Limit ist deaktiviert: TRUSTED_PROXY_IPS ist nicht gesetzt. Ohne " +
+      "bekannten, vertrauenswürdigen Reverse-Proxy würde better-auth einem beliebigen, vom Client " +
+      "frei wählbaren X-Forwarded-For-Header vertrauen — ein Angreifer könnte das IP-Limit damit " +
+      "beliebig oft umgehen. Es gilt deshalb ausschließlich das E-Mail-Limit (5 Versuche/15 " +
+      "Minuten). Was tun: Läuft die Anwendung hinter einem bekannten Reverse-Proxy, " +
       "TRUSTED_PROXY_IPS in der Produktionsumgebung setzen (siehe .env.example), um das IP-Limit " +
       "sicher zu aktivieren.",
+    { route: "auth", trustedProxyIpsConfigured: false },
   );
 }
 

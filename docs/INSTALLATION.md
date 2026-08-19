@@ -903,33 +903,67 @@ sudo journalctl -u velora -f
 
 #### Backup
 
-```bash
-# Komplettes Backup mit pg_dump
-sudo -u postgres pg_dump -d velora --format=custom \
-  > /backup/velora_$(date +%Y-%m-%d_%H-%M-%S).dump
+Die Skripte `scripts/backup-db.sh` und `scripts/restore-db.sh` kapseln `pg_dump`/`pg_restore`
+gegen `DATABASE_URL` (aus der Umgebung oder aus `.env`/`.env.local`, gelesen über Nodes
+`--env-file-if-exists` — dieselbe Option wie bei `db:migrate`/`db:seed` in `package.json` —, nicht
+per `source`). Die Bildschirmausgabe maskiert das Passwort; das Passwort selbst wird nie als
+Kommandozeilenargument an `pg_dump`/`pg_restore` übergeben, sondern ausschließlich über die
+Umgebungsvariable `PGPASSWORD`, damit es nicht über die Prozessliste (`/proc/<pid>/cmdline`, auf
+Standard-Linux für alle lokalen Nutzer lesbar) einsehbar ist:
 
-# Mit Gzip komprimiert (kleinere Dateien)
-sudo -u postgres pg_dump -d velora \
-  | gzip > /backup/velora_$(date +%Y-%m-%d).sql.gz
+```bash
+cd /opt/velora/velora-casino-demo
+sudo -u velora npm run db:backup                          # → backups/velora_<UTC-Zeitstempel>.dump
+sudo -u velora npm run db:backup -- /var/backups/velora    # alternatives Zielverzeichnis
 ```
 
-Sicherung sollte täglich erfolgen, z. B. via cron:
+`--format=custom` (`pg_dump -Fc`) ist der Standard des Skripts — kompakter als reines SQL und
+kompatibel mit `pg_restore --clean --if-exists` unten. `postgresql-client-17` (siehe
+„Systemvorbereitung") liefert die benötigten `pg_dump`/`pg_restore`-Binaries.
+
+**Dump-Dateien enthalten Zugangsdaten**: `server/db/auth-schema.ts` speichert Sitzungstoken und
+OAuth-Zugangstoken (`session.token`, `account.accessToken`/`refreshToken`/`idToken`) im Klartext —
+ein Dump enthält diese Werte vollständig, wer ihn lesen kann, kann damit fremde Sitzungen
+unmittelbar übernehmen. `scripts/backup-db.sh` setzt deshalb vor dem ersten Schreibzugriff
+`umask 077`: Zielverzeichnis und Dump-Datei entstehen dadurch direkt mit den Rechten `700` bzw.
+`600`, ohne Zeitfenster mit offeneren Rechten. Backups sind entsprechend wie Zugangsdaten zu
+behandeln — verlassen sie diesen Host (Kopie auf ein Backup-Ziel, Transport, Archivierung),
+verschlüsselt ablegen (z. B. `age`, `gpg`) statt unverschlüsselt zu übertragen.
+
+**Empfehlung**: Vor jedem `npm run db:migrate` in Produktion ein Backup erzeugen — eine
+fehlgeschlagene Migration lässt sich sonst nicht rückgängig machen.
+
+Sicherung sollte zusätzlich täglich automatisiert erfolgen, z. B. via cron:
 
 ```bash
-sudo crontab -e
-# Hinzufügen:
-0 2 * * * pg_dump -U velora -d velora -h localhost | gzip > /backup/velora_$(date +\%Y-\%m-\%d).sql.gz
+sudo -u velora crontab -e
+# Hinzufügen (Pfade anpassen):
+0 2 * * * cd /opt/velora/velora-casino-demo && npm run db:backup -- /var/backups/velora
+```
+
+Optionale Aufbewahrung (löscht ältere `*.dump`-Dateien im Zielverzeichnis automatisch):
+
+```bash
+BACKUP_RETENTION_DAYS=14 npm run db:backup -- /var/backups/velora
 ```
 
 #### Wiederherstellung
 
-```bash
-# Von Custom-Format Dump
-pg_restore -U velora -d velora --clean --if-exists \
-  /backup/velora_2025-09-18_02-00-00.dump
+**Destruktive Operation**: `scripts/restore-db.sh` läuft mit `pg_restore --clean --if-exists` und
+löscht damit bestehende Objekte in der Zieldatenbank, bevor der Dump-Inhalt eingespielt wird.
+Ohne `--force` fragt das Skript deshalb interaktiv nach — Ziel-Datenbank und Dump-Datei stehen
+sichtbar in der Rückfrage, jede Antwort außer `ja` bricht folgenlos ab:
 
-# Von gzip SQL-Dump
-gunzip < /backup/velora_2025-09-18.sql.gz | psql -U velora -d velora
+```bash
+cd /opt/velora/velora-casino-demo
+sudo -u velora npm run db:restore -- /var/backups/velora/velora_20260101T020000Z.dump
+```
+
+Für automatisierte Abläufe ohne Terminal (z. B. ein Wiederherstellungstest in einer Pipeline) nur
+mit ausdrücklichem `--force`:
+
+```bash
+sudo -u velora npm run db:restore -- /var/backups/velora/velora_20260101T020000Z.dump --force
 ```
 
 ---
@@ -1234,6 +1268,8 @@ Wenn die Instanz öffentlich zugänglich ist, muss das transparent gemacht werde
 - `drizzle.config.ts` — Datenbank-Migrations-Konfiguration
 - `lib/env.ts` — Validierungsregeln für Umgebungsvariablen
 - `server/auth/rate-limit.ts`, `server/auth/rate-limit-plugin.ts` — Login-Rate-Limiting
+- `scripts/backup-db.sh`, `scripts/restore-db.sh` — Datenbank-Backup und -Wiederherstellung (siehe Abschnitt „Datenbankwartung" oben)
+- `.github/workflows/ci.yml` — CI-Pipeline (Lint, Typprüfung, Tests, Build, Nebenläufigkeitsnachweis)
 
 ---
 

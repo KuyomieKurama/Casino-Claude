@@ -62,6 +62,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // getSession() oben: einmal pro Anfrage im Root-Layout, dann als fertige Daten (kein
   // @/server/*-Import) in den Client-Baum gereicht. Speist Lobby, Startseite und die
   // "Ähnliche Spiele"-Liste der Detailseite über CatalogContext.
+  //
+  // Versteckte Abhängigkeit (Befund „Nonce hängt an durchgehend dynamischem Rendering"): Dieser
+  // await macht JEDE Seite dynamisch (kein Caching, keine statische Generierung), weil ein
+  // Datenbankzugriff pro Anfrage per Definition nicht vorab berechenbar ist. Genau das hält
+  // aktuell auch das Nonce-Muster der CSP zusammen (middleware.ts erzeugt pro Anfrage einen
+  // neuen Nonce, der eingebettete Nonce in der ausgelieferten Seite muss mit dem Header-Nonce
+  // übereinstimmen): Würde eine Seite künftig statisch gecacht (z. B. durch Entfernen dieses
+  // Aufrufs oder durch `export const dynamic = "force-static"`), liefe der eingebettete Nonce
+  // aus dem Cache-Zeitpunkt dem aktuellen Header-Nonce auseinander, und die Hydration bräche an
+  // der eigenen CSP. Wer dieses `await getSession()` entfernt oder die Dynamik dieses Layouts
+  // sonst wie aufhebt, muss das CSP-Nonce-Muster (middleware.ts) neu bewerten.
   const session = await getSession();
   // resolveWalletBalance() braucht die (evtl. fehlende) userId aus getSession() — deshalb erst
   // NACH der Sitzung aufgerufen, aber weiterhin parallel zum unabhängigen Katalog-Read. Für

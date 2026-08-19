@@ -5,6 +5,13 @@ import { rgSelfExclusionRequestSchema } from "@/server/rg/schemas";
 import { activateSelfExclusionAction, confirmLiftSelfExclusionAction, requestLiftSelfExclusionAction } from "@/server/rg/rg-settings-service";
 import { nowIso } from "@/lib/ids";
 import type { ResponsibleGaming } from "@/types/responsible-gaming";
+import { env } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
+
+// Stacktrace nur außerhalb der Produktion: lib/logger.ts kann NODE_ENV nicht selbst lesen
+// (process.env ist ausschließlich in lib/env.ts erlaubt), deshalb wird der bereits validierte
+// Wert hier als Parameter übergeben.
+const logger = createLogger({ includeStack: env.NODE_ENV !== "production" });
 
 /**
  * Selbstsperre — die kritische Aktion (Auftrag §3), eigens von den übrigen Einstellungen
@@ -62,7 +69,8 @@ export async function POST(request: Request): Promise<Response> {
     }
     return json({ success: true, data: { rg: result.rg } }, 200);
   } catch (error: unknown) {
-    console.error("[api/rg/self-exclusion] unerwarteter Fehler:", error);
+    // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace").
+    logger.error("Unerwarteter Fehler bei der Selbstsperre", { route: "api/rg/self-exclusion", userId, error });
     return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

@@ -105,6 +105,16 @@ npm run test:watch      # Watch-Modus mit Standard-Config (schnell)
 
 Siehe `CLAUDE.md` und `docs/TEAM.md` für Details zur Testorganisation und paralleler Entwicklung.
 
+## CI
+
+`.github/workflows/ci.yml` läuft bei jedem `push` und `pull_request` (GitHub Actions, Node 22) mit drei unabhängigen Jobs, keiner deployt oder veröffentlicht etwas:
+
+- **Qualität**: `npm run lint`, `npm run typecheck`, `npm run test:full` (Timeout 20 Minuten)
+- **Build**: `npm run build` mit Platzhalter-Umgebungswerten, ohne erreichbare Datenbank (Next.js braucht beim Build keine DB-Verbindung, solange `NODE_ENV` nicht `production` ist)
+- **Nebenläufigkeit**: PostgreSQL 17 als Service-Container, `npm run db:migrate`, dann `npm run check:concurrency` (braucht echtes PostgreSQL, siehe `scripts/concurrency-check.ts`)
+
+Alle Umgebungswerte im Workflow sind offensichtliche CI-Platzhalter, keine echten Geheimnisse — es werden keine GitHub-Secrets referenziert.
+
 ## Konfiguration
 
 Alle Umgebungsvariablen sind in `.env.example` dokumentiert. Lokale Overrides gehören in `.env.local` (wird nicht eingecheckt).
@@ -166,6 +176,24 @@ npm run db:seed
 ```
 
 Ohne OAuth sind Passwort-basierte Registrierung und Anmeldung immer verfügbar.
+
+## Datenbank: Backup und Wiederherstellung
+
+```bash
+npm run db:backup                          # Backup nach ./backups/velora_<UTC-Zeitstempel>.dump
+npm run db:backup -- /var/backups/velora   # Alternatives Zielverzeichnis
+
+npm run db:restore -- backups/velora_20260101T000000Z.dump           # fragt vor dem Überschreiben nach
+npm run db:restore -- backups/velora_20260101T000000Z.dump --force   # ohne Rückfrage (z. B. Skripte)
+```
+
+`scripts/backup-db.sh` ruft `pg_dump -Fc` gegen `DATABASE_URL` auf (aus der Umgebung oder aus `.env`/`.env.local`, gelesen über Nodes `--env-file-if-exists`, nicht per `source`), `scripts/restore-db.sh` entsprechend `pg_restore --clean --if-exists`. Beide Skripte benötigen `pg_dump`/`pg_restore` sowie `node` im `PATH` (z. B. `postgresql-client`, siehe `docs/INSTALLATION.md`). Die Bildschirmausgabe maskiert das Passwort; das Passwort selbst geht nie als Kommandozeilenargument an `pg_dump`/`pg_restore`, sondern ausschließlich über die Umgebungsvariable `PGPASSWORD`, damit es nicht über die Prozessliste (`/proc/<pid>/cmdline`, für alle lokalen Nutzer lesbar) einsehbar ist.
+
+**Dump-Dateien enthalten Zugangsdaten**: `server/db/auth-schema.ts` speichert Sitzungstoken und OAuth-Zugangstoken (`session.token`, `account.accessToken`/`refreshToken`/`idToken`) im Klartext — ein Dump enthält diese Werte vollständig, wer ihn lesen kann, kann damit fremde Sitzungen unmittelbar übernehmen. `scripts/backup-db.sh` setzt deshalb vor dem ersten Schreibzugriff `umask 077`: Zielverzeichnis und Dump-Datei entstehen dadurch direkt mit den Rechten `700` bzw. `600`, kein anderer lokaler Account kann sie lesen. Backups sind entsprechend wie Zugangsdaten zu behandeln — bei Transport auf einen anderen Host verschlüsselt ablegen (z. B. `age`, `gpg`) und nicht unverschlüsselt in Cloud-Speicher oder ein Backup-Ziel ohne vergleichbare Zugriffsbeschränkung kopieren.
+
+**Restore ist destruktiv**: Bestehende Objekte in der Zieldatenbank werden vor dem Wiedereinspielen gelöscht. Ohne `--force` fragt das Skript interaktiv nach (Ziel-Datenbank und Dateiname stehen dabei sichtbar in der Rückfrage); jede Antwort außer `ja` bricht folgenlos ab.
+
+**Empfehlung**: Vor jedem `npm run db:migrate` in Produktion ein Backup erzeugen (`npm run db:backup`).
 
 ## Entscheidungen, die man kennen sollte
 

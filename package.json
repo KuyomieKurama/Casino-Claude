@@ -2,6 +2,9 @@
   "name": "velora-casino-demo",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,7 +18,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/.bin/drizzle-kit migrate",
     "db:seed": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs server/seed/run-seed.ts",
-    "check:concurrency": "node --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs scripts/concurrency-check.ts"
+    "check:concurrency": "node --experimental-transform-types --experimental-loader=./scripts/ts-alias-loader.mjs scripts/concurrency-check.ts",
+    "db:backup": "bash scripts/backup-db.sh",
+    "db:restore": "bash scripts/restore-db.sh"
   },
   "dependencies": {
     "better-auth": "1.6.30",

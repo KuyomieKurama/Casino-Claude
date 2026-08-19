@@ -3,6 +3,7 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { ErrorState } from "./ErrorState";
 import { Button } from "@/components/ui/Button";
+import { logger } from "@/lib/logger";
 
 export type AsyncStatus = "loading" | "error" | "ready";
 
@@ -80,8 +81,10 @@ class RenderErrorBoundary extends Component<BoundaryProps, BoundaryState> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Bewusst nur in der Konsole — kein externes Tracking (Nicht-Ziel).
-    console.error("Renderfehler in AsyncBoundary:", error, info.componentStack);
+    // Bewusst nur in der Konsole — kein externes Tracking (Nicht-Ziel). Läuft im Browser: der
+    // Standard-Logger nutzt den sicheren Default ohne Stacktrace (lib/logger.ts kann die
+    // Produktionsumgebung hier nicht selbst prüfen).
+    logger.error("Renderfehler in AsyncBoundary", { error, componentStack: info.componentStack });
   }
 
   render() {

@@ -2,6 +2,10 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+/** server/admin/route-helpers.ts importiert seit der Logger-Umstellung @/lib/env, das
+ * "server-only" importiert — außerhalb von Next.js wirft das immer, siehe lib/env.test.ts. */
+vi.mock("server-only", () => ({}));
+
 const requireAdminMock = vi.fn();
 
 const { UnauthenticatedError, UnauthorizedError } = vi.hoisted(() => ({

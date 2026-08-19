@@ -4,6 +4,13 @@ import { getSession } from "@/server/auth/guards";
 import { applyRoundAction, type ApplyActionData } from "@/server/rounds/round-action-service";
 import { roundActionRequestSchema } from "@/server/rounds/interactive-schemas";
 import type { WalletRejectionCode } from "@/lib/wallet-policy";
+import { env } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
+
+// Stacktrace nur außerhalb der Produktion: lib/logger.ts kann NODE_ENV nicht selbst lesen
+// (process.env ist ausschließlich in lib/env.ts erlaubt), deshalb wird der bereits validierte
+// Wert hier als Parameter übergeben.
+const logger = createLogger({ includeStack: env.NODE_ENV !== "production" });
 
 /**
  * Spieleraktionen einer laufenden interaktiven Runde (Phase 3b, Auftrag §2). Anmeldepflicht
@@ -57,7 +64,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return result.ok ? json({ success: true, data: result.data }, 200) : json({ success: false, error: result.code }, 200);
   } catch (error: unknown) {
     // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace").
-    console.error("[api/rounds/:id/actions] unerwarteter Fehler:", error);
+    logger.error("Unerwarteter Fehler bei einer Rundenaktion", { route: "api/rounds/:id/actions", roundId, userId: session.user.id, error });
     return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

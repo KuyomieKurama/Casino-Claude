@@ -5,6 +5,13 @@ import { rgSettingsRequestSchema } from "@/server/rg/schemas";
 import { endPause, markReminderShown, pauseSession, setReminderInterval, setSessionLimit, startNewSession } from "@/server/rg/rg-settings-service";
 import { nowIso } from "@/lib/ids";
 import type { ResponsibleGaming } from "@/types/responsible-gaming";
+import { env } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
+
+// Stacktrace nur außerhalb der Produktion: lib/logger.ts kann NODE_ENV nicht selbst lesen
+// (process.env ist ausschließlich in lib/env.ts erlaubt), deshalb wird der bereits validierte
+// Wert hier als Parameter übergeben.
+const logger = createLogger({ includeStack: env.NODE_ENV !== "production" });
 
 /**
  * Nicht-kritische Responsible-Gaming-Einstellungen (Pause, Zeitlimit, Erinnerungsintervall,
@@ -75,7 +82,7 @@ export async function POST(request: Request): Promise<Response> {
     return json({ success: true, data: { rg } }, 200);
   } catch (error: unknown) {
     // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace").
-    console.error("[api/rg/settings] unerwarteter Fehler:", error);
+    logger.error("Unerwarteter Fehler bei den Responsible-Gaming-Einstellungen", { route: "api/rg/settings", userId, error });
     return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }

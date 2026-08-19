@@ -1,0 +1,125 @@
+# CI-Pipeline: Qualitätsprüfung, Build-Verifikation und Nebenläufigkeitsnachweis.
+#
+# Kein Deployment, kein Push, keine Veröffentlichung — ausschließlich Prüfschritte. Alle
+# Umgebungswerte unten sind offensichtliche Platzhalter für eine isolierte CI-Datenbank, keine
+# echten Geheimnisse; es werden keine GitHub-Secrets referenziert.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Nur Lesezugriff auf das Repository — die Pipeline schreibt nirgendwo zurück.
+permissions:
+  contents: read
+
+jobs:
+  # Schnelles, DB-loses Feedback: Lint, Typprüfung, vollständige Testsuite (server/db/test-harness.ts
+  # nutzt PGlite in-process, siehe vitest.config.ts für die dort gesetzten Platzhalter-Umgebungswerte).
+  qualitaet:
+    name: Qualität
+    runs-on: ubuntu-latest
+    # npm run test:full dauert lokal rund 127 Sekunden; 20 Minuten Puffer für langsamere Runner,
+    # ohne Wiederholungsmechanik (ein Fehlschlag soll sichtbar bleiben, nicht verschleiert werden).
+    timeout-minutes: 20
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typprüfung
+        run: npm run typecheck
+
+      - name: Tests (vollständig, inkl. RTP-Simulationen)
+        run: npm run test:full
+
+  # Produktionsbuild ohne erreichbare Datenbank — lokal geprüft (server/db/client.ts wird beim
+  # Build nicht kontaktiert). Eigener Job statt Anhang an "Qualität", damit ein Build-Fehler im
+  # CI-Überblick klar von Lint/Test-Fehlern unterscheidbar bleibt.
+  #
+  # NODE_ENV=production (nicht "test"): Next.js überschreibt ein bereits gesetztes NODE_ENV
+  # NICHT. Mit NODE_ENV=test hätte `next build` nie den Produktionszweig der Content-Security-
+  # Policy gebaut (isProductionRuntime in next.config.ts/middleware.ts wertet NODE_ENV aus, siehe
+  # dortige Kommentare) — der Build hätte also genau das nicht geprüft, was dieser Job eigentlich
+  # verifizieren soll. lib/env.ts erzwingt unter NODE_ENV=production zusätzlich eine https-URL für
+  # BETTER_AUTH_URL, deshalb der Platzhalter unten statt http://localhost:3000.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/velora_ci_platzhalter
+      BETTER_AUTH_SECRET: ci-platzhalter-geheimnis-mindestens-32-zeichen
+      BETTER_AUTH_URL: https://ci.invalid
+      NODE_ENV: production
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Produktionsbuild
+        run: npm run build
+
+  # Der Nebenläufigkeitsnachweis (scripts/concurrency-check.ts) braucht laut Auftrag zwingend
+  # echtes PostgreSQL statt PGlite, weil PGlite Transaktionen intern serialisiert und damit keine
+  # tatsächlichen Wettläufe zwischen parallelen Verbindungen reproduzieren kann.
+  nebenlaeufigkeit:
+    name: Nebenläufigkeit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: velora_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d velora_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/velora_ci
+      BETTER_AUTH_SECRET: ci-platzhalter-geheimnis-mindestens-32-zeichen
+      BETTER_AUTH_URL: http://localhost:3000
+      NODE_ENV: test
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Migrationen anwenden
+        run: npm run db:migrate
+
+      - name: Nebenläufigkeitsnachweis gegen echtes PostgreSQL
+        run: npm run check:concurrency

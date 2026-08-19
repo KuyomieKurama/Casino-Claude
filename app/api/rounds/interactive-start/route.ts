@@ -4,6 +4,13 @@ import { getSession } from "@/server/auth/guards";
 import { startInteractiveRound, type StartInteractiveRoundData } from "@/server/rounds/interactive-round-service";
 import { startInteractiveRoundRequestSchema } from "@/server/rounds/interactive-schemas";
 import type { WalletRejectionCode } from "@/lib/wallet-policy";
+import { env } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
+
+// Stacktrace nur außerhalb der Produktion: lib/logger.ts kann NODE_ENV nicht selbst lesen
+// (process.env ist ausschließlich in lib/env.ts erlaubt), deshalb wird der bereits validierte
+// Wert hier als Parameter übergeben.
+const logger = createLogger({ includeStack: env.NODE_ENV !== "production" });
 
 /**
  * Rundenstart für die drei interaktiven Spielfamilien (Blackjack, Mines, Video Poker; Phase 3b,
@@ -60,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch (error: unknown) {
     // Kein Stacktrace nach außen (CLAUDE.md, Fehlermeldungen: „ohne Stacktrace"). Serverseitig
     // bleibt der Fehler sichtbar (Plattform-Log), der Client sieht nur einen sachlichen Code.
-    console.error("[api/rounds/interactive-start] unerwarteter Fehler:", error);
+    logger.error("Unerwarteter Fehler beim interaktiven Rundenstart", { route: "api/rounds/interactive-start", userId, gameModeId: parsed.data.gameModeId, error });
     return json({ success: false, error: "SERVER_ERROR" }, 500);
   }
 }
