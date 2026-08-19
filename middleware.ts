@@ -29,9 +29,22 @@ export function middleware(request: NextRequest): NextResponse {
     return NextResponse.next({ request: { headers: forwardedHeaders } });
   }
 
-  const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
-  return NextResponse.redirect(loginUrl);
+  // WARNUNG AN KÜNFTIGE ÄNDERUNGEN: Der Location-Header MUSS relativ bleiben. `next start
+  // -H 127.0.0.1` setzt intern __NEXT_PRIVATE_ORIGIN fest auf `http://localhost:3000`
+  // (node_modules/next/dist/server/lib/start-server.js) — nicht per Umgebungsvariable
+  // überschreibbar. `request.url` (und damit `new URL(path, request.url)` sowie
+  // `request.nextUrl.origin`) erbt hinter einem Reverse Proxy IMMER diese interne Origin,
+  // egal welche Domain der Nutzer tatsächlich aufgerufen hat — daher NIEMALS eine absolute
+  // URL aus request.url/nextUrl.origin für Redirects bauen. `NextResponse.redirect()` selbst
+  // erzwingt zudem eine absolute URL (validateURL in next/dist/server/web/utils.js wirft bei
+  // einem relativen String), deshalb hier bewusst eine rohe NextResponse mit relativem
+  // Location-Header statt NextResponse.redirect(). Der Browser löst einen relativen
+  // Location-Header immer gegen die tatsächlich aufgerufene URL auf — das ist zugleich
+  // sicherer als eine Lösung über den Host- bzw. X-Forwarded-Host-Header, weil dieser von
+  // keinem Proxy erzwungen wird und damit von einem Client manipulierbar wäre.
+  const next = request.nextUrl.pathname + request.nextUrl.search;
+  const location = `/login?${new URLSearchParams({ next }).toString()}`;
+  return new NextResponse(null, { status: 307, headers: { location } });
 }
 
 export const config = {
