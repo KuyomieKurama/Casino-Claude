@@ -41,4 +41,24 @@ describe("HomeRows — Startseite zeigt Spiele im Vordergrund", () => {
     const root = container.firstElementChild;
     expect(root?.className).toMatch(/space-y-xl/);
   });
+
+  test("Spielreihen treten gestaffelt ein (stagger-list auf dem Wurzelelement)", () => {
+    const { container } = renderHomeRows();
+    const root = container.firstElementChild;
+    expect(root?.className).toMatch(/\bstagger-list\b/);
+  });
+
+  test("das hervorgehobene Spiel bekommt eine eigene, ruhige Präsenz-Animation (anim-panel-in) am direkten stagger-list-Kind", () => {
+    const { container } = renderHomeRows();
+    const featuredSection = screen.getByRole("heading", { level: 2, name: "Hervorgehobenes Spiel" }).closest("section");
+    expect(featuredSection?.className).toMatch(/\banim-panel-in\b/);
+    // Direktes Kind von stagger-list — sonst würde die generische Regel eine zweite Bewegung
+    // erzeugen (siehe Kommentar in HomeRows.tsx und app/globals.css).
+    expect(featuredSection?.parentElement).toBe(container.firstElementChild);
+  });
+
+  test("höchstens eine goldene Fläche (das hervorgehobene Spiel bleibt Umriss/Text, keine zweite Fläche)", () => {
+    const { container } = renderHomeRows();
+    expect(container.querySelectorAll(".bg-gold").length).toBeLessThanOrEqual(1);
+  });
 });

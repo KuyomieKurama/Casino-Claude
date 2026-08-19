@@ -7,6 +7,12 @@ import { cn } from "@/lib/cn";
  * Raster: 2 Spalten mobil, 3 Tablet, 4–6 Desktop (§11).
  * `heading` fügt eine h2 über dem Raster ein (optional nur für Screenreader) — die Karten
  * tragen h3, ohne diese Zwischenebene entstünde ein Überschriftensprung h1 → h3.
+ * `stagger-list` (siehe app/globals.css) lässt die Karten nacheinander statt schlagartig
+ * eintreten — Aufrufer, die bei Filterwechsel sichtbar machen wollen, dass sich der Inhalt
+ * geändert hat, geben zusätzlich einen React-`key` auf dem `<GameGrid>`-Element mit, der sich
+ * mit den Filterkriterien ändert (siehe Lobby.tsx); ohne neuen `key` bleibt ein unverändertes
+ * Element unangetastet, nur neu hinzugekommene Karten (z. B. „Mehr laden“) spielen die
+ * Eintritts-Bewegung ab.
  */
 export function GameGrid({
   games,
@@ -26,7 +32,7 @@ export function GameGrid({
     {heading ? <h2 className={headingHidden ? "sr-only" : "mb-3 text-md font-semibold text-primary"}>{heading}</h2> : null}
     <ul
       className={cn(
-        "grid grid-cols-2 gap-sm sm:gap-md",
+        "stagger-list grid grid-cols-2 gap-sm sm:gap-md",
         dense ? "md:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5",
         className,
       )}

@@ -86,6 +86,40 @@
   --dur-sheet: 320ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* ─── Bewegungssystem, Etappe 1 (Ergänzung) ────────────────────────────────
+     Fundament für Startseite und Lobby: Bewegung zeigt Ursache und Wirkung
+     (laden, filtern, drücken) — nie Dekoration. Alle Werte hier bewegen nur
+     transform/opacity (siehe Utilities unten), nie width/height/top/left, damit
+     kein Layout verspringt. */
+
+  /* Ausgangsdauer: kürzer als --dur-fade (Eingang), rund 70% davon — ein Element
+     soll spürbar schneller verschwinden, als es erschienen ist, statt symmetrisch
+     ein- und auszublenden. */
+  --dur-exit: 140ms;
+
+  /* Federnde Kurve mit leichtem Überschwingen: für kurze, kleine Bewegungen
+     (Druckfeedback, neu erscheinende Zustandsmarkierungen wie ein Auswahl-
+     Häkchen) — vermittelt eine spürbare Reaktion statt einer mechanisch-
+     linearen Bewegung. Bewusst nicht für große Wege verwendet, sonst wirkt das
+     Überschwingen unruhig statt lebendig. */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Ausgangskurve: Spiegelbild von --ease-out (Beschleunigung statt
+     Verzögerung) — ein Element, das verschwindet, beginnt langsam und nimmt
+     dann Fahrt auf, statt gleichmäßig-linear zu weichen. */
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+
+  /* Staffelungsversatz je Listen-/Rasterelement (30–50 ms-Korridor): Karten
+     einer Reihe oder eines Rasters erscheinen nacheinander, nicht alle
+     gleichzeitig — das Auge folgt einer Reihenfolge statt eines Aufblitzens
+     aller Kacheln auf einmal. */
+  --stagger-step: 40ms;
+
+  /* Skalierung für Druckfeedback (0,95–1,05-Korridor): sichtbare, aber kleine
+     Reaktion auf Zeigerdruck; kehrt beim Loslassen sofort auf 1 zurück (siehe
+     .press-feedback). */
+  --scale-press: 0.97;
+
   /* Typografie-Skala (rem) */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -340,6 +374,15 @@ body {
   transition-duration: var(--dur-fade);
   transition-timing-function: var(--ease-out);
 }
+/* Ausgangs-Pendant zu .transition-fade: gleiche Eigenschaften, aber kürzer und mit
+   Beschleunigungskurve (siehe --dur-exit/--ease-in oben) — für Bedienelemente, die dauerhaft im
+   DOM bleiben (z. B. absolut positioniert) und nur ihre Sichtbarkeit umschalten, statt gemountet/
+   entfernt zu werden. Nur so lässt sich ein Ausgang überhaupt mit CSS allein animieren. */
+.transition-exit {
+  transition-property: opacity, transform;
+  transition-duration: var(--dur-exit);
+  transition-timing-function: var(--ease-in);
+}
 
 @keyframes fade-in {
   from { opacity: 0; }
@@ -371,6 +414,13 @@ body {
   from { opacity: 0; transform: translateY(6px) scale(0.995); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+/* Zustandswechsel (Ergänzung): kleiner federnder Pop für Elemente, die eine gerade getroffene
+   Auswahl anzeigen (z. B. ein Häkchen an der aktiven Kategorie) — die Bewegung selbst ist die
+   Bestätigung ("das hat gewirkt"), nicht nur der Farbwechsel daneben. */
+@keyframes state-pop {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
 
 .anim-fade-in { animation: fade-in var(--dur-fade) var(--ease-out) both; }
 .anim-rise-in { animation: rise-in var(--dur-fade) var(--ease-out) both; }
@@ -388,17 +438,59 @@ body {
 .anim-skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; }
 .anim-reel { animation: reel-spin 0.35s linear infinite; }
 .anim-panel-in { animation: panel-in var(--dur-fade) var(--ease-out) both; }
+.anim-state-pop { animation: state-pop var(--dur-state) var(--ease-spring) both; }
+
+/* ─── Gestaffelter Eintritt: Rasterelemente folgen einander, nicht alle gleichzeitig ───────── */
+/* .stagger-list auf dem Container (z. B. <ul> eines Rasters oder die Reihenfolge der
+   Startseiten-Sektionen) — jedes direkte Kind bekommt automatisch --stagger-step * Index als
+   Verzögerung vor der ohnehin vorhandenen Eintritts-Bewegung, Ursache (Laden/Filterwechsel) und
+   Wirkung (sichtbare Abfolge) bleiben verknüpft. :not(.anim-panel-in) nimmt Kinder aus, die
+   bereits ihre eigene, betontere Eintrittsanimation tragen (z. B. das hervorgehobene Spiel) —
+   sie behalten diese, statt von der generischen Regel überschrieben zu werden. Ab dem 13. Kind
+   bleibt die Verzögerung gedeckelt: mehr gleichzeitig sichtbare Kacheln sind selten (siehe
+   LOBBY_PAGE_SIZE), und ein weiter wachsender Versatz wirkt eher zäh als lebendig. */
+.stagger-list > *:not(.anim-panel-in) {
+  animation: rise-in var(--dur-fade) var(--ease-out) both;
+}
+.stagger-list > *:nth-child(1) { animation-delay: calc(var(--stagger-step) * 0); }
+.stagger-list > *:nth-child(2) { animation-delay: calc(var(--stagger-step) * 1); }
+.stagger-list > *:nth-child(3) { animation-delay: calc(var(--stagger-step) * 2); }
+.stagger-list > *:nth-child(4) { animation-delay: calc(var(--stagger-step) * 3); }
+.stagger-list > *:nth-child(5) { animation-delay: calc(var(--stagger-step) * 4); }
+.stagger-list > *:nth-child(6) { animation-delay: calc(var(--stagger-step) * 5); }
+.stagger-list > *:nth-child(7) { animation-delay: calc(var(--stagger-step) * 6); }
+.stagger-list > *:nth-child(8) { animation-delay: calc(var(--stagger-step) * 7); }
+.stagger-list > *:nth-child(9) { animation-delay: calc(var(--stagger-step) * 8); }
+.stagger-list > *:nth-child(10) { animation-delay: calc(var(--stagger-step) * 9); }
+.stagger-list > *:nth-child(11) { animation-delay: calc(var(--stagger-step) * 10); }
+.stagger-list > *:nth-child(n+12) { animation-delay: calc(var(--stagger-step) * 11); }
+
+/* ─── Druckfeedback: sichtbare, von Natur aus unterbrechbare Reaktion auf Zeigerdruck ───────── */
+/* :active endet automatisch, sobald der Zeiger losgelassen wird oder das Element verlässt —
+   eine laufende Reaktion bricht dadurch immer sofort ab, ohne eigene JavaScript-Zustands-
+   verwaltung. Nur transform, keine Layoutverschiebung; wirkt auch auf einem umschließenden
+   Element (z. B. der Spielkarte), solange darin ein Link/Button aktiviert wird — die ganze
+   Karte reagiert, nicht nur der Button. */
+.press-feedback {
+  transition: transform var(--dur-state) var(--ease-spring);
+}
+.press-feedback:active {
+  transform: scale(var(--scale-press));
+}
 
 /* Bei reduced motion bleiben Deckkraftwechsel, Transformationen entfallen. */
 @media (prefers-reduced-motion: reduce) {
   .transition-state,
-  .transition-fade {
+  .transition-fade,
+  .transition-exit {
     transition-property: color, background-color, border-color, outline-color, opacity, box-shadow;
   }
   .anim-rise-in,
   .anim-sheet-up,
   .anim-sheet-side,
-  .anim-panel-in {
+  .anim-panel-in,
+  .anim-state-pop,
+  .stagger-list > *:not(.anim-panel-in) {
     animation-name: fade-in;
   }
   .anim-reel {
@@ -409,6 +501,9 @@ body {
     opacity: 0.7;
   }
   .hover-lift:hover {
+    transform: none;
+  }
+  .press-feedback:active {
     transform: none;
   }
 }

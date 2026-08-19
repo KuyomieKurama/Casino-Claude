@@ -42,3 +42,38 @@ describe("GameCard — Geschwisterhinweis (Auftrag §2)", () => {
     expect(screen.getByText("Auch als: Amerikanisch, Live")).toBeInTheDocument();
   });
 });
+
+describe("GameCard — Druckfeedback und Anheben (Auftrag §1/§3)", () => {
+  it.each(["default", "compact", "featured"] as const)(
+    "Variante %s trägt press-feedback zusätzlich zum vorhandenen Kantenlicht (hover-elevate)",
+    (variant) => {
+      const { container } = renderCard(<GameCard game={base} variant={variant} />);
+      const article = container.querySelector("article");
+      expect(article?.className).toMatch(/\bpress-feedback\b/);
+      expect(article?.className).toMatch(/\bhover-elevate\b/);
+    },
+  );
+
+  it("die featured-Variante trägt keine eigene Eintrittsanimation (die kommt vom Seiten-Wrapper, sonst würde sich die Bewegung verdoppeln)", () => {
+    const { container } = renderCard(<GameCard game={base} variant="featured" />);
+    const article = container.querySelector("article");
+    expect(article?.className).not.toMatch(/\banim-panel-in\b/);
+  });
+});
+
+describe("GameCard — stabile Abmessungen (kein Springen bei Hover oder langen Beschriftungen)", () => {
+  it("das Bewegungssystem verändert nur transform/box-shadow, nie Breite oder Höhe der Karte", () => {
+    const { container } = renderCard(<GameCard game={base} />);
+    const article = container.querySelector("article");
+    // hover-elevate/press-feedback animieren laut app/globals.css ausschließlich transform und
+    // box-shadow — keine der beiden Klassen im Markup deutet auf width/height/top/left hin.
+    expect(article?.className).not.toMatch(/\b(w-|h-)\[/);
+  });
+
+  it("lange Spielnamen werden auf eine Zeile begrenzt, statt die Kachel zu strecken", () => {
+    const longName = { ...base, name: "Ein außergewöhnlich langer Spieltitel, der eigentlich nicht in eine Kachel passt" };
+    const { container } = renderCard(<GameCard game={longName} />);
+    const heading = container.querySelector("h3");
+    expect(heading?.className).toMatch(/line-clamp-1/);
+  });
+});

@@ -63,7 +63,13 @@ export function Lobby() {
             <p className="ml-auto text-sm text-muted sm:ml-0" aria-live="polite">
               {hydrated ? (
                 <>
-                  <span className="tabular font-medium text-primary">{results.length}</span> {results.length === 1 ? "Spiel" : "Spiele"}
+                  {/* key erzwingt einen Remount bei jeder Änderung der Zahl — Ergebnisanzahl
+                      wahrnehmbar aktualisiert (Auftrag §3), nicht nur für Screenreader über
+                      aria-live, sondern auch sichtbar über den kurzen Zustandswechsel-Pop. */}
+                  <span key={results.length} className="anim-state-pop tabular font-medium text-primary">
+                    {results.length}
+                  </span>{" "}
+                  {results.length === 1 ? "Spiel" : "Spiele"}
                 </>
               ) : null}
             </p>
@@ -109,7 +115,10 @@ export function Lobby() {
               </EmptyState>
             ) : (
               <>
-                <GameGrid games={shown} />
+                {/* key wechselt nur mit den Filterkriterien (nicht mit "Mehr laden") — bei
+                    Filterwechsel wird das sichtbar, statt dass der Inhalt kommentarlos springt;
+                    beim bloßen Nachladen weiterer Karten bleiben bereits gezeigte unangetastet. */}
+                <GameGrid key={criteriaKey} games={shown} />
                 {shown.length < results.length ? (
                   <div className="mt-6 flex justify-center">
                     <Button variant="outline" onClick={() => setVisible((v) => v + LOBBY_PAGE_SIZE)}>

@@ -207,6 +207,8 @@ Siehe `ENGINE-BRIEF.md` für Rahmen und Regeln; bei Konflikten gelten `velora-im
 
 **Kontrast-Tests**: `app/design-tokens.test.ts` prüft Farbkontraste gegen WCAG AA (4.5:1 für Text, 3:1 für UI-Komponenten) im gerenderten DOM — nicht theoretisch, sondern im echten Browser-Kontext.
 
+**Gestaltungsentscheidungen** werden mit dem Plugin `ui-ux-pro-max` abgeglichen. Ergebnis für das Redesign (Etappe 1, Bewegungssystem): Richtung *Premium dark + gold accent* mit Serif-Display plus Inter bestätigt der Bestand, kein Neuanfang nötig. Verworfen wurde *3D & Hyperrealism* (WebGL) — Begründung: schlechte Performance und mangelnde Barrierefreiheit, die Esports-Anmutung passt zudem nicht zum Projekt.
+
 ## Tests
 
 Vitest + jsdom, Setup `test/setup.ts`, Alias `@` → Root.

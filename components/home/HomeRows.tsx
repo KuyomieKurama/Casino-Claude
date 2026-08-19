@@ -41,9 +41,17 @@ export function HomeRows() {
   }
 
   return (
-    <div className="space-y-xl sm:space-y-2xl">
+    // stagger-list (app/globals.css): die Reihen treten nacheinander ein, nicht schlagartig —
+    // die Reihenfolge im Markup ist zugleich die Sichtreihenfolge (was zuerst gesehen werden
+    // soll, erscheint zuerst). Der direkte Kind-Wrapper des hervorgehobenen Spiels trägt
+    // anim-panel-in (statt der generischen rise-in-Bewegung): eine ruhige, aber spürbare eigene
+    // Präsenz (minimales Skalieren zusätzlich zum Verschieben) — ganz ohne zusätzliche Farbe.
+    // Die anim-panel-in-Klasse muss am direkten Kind von .stagger-list sitzen (hier: <section>),
+    // nicht an der GameCard selbst (verschachtelt darin), sonst greift die :not(.anim-panel-in)-
+    // Ausnahme nicht und beide Bewegungen würden sich addieren.
+    <div className="stagger-list space-y-xl sm:space-y-2xl">
       {featured ? (
-        <section aria-labelledby="featured-title">
+        <section aria-labelledby="featured-title" className="anim-panel-in">
           <h2 id="featured-title" className="sr-only">
             Hervorgehobenes Spiel
           </h2>

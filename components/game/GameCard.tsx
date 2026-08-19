@@ -58,7 +58,7 @@ export function GameCard({ game, variant = "default", className, priority }: Gam
     return (
       <article
         className={cn(
-          "hover-elevate group relative flex w-[160px] flex-col overflow-hidden rounded-card border border-border-subtle bg-surface xs:w-[176px]",
+          "hover-elevate press-feedback group relative flex w-[160px] flex-col overflow-hidden rounded-card border border-border-subtle bg-surface xs:w-[176px]",
           inactive && "opacity-60",
           className,
         )}
@@ -88,10 +88,14 @@ export function GameCard({ game, variant = "default", className, priority }: Gam
     // und ersetzt die goldene Signaturlinie bewusst durch Kantenlicht (siehe app/globals.css) —
     // Tiefe über Licht, nicht über eine zweite goldene Fläche neben dem primären CTA-Button
     // dieser Karte ("Gold bleibt knapp").
+    // Kein eigenes anim-* hier: die ruhige, aber spürbare Eintritts-Präsenz des hervorgehobenen
+    // Spiels kommt vom umschließenden <section>-Wrapper (siehe HomeRows.tsx, anim-panel-in) —
+    // eine zweite, verschachtelte Animation auf der Karte selbst würde die Bewegung nur
+    // verdoppeln, statt sie ruhiger wirken zu lassen.
     return (
       <article
         className={cn(
-          "hover-elevate group relative grid overflow-hidden rounded-card border border-border-subtle bg-surface md:grid-cols-[1.4fr_1fr]",
+          "hover-elevate press-feedback group relative grid overflow-hidden rounded-card border border-border-subtle bg-surface md:grid-cols-[1.4fr_1fr]",
           inactive && "opacity-60",
           className,
         )}
@@ -124,7 +128,7 @@ export function GameCard({ game, variant = "default", className, priority }: Gam
   return (
     <article
       className={cn(
-        "hover-elevate group relative flex flex-col overflow-hidden rounded-card border border-border-subtle bg-surface",
+        "hover-elevate press-feedback group relative flex flex-col overflow-hidden rounded-card border border-border-subtle bg-surface",
         inactive && "opacity-60",
         className,
       )}

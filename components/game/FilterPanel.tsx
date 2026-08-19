@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Drawer } from "@/components/ui/Drawer";
 import { providers } from "@/data/providers";
 import { mechanics, difficultyLabel } from "@/data/categories";
@@ -65,11 +66,25 @@ export function FilterPanel({ criteria, onApply, onReset, mode }: FilterPanelPro
     setDraft({ provider: criteria.provider, mechanic: criteria.mechanic, difficulty: criteria.difficulty, sort: criteria.sort });
   }, [criteria.provider, criteria.mechanic, criteria.difficulty, criteria.sort]);
 
+  // Aktive Filter nicht allein über Farbe erkennbar (Auftrag §3): die Anzahl steht als Text in
+  // einer umrissenen Badge (Form + Ziffer, nicht nur eine Farbe) neben "Filter"/im Auslöser-
+  // Button, zusätzlich verschwindet/erscheint der ganze "Zurücksetzen"-Button — zwei von Farbe
+  // unabhängige Signale. `anim-state-pop` markiert das Erscheinen als spürbare Reaktion auf die
+  // gerade getroffene Auswahl, nicht als beiläufige Änderung.
+  const activeBadge = activeCount > 0 ? (
+    <Badge tone="gold" className="anim-state-pop" aria-label={`${activeCount} ${activeCount === 1 ? "aktiver Filter" : "aktive Filter"}`}>
+      {activeCount}
+    </Badge>
+  ) : null;
+
   if (mode === "sidebar") {
     return (
       <aside aria-label="Filter" className="sticky top-[calc(var(--header-height)+1rem)] space-y-4 rounded-card border border-border-subtle bg-surface p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-primary">Filter</h2>
+          <h2 className="flex items-center gap-2 text-base font-semibold text-primary">
+            Filter
+            {activeBadge}
+          </h2>
           {activeCount > 0 ? (
             <Button size="sm" variant="ghost" onClick={onReset}>
               Zurücksetzen
@@ -84,7 +99,8 @@ export function FilterPanel({ criteria, onApply, onReset, mode }: FilterPanelPro
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)} iconLeft={<SlidersHorizontal className="size-4" aria-hidden="true" />} aria-haspopup="dialog">
-        Filter{activeCount > 0 ? ` (${activeCount})` : ""}
+        Filter
+        {activeBadge}
       </Button>
       <Drawer
         open={open}
