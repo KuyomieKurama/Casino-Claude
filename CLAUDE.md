@@ -18,12 +18,33 @@ npm run build                      # Next.js build mit Node.js-Server (next buil
 npm start                          # Produktionsserver nach build
 npm run lint                       # ESLint
 npm run typecheck                  # tsc --noEmit
-npm test                           # Vitest (run)
-npm run test:watch                 # Vitest (watch)
+npm test                           # Vitest (ohne RTP-Simulationen, ~120 Sekunden)
+npm run test:rtp                   # Vitest (nur RTP-Simulationstests, ~18 Sekunden)
+npm run test:full                  # Vitest (alles, ~127 Sekunden; für CI/CD)
+npm run test:watch                 # Vitest (watch-Modus, Standard-Config ohne RTP)
 node scripts/generate-thumbs.mjs   # Erzeugt public/thumbs/*.svg
 ```
 
 Statischer Export (`NEXT_OUTPUT=export`) ist nicht mehr möglich — siehe `next.config.ts` für Begründung.
+
+### Testgruppen (3 Geschwindigkeitsstufen)
+
+Die Test-Suite ist in drei Gruppen aufgeteilt, um schnelle lokale Entwicklung zu ermöglichen:
+
+| Kommando | Umfang | Laufzeit | Zweck |
+|----------|--------|----------|-------|
+| `npm test` | Alle Tests außer RTP-Simulationen | ~120 Sekunden | Entwicklung: schnell, vollständig |
+| `npm run test:rtp` | Nur die fünf RTP-Simulationstests | ~18 Sekunden | RTP-Belege isoliert prüfen |
+| `npm run test:full` | Alle 1021 Tests | ~127 Sekunden | Verifikation, CI/CD, Release |
+
+**RTP-Simulationstests** (mit `@rtp`-Tag markiert, übersprungenin `npm test`):
+- `lib/rng.test.ts`: #5b — 69 Paytables, 158.9 Mio. Runden
+- `components/game/slot/slots-logic.test.ts`: #b — 11 Slot-Tabellen, 5 Mio. Runden je Tabelle
+- `components/game/engine/arcade/arcade-logic.test.ts` — 5 Mio. Runden über vier Arcade-Engines (Plinko, Wheel, Dice)
+- `components/game/engine/roulette/roulette-logic.test.ts` — 5 Mio. Runden je vier repräsentativen Wetten
+- `components/game/engine/baccarat/baccarat-logic.test.ts` — 5 Mio. Coups mit echtem Schuh-Simulator
+
+Diese Tests garantieren, dass ausgewiesene RTP-Werte (±0,5 Prozentpunkte) durch massive Stichproben belegt sind. Sie laufen isoliert zum schnelleren Feedback während der Entwicklung.
 
 ## Stack & Pfade
 

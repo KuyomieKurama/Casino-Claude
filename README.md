@@ -41,7 +41,10 @@ npm run build      # Produktionsbuild (Node.js-Server erforderlich)
 npm start          # Produktionsserver (nach build)
 npm run typecheck  # tsc --noEmit
 npm run lint       # ESLint inkl. Schichtregeln
-npm test           # Vitest
+npm test           # Vitest (schnell, ohne RTP-Simulationen)
+npm run test:rtp   # Nur RTP-Simulationstests
+npm run test:full  # Alle Tests (für CI/CD, Verifikation)
+npm run test:watch # Vitest Watch-Modus
 npm run db:generate   # Drizzle-Schema regenerieren (nach Schema-Änderung)
 npm run db:migrate    # Migrationen gegen DB anwenden
 npm run db:seed       # Test-Daten einfügen
@@ -82,6 +85,25 @@ types/             gemeinsame Typen
 - `server/` importiert nichts aus `components/`, `state/`
 - `components/`, `state/` importieren nichts aus `server/`
 - LocalStorage ausschließlich in `lib/storage.ts`
+
+## Tests
+
+**1021 Tests**, aufgeteilt in drei Gruppen für schnelles Feedback:
+
+```bash
+npm test                # Schnell: 1017 Tests ohne RTP-Simulationen (~120 Sekunden)
+npm run test:rtp        # RTP-Belege: 5 Simulationtests (~18 Sekunden)
+npm run test:full       # Alles: 1021 Tests (~127 Sekunden)
+npm run test:watch      # Watch-Modus mit Standard-Config (schnell)
+```
+
+**RTP-Simulationen** (mit `@rtp`-Tag markiert):
+- Fünf Tests über massiven Stichprobenumfang (158.9–5 Mio. Runden je Test)
+- Belegen ausgewiesene RTP-Werte ±0,5 Prozentpunkte
+- In `npm test` übersprungen für schnelle Entwicklung
+- In `npm run test:full` und CI/CD inkludiert für Verifikation
+
+Siehe `CLAUDE.md` und `docs/TEAM.md` für Details zur Testorganisation und paralleler Entwicklung.
 
 ## Konfiguration
 
