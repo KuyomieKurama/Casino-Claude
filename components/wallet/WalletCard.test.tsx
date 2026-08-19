@@ -1,7 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { AppProviders } from "@/state/AppProviders";
+import { installDialogPolyfill } from "@/test/dialog-polyfill";
 import { WalletCard } from "./WalletCard";
+
+installDialogPolyfill();
 
 function renderWallet() {
   return render(
@@ -38,5 +42,16 @@ describe("WalletCard", () => {
     // signature-top ist eine dekorative Haarlinie (box-shadow), keine gefüllte bg-gold-Fläche —
     // die Wallet-Karte ist die im Designsystem vorgesehene Ausnahme für "tragende Flächen".
     expect(container.querySelectorAll('[class*="bg-gold"]').length).toBe(0);
+  });
+
+  it("verwendet auch im geöffneten Zurücksetzen-Dialog keine goldene Fläche", async () => {
+    const u = userEvent.setup();
+    const { container } = renderWallet();
+    await u.click(screen.getByRole("button", { name: "Zurücksetzen" }));
+    const dialog = screen.getByRole("dialog");
+    expect(container.querySelectorAll('[class*="bg-gold"]').length).toBe(0);
+    // Der Bestätigungsbutton im Dialog trägt denselben Namen wie der auslösende Button —
+    // deshalb hier gezielt innerhalb des Dialogs gesucht statt global.
+    expect(within(dialog).getByRole("button", { name: "Zurücksetzen" })).toBeInTheDocument();
   });
 });

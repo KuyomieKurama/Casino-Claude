@@ -69,9 +69,9 @@ describe("SettingsPage", () => {
     expect(signOutMock).not.toHaveBeenCalled();
   });
 
-  it("verwendet höchstens eine goldene Fläche (im Nutzerbereich bevorzugt keine)", () => {
+  it("verwendet keine goldene Fläche — Gold gehört dem Spiel, nicht der Kontoverwaltung", () => {
     const { container } = renderSettings();
-    expect(container.querySelectorAll('[class*="bg-gold"]').length).toBeLessThanOrEqual(1);
+    expect(container.querySelectorAll('[class*="bg-gold"]').length).toBe(0);
   });
 
   it("zeigt die ausführliche Ton-Einstellung mit Umschalter und Lautstärkeregler (Auftrag: Klang-Infrastruktur)", () => {

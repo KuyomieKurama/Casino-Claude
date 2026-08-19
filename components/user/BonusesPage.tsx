@@ -29,11 +29,13 @@ export function BonusesPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <p className="text-sm text-muted">Bonus-Credits</p>
-          <p className="tabular mt-1 text-xl font-semibold text-primary">{hydrated ? `${formatCredits(wallet.bonusBalanceMinor)} Credits` : <Skeleton className="h-7 w-24" />}</p>
+          {/* <div> statt <p>: Skeleton rendert ein Block-Element, das laut HTML-Spezifikation
+              nicht in ein <p> gehört (sonst Hydration-Warnung). */}
+          <div className="tabular mt-1 text-xl font-semibold text-primary">{hydrated ? `${formatCredits(wallet.bonusBalanceMinor)} Credits` : <Skeleton className="h-7 w-24" />}</div>
         </Card>
         <Card>
           <p className="text-sm text-muted">Freirunden</p>
-          <p className="tabular mt-1 text-xl font-semibold text-primary">{hydrated ? wallet.freeSpins : <Skeleton className="h-7 w-10" />}</p>
+          <div className="tabular mt-1 text-xl font-semibold text-primary">{hydrated ? wallet.freeSpins : <Skeleton className="h-7 w-10" />}</div>
         </Card>
       </div>
       <section aria-labelledby="grants-title" className="space-y-3">
@@ -43,9 +45,10 @@ export function BonusesPage() {
         {!hydrated ? (
           <Skeleton className="h-24 w-full" />
         ) : grants.length === 0 ? (
-          <EmptyState icon={<Gift aria-hidden="true" />} title="Noch keine Promotion aktiviert." text="Auf der Promotions-Seite kannst du Beispiele aktivieren." action={<LinkButton href="/promotions" variant="primary">Zu den Promotions</LinkButton>} compact />
+          // Kontoverwaltung bleibt golden-frei (§4/Auftrag): "outline" statt "primary".
+          <EmptyState icon={<Gift aria-hidden="true" />} title="Noch keine Promotion aktiviert." text="Auf der Promotions-Seite kannst du Beispiele aktivieren." action={<LinkButton href="/promotions" variant="outline">Zu den Promotions</LinkButton>} compact />
         ) : (
-          <ul className="divide-y divide-border-subtle rounded-card border border-border-subtle bg-surface">
+          <ul className="stagger-list divide-y divide-border-subtle rounded-card border border-border-subtle bg-surface">
             {grants.map((g) => {
               const promo = promotions.find((p) => p.id === g.roundId);
               return (

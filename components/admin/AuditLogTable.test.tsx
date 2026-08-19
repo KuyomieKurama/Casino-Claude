@@ -43,4 +43,11 @@ describe("AuditLogTable", () => {
     expect(headers.length).toBeGreaterThan(0);
     for (const header of headers) expect(header).toHaveAttribute("scope", "col");
   });
+
+  test("zeigt Informationen dichter als der Nutzerbereich (Admin-Auftrag 'Gestaltung')", () => {
+    const { container } = render(<AuditLogTable entries={[entry()]} total={1} />);
+    // px-3 py-2 statt der großzügigeren px-4 py-3 aus components/wallet/TransactionList.tsx.
+    const cell = container.querySelector("tbody td");
+    expect(cell).toHaveClass("px-3", "py-2");
+  });
 });

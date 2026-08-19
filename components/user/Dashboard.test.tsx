@@ -40,8 +40,17 @@ describe("Dashboard", () => {
     expect(screen.getByRole("link", { name: "Zum Bereich" })).toHaveAttribute("href", "/responsible-gaming");
   });
 
-  it("verwendet höchstens eine goldene Fläche pro Bildschirm", () => {
+  it("verwendet keine goldene Fläche — Gold gehört dem Spiel, nicht der Kontoverwaltung", () => {
     const { container } = renderDashboard();
-    expect(container.querySelectorAll('[class*="bg-gold"]').length).toBeLessThanOrEqual(1);
+    expect(container.querySelectorAll('[class*="bg-gold"]').length).toBe(0);
+  });
+
+  it("hebt das Guthaben als wichtigste Kennzahl visuell hervor (klare Hierarchie)", () => {
+    renderDashboard();
+    const balanceValue = screen.getByText("Guthaben").closest("div")?.parentElement?.querySelector(".tabular");
+    expect(balanceValue).toHaveClass("text-2xl");
+    const roundsValue = screen.getByText("Gespielte Runden").closest("div")?.parentElement?.querySelector(".tabular");
+    expect(roundsValue).toHaveClass("text-xl");
+    expect(roundsValue).not.toHaveClass("text-2xl");
   });
 });

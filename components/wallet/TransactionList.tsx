@@ -63,7 +63,9 @@ export function TransactionList({ transactions, hydrated, limit, className, empt
         icon={<History aria-hidden="true" />}
         title="Noch keine Buchungen."
         text="Sobald du eine Runde spielst oder Credits hinzufügst, erscheint hier jede Bewegung mit Kontostand danach."
-        action={emptyAction ?? <LinkButton href="/casino" variant="primary">Zur Lobby</LinkButton>}
+        // Kontoverwaltung bleibt golden-frei (§4/Auftrag): "outline" statt "primary" — Gold bleibt
+        // dem Spielbereich vorbehalten, auch wenn dieser Leerzustand dorthin verlinkt.
+        action={emptyAction ?? <LinkButton href="/casino" variant="outline">Zur Lobby</LinkButton>}
         className={className}
       />
     );
@@ -71,8 +73,11 @@ export function TransactionList({ transactions, hydrated, limit, className, empt
 
   return (
     <div className={className}>
-      {/* Mobil: Karten */}
-      <ul className="space-y-2 md:hidden">
+      {/* Mobil: Karten — stagger-list lässt Zeilen nacheinander eintreten (app/globals.css), nicht
+          schlagartig. Der Container wird bei jeder Filter-/Seitennavigation frisch gerendert
+          (HistoryPage ist URL-getrieben), die Eintritts-Bewegung spielt deshalb bei jedem
+          Seitenwechsel erneut ab und macht sichtbar, dass sich der Inhalt geändert hat. */}
+      <ul className="stagger-list space-y-2 md:hidden">
         {rows.map((tx) => (
           <li key={tx.id} className="rounded-card border border-border-subtle bg-surface p-3">
             <div className="flex items-start justify-between gap-3">
@@ -109,7 +114,7 @@ export function TransactionList({ transactions, hydrated, limit, className, empt
               <th scope="col" className="px-4 py-3 text-right font-medium">Kontostand danach</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {rows.map((tx) => (
               <tr key={tx.id} className="border-t border-border-subtle">
                 <td className="tabular whitespace-nowrap px-4 py-3 text-muted">{formatDateTime(tx.createdAt)}</td>

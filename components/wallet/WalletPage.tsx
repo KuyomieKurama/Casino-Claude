@@ -35,7 +35,9 @@ export function WalletPage({ recentEntries }: WalletPageProps) {
             <h2 id="recent-title" className="text-md font-semibold text-primary">
               Letzte Bewegungen
             </h2>
-            <Link href="/history" className="inline-flex min-h-11 items-center text-sm font-medium text-gold hover:text-gold-strong">
+            {/* Kontoverwaltung bleibt golden-frei (§4/Auftrag): Teal statt Gold, dieselbe Akzentfarbe
+                wie der aktive Eintrag der Unternavigation (components/layout/UserShell.tsx). */}
+            <Link href="/history" className="inline-flex min-h-11 items-center text-sm font-medium text-teal hover:text-primary">
               Gesamte Historie
             </Link>
           </div>

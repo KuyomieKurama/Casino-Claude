@@ -107,6 +107,47 @@ describe("GameDetail — Moduswechsel (Auftrag §3)", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/nicht möglich/);
   });
+
+  it("gibt den berechneten RTP an den Moduswechsler weiter — sichtbar direkt neben der Modusauswahl, mit .anim-state-pop", () => {
+    engineForMock.mockReturnValue(undefined);
+    renderDetail();
+    // European Roulette: alle Standardwetten haben denselben Erwartungswert (36/37) — ein
+    // einzelner RTP-Wert, identisch in Fakten-Card und Moduswechsler-Kennzahlenzeile.
+    // /^RTP \d/ statt /^RTP /, weil die Auszahlungstabellen-Übersicht eine Caption "RTP je
+    // Wette. …" trägt, die sonst mitträfe; die Fakten-Card hat "RTP"/"97,3 %" in getrennten
+    // <dt>/<dd>-Elementen und träfe ohnehin nicht.
+    const switcherLine = screen.getByText(/^RTP \d/);
+    expect(switcherLine).toHaveTextContent("RTP 97,3 % · Einsatz 0,10–50,00 Credits");
+    expect(switcherLine.className).toMatch(/\banim-state-pop\b/);
+  });
+});
+
+describe("GameDetail — höchstens eine goldene Fläche pro Bildschirm (Auftrag Etappe 2 §1)", () => {
+  /** Wie in components/game/engine/GameShell.test.tsx: exakter Klassentoken, kein Substring-Treffer
+   * auf "bg-gold-strong"/"hover:bg-gold-strong". */
+  function goldSurfaceCount(container: HTMLElement): number {
+    return Array.from(container.querySelectorAll<HTMLElement>("*")).filter((el) =>
+      (el.getAttribute("class") ?? "").split(/\s+/).includes("bg-gold"),
+    ).length;
+  }
+
+  it("ohne Anmeldung ist nur der Anmelde-Link golden", () => {
+    engineForMock.mockReturnValue(FakeEngine);
+    const { container } = renderDetail(european, rouletteModes, "Roulette", null);
+    expect(goldSurfaceCount(container)).toBe(1);
+  });
+
+  it("angemeldet, spielbar, Runde noch nicht gestartet: nur der Spielen-Button ist golden", () => {
+    engineForMock.mockReturnValue(FakeEngine);
+    const { container } = renderDetail();
+    expect(goldSurfaceCount(container)).toBe(1);
+  });
+
+  it("ohne hinterlegte Engine (noch nicht spielbar): keine goldene Fläche", () => {
+    engineForMock.mockReturnValue(undefined);
+    const { container } = renderDetail();
+    expect(goldSurfaceCount(container)).toBe(0);
+  });
 });
 
 describe("GameDetail — Anmeldepflicht (Auftrag „Spielen nur angemeldet“)", () => {

@@ -115,32 +115,32 @@ export function UsersTable({ items, currentAdminId, page, pageCount, total }: Us
           <caption className="sr-only">Nutzerliste mit Rolle, Status, Gastkennzeichen, Erstellungsdatum, Rundenzahl und RG-Kurzstatus</caption>
           <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
             <tr>
-              <th scope="col" className="px-4 py-3 font-medium">Nutzer</th>
-              <th scope="col" className="px-4 py-3 font-medium">Rolle</th>
-              <th scope="col" className="px-4 py-3 font-medium">Status</th>
-              <th scope="col" className="px-4 py-3 font-medium">Gast</th>
-              <th scope="col" className="px-4 py-3 font-medium">Erstellt</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">Runden</th>
-              <th scope="col" className="px-4 py-3 font-medium">RG-Status</th>
-              <th scope="col" className="px-4 py-3 font-medium">Aktionen</th>
+              <th scope="col" className="px-3 py-2 font-medium">Nutzer</th>
+              <th scope="col" className="px-3 py-2 font-medium">Rolle</th>
+              <th scope="col" className="px-3 py-2 font-medium">Status</th>
+              <th scope="col" className="px-3 py-2 font-medium">Gast</th>
+              <th scope="col" className="px-3 py-2 font-medium">Erstellt</th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">Runden</th>
+              <th scope="col" className="px-3 py-2 font-medium">RG-Status</th>
+              <th scope="col" className="px-3 py-2 font-medium">Aktionen</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-t border-border-subtle align-top">
-                <td className="px-4 py-3">
+                <td className="px-3 py-2">
                   <p className="text-primary">{item.name}</p>
                   <p className="text-xs text-muted">{item.email}</p>
                 </td>
-                <td className="px-4 py-3 text-primary">{item.role === "admin" ? "Admin" : "Nutzer"}</td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2 text-primary">{item.role === "admin" ? "Admin" : "Nutzer"}</td>
+                <td className="px-3 py-2">
                   <Badge tone={item.status === "active" ? "success" : "danger"}>{item.status === "active" ? "Aktiv" : "Gesperrt"}</Badge>
                 </td>
-                <td className="px-4 py-3 text-primary">{item.isGuest ? "Ja" : "Nein"}</td>
-                <td className="tabular px-4 py-3 text-primary">{formatDate(item.createdAt)}</td>
-                <td className="tabular px-4 py-3 text-right text-primary">{item.roundCount}</td>
-                <td className="px-4 py-3 text-primary">{rgSummaryText(item)}</td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2 text-primary">{item.isGuest ? "Ja" : "Nein"}</td>
+                <td className="tabular px-3 py-2 text-primary">{formatDate(item.createdAt)}</td>
+                <td className="tabular px-3 py-2 text-right text-primary">{item.roundCount}</td>
+                <td className="px-3 py-2 text-primary">{rgSummaryText(item)}</td>
+                <td className="px-3 py-2">
                   <RowActions item={item} currentAdminId={currentAdminId} onLock={() => setPending({ kind: "lock", userId: item.id, name: item.name })} onUnlock={() => setPending({ kind: "unlock", userId: item.id, name: item.name })} onRevoke={() => setPending({ kind: "revoke", userId: item.id, name: item.name })} />
                 </td>
               </tr>

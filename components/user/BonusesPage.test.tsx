@@ -32,8 +32,8 @@ describe("BonusesPage", () => {
     expect(screen.getByRole("link", { name: "Zu den Promotions" })).toHaveAttribute("href", "/promotions");
   });
 
-  it("verwendet höchstens eine goldene Fläche pro Bildschirm", () => {
+  it("verwendet keine goldene Fläche — Gold gehört dem Spiel, nicht der Kontoverwaltung", () => {
     const { container } = renderBonuses();
-    expect(container.querySelectorAll('[class*="bg-gold"]').length).toBeLessThanOrEqual(1);
+    expect(container.querySelectorAll('[class*="bg-gold"]').length).toBe(0);
   });
 });

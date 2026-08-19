@@ -104,3 +104,67 @@ describe("ModeSwitcher", () => {
     expect(screen.getByRole("group", { name: "Roulette: Modus wählen" })).toBeInTheDocument();
   });
 });
+
+describe("ModeSwitcher — RTP und Einsatzgrenzen wechseln sichtbar mit (Etappe 2 §2)", () => {
+  it("zeigt RTP und Einsatzgrenze des aktiven Modus mit einer wahrnehmbaren Übergangsklasse (.anim-state-pop)", () => {
+    render(
+      <ModeSwitcher
+        modes={[europaeisch, amerikanisch]}
+        activeModeId={europaeisch.id}
+        titleLabel="Roulette"
+        roundInProgress={false}
+        activeRtpLabel="97,30 %"
+      />,
+    );
+    const line = screen.getByText(/RTP 97,30 %/);
+    expect(line).toHaveTextContent("Einsatz 0,10–50,00 Credits");
+    expect(line.className).toMatch(/\banim-state-pop\b/);
+  });
+
+  it("wechselt die angezeigten Werte, wenn ein anderer Modus aktiv ist — kein stiller Wechsel", () => {
+    const bankModus: GameModeSummary = { ...amerikanisch, id: "g-bank", label: "Bank", minBetMinor: 50, maxBetMinor: 20000 };
+    const spielerModus: GameModeSummary = { ...europaeisch, id: "g-spieler", label: "Spieler", minBetMinor: 10, maxBetMinor: 20000 };
+
+    const { rerender } = render(
+      <ModeSwitcher
+        modes={[spielerModus, bankModus]}
+        activeModeId={spielerModus.id}
+        titleLabel="Baccarat"
+        roundInProgress={false}
+        activeRtpLabel="98,76 %"
+      />,
+    );
+    // Baccarat-Beispiel aus dem Auftrag: Spieler- und Bankwette unterscheiden sich deutlich
+    // (0,9876 vs. 0,9894) — ein stiller Wechsel wäre irreführend.
+    expect(screen.getByText(/RTP 98,76 %/)).toBeInTheDocument();
+
+    rerender(
+      <ModeSwitcher
+        modes={[spielerModus, bankModus]}
+        activeModeId={bankModus.id}
+        titleLabel="Baccarat"
+        roundInProgress={false}
+        activeRtpLabel="98,94 %"
+      />,
+    );
+    expect(screen.queryByText(/RTP 98,76 %/)).not.toBeInTheDocument();
+    const line = screen.getByText(/RTP 98,94 %/);
+    expect(line).toHaveTextContent("Einsatz 0,50–200,00 Credits");
+    expect(line.className).toMatch(/\banim-state-pop\b/);
+  });
+
+  it("zeigt ohne RTP-Angabe trotzdem die Einsatzgrenze des aktiven Modus (RTP optional)", () => {
+    render(
+      <ModeSwitcher modes={[europaeisch, amerikanisch]} activeModeId={europaeisch.id} titleLabel="Roulette" roundInProgress={false} />,
+    );
+    expect(screen.getByText("Einsatz 0,10–50,00 Credits")).toBeInTheDocument();
+  });
+
+  it("das aktive Häkchen spielt beim Wechsel .anim-state-pop ab (dieselbe Übergangssprache wie die Kennzahlenzeile)", () => {
+    render(
+      <ModeSwitcher modes={[europaeisch, amerikanisch]} activeModeId={europaeisch.id} titleLabel="Roulette" roundInProgress={false} />,
+    );
+    const active = screen.getByRole("link", { name: /Europäisch.*aktiver Modus/ });
+    expect(active.querySelector("svg")?.getAttribute("class")).toMatch(/\banim-state-pop\b/);
+  });
+});

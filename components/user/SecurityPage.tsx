@@ -59,7 +59,7 @@ export function SecurityPage() {
           <h2 id="devices-title" className="text-md font-semibold text-primary">
             Geräte <Badge tone="neutral" className="ml-1">Mock</Badge>
           </h2>
-          <ul className="divide-y divide-border-subtle">
+          <ul className="stagger-list divide-y divide-border-subtle">
             {mockDevices.map(({ id, name, icon: Icon, lastActive, current }) => (
               <li key={id} className="flex items-center gap-3 py-3 text-sm">
                 <Icon className="size-5 text-muted" aria-hidden="true" />
@@ -76,7 +76,7 @@ export function SecurityPage() {
           <h2 id="logins-title" className="text-md font-semibold text-primary">
             Login-Historie <Badge tone="neutral" className="ml-1">Mock</Badge>
           </h2>
-          <ul className="divide-y divide-border-subtle">
+          <ul className="stagger-list divide-y divide-border-subtle">
             {mockLogins.map((l) => (
               <li key={l.at} className="flex items-center justify-between gap-3 py-3 text-sm">
                 <div>

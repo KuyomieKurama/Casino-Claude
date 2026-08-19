@@ -27,7 +27,9 @@ export function FavoritesPage() {
             icon={<Heart aria-hidden="true" />}
             title="Noch keine Favoriten."
             text="Markiere Spiele mit dem Herz-Symbol auf einer Karte oder Detailseite. Drei Empfehlungen zum Start:"
-            action={<LinkButton href="/casino" variant="primary">Spiele entdecken</LinkButton>}
+            // Kontoverwaltung bleibt golden-frei (§4/Auftrag): "outline" statt "primary", auch wenn
+            // dieser Leerzustand zum Spielbereich verlinkt, wo Gold vorbehalten bleibt.
+            action={<LinkButton href="/casino" variant="outline">Spiele entdecken</LinkButton>}
           >
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {suggestions.map((g) => (

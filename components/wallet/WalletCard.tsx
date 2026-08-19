@@ -126,7 +126,10 @@ export function WalletCard({ className, compact }: WalletCardProps) {
             <Button variant="ghost" onClick={() => setConfirmReset(false)}>
               Abbrechen
             </Button>
-            <Button variant="primary" onClick={handleReset}>
+            {/* Kontoverwaltung bleibt golden-frei (§4/Auftrag): "danger" statt "primary", weil das
+                Zurücksetzen bestehendes Guthaben/Boni überschreibt — dieselbe Einordnung wie der
+                Bestätigungsbutton in SettingsPage.tsx ("Lokale Daten löschen"). */}
+            <Button variant="danger" onClick={handleReset}>
               Zurücksetzen
             </Button>
           </>

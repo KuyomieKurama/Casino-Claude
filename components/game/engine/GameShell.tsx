@@ -118,8 +118,15 @@ export function GameShell(props: GameShellProps) {
   };
 
   return (
-    <div className="min-w-0 space-y-4 overflow-x-clip rounded-card border border-border-subtle bg-surface p-4 sm:p-6" data-status={status}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    // Etappe 2 (Gestaltung/Bewegung, s. Auftrag): space-y-lg statt space-y-4 und p-md/sm:p-lg statt
+    // p-4/sm:p-6 — großzügige Abstände AUS DER SKALA (--space-*) zwischen den drei Zonen Kopfzeile/
+    // Spielfläche+Ergebnis/Einsatzbereich, siehe die border-t-Trenner unten. Rundenchoreografie,
+    // Wallet-Anbindung, RoundStatus-Werte und Klang-Auslöser bleiben unverändert — nur Klassen.
+    <div className="min-w-0 space-y-lg overflow-x-clip rounded-card border border-border-subtle bg-surface p-md sm:p-lg" data-status={status}>
+      {/* Kopfzeile: eigene Zone mit Trennlinie darunter statt reiner Abstandsvererbung — macht die
+          drei geforderten Zonen (Kopf/Spielfläche+Ergebnis/Einsatzbereich) sichtbar, nicht nur
+          per Whitespace erahnbar. */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-md">
         <div className="flex items-center gap-2">
           <h2 className="font-display text-lg text-primary">{game.name}</h2>
         </div>
@@ -134,48 +141,59 @@ export function GameShell(props: GameShellProps) {
         </Button>
       </div>
 
-      <div className={cn("relative", status === "paused" && "opacity-40")}>{children}</div>
+      {/* Mittelzone: Spielfläche + Ergebniszeile + RG-Grund, mit unveränderter interner
+          Abstandsdichte (space-y-4) — nur als eigene Zone gruppiert, keine Kind-Reihenfolge oder
+          -Logik geändert. */}
+      <div className="space-y-4">
+        <div className={cn("relative", status === "paused" && "opacity-40")}>{children}</div>
 
-      {status === "paused" ? (
-        <div className="rounded-control border border-border-control bg-elevated px-4 py-3 text-center">
-          <p className="text-sm font-medium text-primary">Pause</p>
-          <p className="text-xs text-muted">Das Guthaben bleibt unverändert.</p>
-        </div>
-      ) : null}
-
-      {/* Ergebnis: netto, ohne Fanfare */}
-      <div className="mx-auto min-h-[3.5rem] max-w-md text-center" aria-live="polite" aria-atomic="true">
-        {status === "playing" ? (
-          <p className="text-sm text-muted">Runde läuft …</p>
-        ) : last ? (
-          <div className="rounded-control border border-border-subtle bg-base px-3 py-2">
-            <p className="text-sm text-muted">
-              {last.outcomeLabel}
-              {last.usedFreeSpin ? " (Freirunde)" : ""} · Rückgabe {formatCreditsWithUnit(last.returnMinor)}
-            </p>
-            <p className={cn("tabular text-lg font-semibold", last.netMinor > 0 ? "text-success" : "text-primary")}>
-              {formatCreditsSigned(last.netMinor)} <span className="text-sm font-normal text-muted">Credits</span>
-            </p>
+        {status === "paused" ? (
+          <div className="rounded-control border border-border-control bg-elevated px-4 py-3 text-center">
+            <p className="text-sm font-medium text-primary">Pause</p>
+            <p className="text-xs text-muted">Das Guthaben bleibt unverändert.</p>
           </div>
-        ) : (
-          <p className="text-sm text-muted">Bereit. Einsatz wählen und Runde starten.</p>
-        )}
+        ) : null}
+
+        {/* Ergebnis: netto, ohne Fanfare. aria-live="polite" unverändert (nicht doppeln, siehe
+            Auftrag). Neu: .anim-state-pop auf der Ergebniskarte, GLEICH für jedes Ergebnis (Gewinn,
+            Verlust, Push) — macht den Wechsel wahrnehmbar, ohne ihn zu werten: keine eigene
+            Gewinn-Variante, kein Aufblitzen, keine Betonung. key=last.roundId löst die Animation
+            bei jedem neuen Ergebnis erneut aus (unter prefers-reduced-motion nur Deckkraft, siehe
+            app/globals.css). */}
+        <div className="mx-auto min-h-[3.5rem] max-w-md text-center" aria-live="polite" aria-atomic="true">
+          {status === "playing" ? (
+            <p className="text-sm text-muted">Runde läuft …</p>
+          ) : last ? (
+            <div key={last.roundId} className="anim-state-pop rounded-control border border-border-subtle bg-base px-3 py-2">
+              <p className="text-sm text-muted">
+                {last.outcomeLabel}
+                {last.usedFreeSpin ? " (Freirunde)" : ""} · Rückgabe {formatCreditsWithUnit(last.returnMinor)}
+              </p>
+              <p className={cn("tabular text-lg font-semibold", last.netMinor > 0 ? "text-success" : "text-primary")}>
+                {formatCreditsSigned(last.netMinor)} <span className="text-sm font-normal text-muted">Credits</span>
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted">Bereit. Einsatz wählen und Runde starten.</p>
+          )}
+        </div>
+
+        {reason ? (
+          <div role="alert" className="mx-auto flex max-w-md items-start gap-3 rounded-control border border-warning/60 bg-base p-3 text-sm">
+            <ShieldAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
+            <div>
+              <p className="font-medium text-primary">{reason.title}</p>
+              <p className="text-muted">{reason.body}</p>
+              <Link href="/responsible-gaming" className="mt-1 inline-flex min-h-11 items-center font-medium text-gold hover:text-gold-strong">
+                Zu Responsible Gaming
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {reason ? (
-        <div role="alert" className="mx-auto flex max-w-md items-start gap-3 rounded-control border border-warning/60 bg-base p-3 text-sm">
-          <ShieldAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
-          <div>
-            <p className="font-medium text-primary">{reason.title}</p>
-            <p className="text-muted">{reason.body}</p>
-            <Link href="/responsible-gaming" className="mt-1 inline-flex min-h-11 items-center font-medium text-gold hover:text-gold-strong">
-              Zu Responsible Gaming
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="mx-auto max-w-md space-y-3">
+      {/* Einsatzbereich: eigene Zone, per border-t + pt-lg (Skala) von der Mittelzone abgesetzt. */}
+      <div className="mx-auto max-w-md space-y-3 border-t border-border-subtle pt-lg">
         {controls}
 
         <div className="flex items-center justify-between gap-2">
@@ -225,7 +243,20 @@ export function GameShell(props: GameShellProps) {
         </p>
 
         {primaryAction ?? (
-          <Button variant="primary" size="lg" fullWidth onClick={onPlay} disabled={!canStart} loading={status === "playing"} iconLeft={<Play className="size-4" aria-hidden="true" />}>
+          // .press-feedback (Auftrag: "Der Startknopf zeigt Druckfeedback"): nur am Default-Button,
+          // den Engines mit eigenem primaryAction (Blackjack, Mines, Video Poker) nicht verwenden —
+          // ihre Buttons bleiben unangetastet. Der Sperrzustand während der Runde kommt unverändert
+          // aus useRound (disabled={!canStart}, loading-Spinner, Text "Runde läuft").
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            className="press-feedback"
+            onClick={onPlay}
+            disabled={!canStart}
+            loading={status === "playing"}
+            iconLeft={<Play className="size-4" aria-hidden="true" />}
+          >
             {status === "playing" ? "Runde läuft" : startLabel}
           </Button>
         )}

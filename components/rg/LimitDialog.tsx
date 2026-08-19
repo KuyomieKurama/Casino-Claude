@@ -39,7 +39,10 @@ export function LimitDialog({ open, onClose, onConfirm, title, description, ackn
           <Button variant="ghost" onClick={onClose}>
             Abbrechen
           </Button>
-          <Button variant={tone === "danger" ? "danger" : "primary"} disabled={!acknowledged} onClick={onConfirm}>
+          {/* Responsible Gaming bleibt ohne Verkaufsästhetik (Auftrag): "outline" statt "primary" —
+              Gold bleibt dem Spielbereich vorbehalten, auch im nicht-destruktiven Standardfall
+              (z. B. "Pause starten"). */}
+          <Button variant={tone === "danger" ? "danger" : "outline"} disabled={!acknowledged} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </>

@@ -19,8 +19,8 @@ describe("FavoritesPage", () => {
     expect(screen.getByRole("link", { name: "Spiele entdecken" })).toHaveAttribute("href", "/casino");
   });
 
-  it("verwendet höchstens eine goldene Fläche", () => {
+  it("verwendet keine goldene Fläche — Gold gehört dem Spiel, nicht der Kontoverwaltung", () => {
     const { container } = renderFavorites();
-    expect(container.querySelectorAll(".bg-gold").length).toBeLessThanOrEqual(1);
+    expect(container.querySelectorAll('.bg-gold, [class*="bg-gold"]').length).toBe(0);
   });
 });

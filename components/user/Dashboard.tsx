@@ -58,8 +58,11 @@ export function Dashboard() {
         </Button>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={<Coins className="size-5 text-gold" aria-hidden="true" />} label="Guthaben" value={hydrated ? `${formatCredits(availableMinor(wallet))} Credits` : "…"} />
+      {/* Klare Hierarchie statt bunter Gleichrangigkeit (Auftrag „ruhig statt bunt"): Guthaben
+          steht zuerst und ist die einzige groß gesetzte Kennzahl, alle vier Icons teilen dieselbe
+          Teal-Akzentfarbe statt je einer eigenen Farbe — Gold bleibt dem Spielbereich vorbehalten. */}
+      <div className="stagger-list grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat icon={<Coins className="size-5 text-teal" aria-hidden="true" />} label="Guthaben" value={hydrated ? `${formatCredits(availableMinor(wallet))} Credits` : "…"} primary />
         <Stat icon={<Dices className="size-5 text-teal" aria-hidden="true" />} label="Gespielte Runden" value={hydrated ? String(stats.rounds) : "…"} />
         <Stat icon={<Heart className="size-5 text-teal" aria-hidden="true" />} label="Favoriten" value={String(favorites.length)} />
         <Stat
@@ -76,7 +79,9 @@ export function Dashboard() {
             <h2 id="recent-title" className="text-md font-semibold text-primary">
               Letzte Bewegungen
             </h2>
-            <Link href="/history" className="text-sm font-medium text-gold hover:text-gold-strong">
+            {/* Kontoverwaltung bleibt golden-frei (§4/Auftrag): Teal statt Gold, dieselbe Akzentfarbe
+                wie der aktive Eintrag der Unternavigation (components/layout/UserShell.tsx). */}
+            <Link href="/history" className="text-sm font-medium text-teal hover:text-primary">
               Gesamte Historie
             </Link>
           </div>
@@ -112,7 +117,20 @@ export function Dashboard() {
   );
 }
 
-function Stat({ icon, label, value, valueClass }: { icon: React.ReactNode; label: string; value: string; valueClass?: string }) {
+function Stat({
+  icon,
+  label,
+  value,
+  valueClass,
+  primary,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueClass?: string;
+  /** Hervorhebung der wichtigsten Kennzahl (Guthaben) — größer gesetzt, sonst identisches Layout. */
+  primary?: boolean;
+}) {
   return (
     <Card className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -120,7 +138,7 @@ function Stat({ icon, label, value, valueClass }: { icon: React.ReactNode; label
         {icon}
       </div>
       <div className="flex items-baseline gap-2">
-        <span className={cn("tabular text-xl font-semibold", valueClass ?? "text-primary")}>{value}</span>
+        <span className={cn("tabular font-semibold", primary ? "text-2xl" : "text-xl", valueClass ?? "text-primary")}>{value}</span>
       </div>
     </Card>
   );

@@ -90,15 +90,27 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
    * RTP-Angabe (Regel 6): Ein einzelner Wert nur, wenn alle Wetten denselben Erwartungswert haben.
    * Unterscheiden sie sich, wird der Bereich genannt und auf die Tabellen je Wette verwiesen —
    * ein Durchschnitt, den keine einzelne Wette hat, wäre irreführend.
+   *
+   * `compact` ist dieselbe Aussage ohne den erklärenden Nebensatz — für den Moduswechsler
+   * (Auftrag Etappe 2 §2: "RTP und Einsatzgrenzen wechseln sichtbar mit"). Ein `useMemo` statt
+   * einer IIFE bei jedem Render, weil der Wert jetzt an zwei Stellen (Fakten-Card, ModeSwitcher)
+   * verwendet wird und `tables` bereits gememoized ist.
    */
-  const rtpFact = (() => {
-    if (game.rtpDemo !== undefined) return formatPercent(game.rtpDemo);
+  const rtpFact = useMemo(() => {
+    if (game.rtpDemo !== undefined) {
+      const value = formatPercent(game.rtpDemo);
+      return { full: value, compact: value };
+    }
     if (tables.length > 1) {
       const values = tables.map(rtpOf).sort((a, b) => a - b);
-      return `Je nach Wette ${formatPercent(values[0]!)} – ${formatPercent(values.at(-1)!)} (siehe Tabellen unten)`;
+      const range = `${formatPercent(values[0]!)} – ${formatPercent(values.at(-1)!)}`;
+      return { full: `Je nach Wette ${range} (siehe Tabellen unten)`, compact: range };
     }
-    return "Kein Wert — der Ausgang hängt von Entscheidungen ab, nicht von einer festen Tabelle";
-  })();
+    return {
+      full: "Kein Wert — der Ausgang hängt von Entscheidungen ab, nicht von einer festen Tabelle",
+      compact: "kein fester Wert",
+    };
+  }, [game.rtpDemo, tables]);
 
   return (
     <div className="space-y-10 pt-6">
@@ -144,6 +156,7 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
               activeModeId={game.id}
               titleLabel={titleLabel ?? game.name}
               roundInProgress={roundStatus === "playing"}
+              activeRtpLabel={rtpFact.compact}
             />
           ) : null}
           <p className="measure text-base text-primary/90">{game.description}</p>
@@ -234,12 +247,16 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
             Spieldaten
           </h2>
           <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-            <Fact label="RTP">{rtpFact}</Fact>
+            <Fact label="RTP">{rtpFact.full}</Fact>
             <Fact label="Volatilität">{game.volatility ? volatilityLabel[game.volatility] : "–"}</Fact>
             <Fact label="Minimaler Einsatz">{formatCredits(game.minDemoBetMinor)} Credits</Fact>
             <Fact label="Maximaler Einsatz">{formatCredits(game.maxDemoBetMinor)} Credits</Fact>
             <Fact label="Schwierigkeit">{difficultyLabel[game.demoDifficulty]}</Fact>
             <Fact label="Mechanik">{game.tags.length ? game.tags.map(mechanicLabel).join(", ") : "–"}</Fact>
+            {/* Anbieter ergänzt (Auftrag Etappe 2 §1: "RTP, Volatilität, Einsatzgrenzen, Anbieter"
+                ruhig und scanbar an einer Stelle) — stand vorher nur als Fließtext unter dem
+                Titel; steht jetzt zusätzlich hier, ohne den Fließtext zu entfernen. */}
+            <Fact label="Anbieter">{providerName(game.providerId)}</Fact>
           </dl>
         </Card>
         <Card className="flex flex-col gap-3 border-teal/40">
@@ -322,7 +339,8 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
         <h2 id="similar-title" className="font-display text-lg text-primary sm:text-xl">
           Ähnliche Spiele
         </h2>
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {/* .stagger-list (Auftrag Etappe 2 §1: "Ähnliche Spiele treten gestaffelt ein"). */}
+        <ul className="stagger-list grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {similar.map((g) => (
             <li key={g.id}>
               <GameCard game={g} />

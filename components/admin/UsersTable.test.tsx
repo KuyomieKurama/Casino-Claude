@@ -111,4 +111,14 @@ describe("UsersTable", () => {
     render(<UsersTable items={[item({ rg: { selfExcluded: true, sessionLimitMinutes: null, pausedUntil: null } })]} currentAdminId="admin-1" page={1} pageCount={1} total={1} />);
     expect(screen.getAllByText(/Selbstsperre aktiv/).length).toBeGreaterThan(0);
   });
+
+  test("verwendet echte Kopfzellen (th scope=col) und eine dichtere Zellenpolsterung als der Nutzerbereich (Admin-Auftrag 'Gestaltung')", () => {
+    const { container } = render(<UsersTable items={[item()]} currentAdminId="admin-1" page={1} pageCount={1} total={1} />);
+    const headers = container.querySelectorAll('th[scope="col"]');
+    expect(headers.length).toBeGreaterThan(0);
+    // px-3 py-2 statt der großzügigeren px-4 py-3 aus components/wallet/TransactionList.tsx —
+    // Admin zeigt Informationen dichter, der Nutzerbereich bleibt ruhiger/luftiger.
+    const cell = container.querySelector("tbody td");
+    expect(cell).toHaveClass("px-3", "py-2");
+  });
 });

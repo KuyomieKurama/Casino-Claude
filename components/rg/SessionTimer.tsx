@@ -23,7 +23,11 @@ export function SessionTimer({ variant = "full", className }: SessionTimerProps)
     return (
       <Link
         href="/responsible-gaming"
-        className={cn("h-11 items-center gap-2 rounded-control border border-border-subtle bg-surface px-2.5 text-sm text-muted transition-state hover:border-gold hover:text-primary", className)}
+        // Responsible Gaming bleibt ohne Verkaufsästhetik (Auftrag): "kein Gold" gilt hier
+        // strenger/uneingeschränkt als im übrigen Nutzerbereich, deshalb Teal statt Gold beim
+        // Hover — anders als bei components/ui/Button.tsx (dort gesperrt) ist dieser Klassenname
+        // hier vollständig eigen und nicht durch eine geteilte Primitive erzwungen.
+        className={cn("h-11 items-center gap-2 rounded-control border border-border-subtle bg-surface px-2.5 text-sm text-muted transition-state hover:border-teal hover:text-primary", className)}
         aria-label="Spielzeit dieser Sitzung – zu Responsible Gaming"
       >
         {status.blocked ? (

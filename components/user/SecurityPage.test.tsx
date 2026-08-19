@@ -37,7 +37,7 @@ describe("SecurityPage", () => {
     expect(screen.getAllByText("Mock").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("verwendet höchstens eine goldene Fläche (im Nutzerbereich bevorzugt keine)", () => {
+  it("verwendet keine goldene Fläche — Gold gehört dem Spiel, nicht der Kontoverwaltung", () => {
     const { container } = render(<SecurityPage />);
     expect(container.querySelectorAll(".bg-gold, [class*=\"bg-gold\"]").length).toBe(0);
   });

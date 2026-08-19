@@ -53,6 +53,19 @@ describe("RgPanel", () => {
     expect(restingGoldClasses).toEqual([]);
   });
 
+  it("verwendet auch im Standard-Dialog (Pause einlegen, tone='default') keine goldene Fläche für den Bestätigungsbutton", async () => {
+    // Gezielt der Bestätigungsbutton, nicht der ganze Dialog: die geteilte Checkbox-Primitive
+    // (components/ui/Checkbox.tsx) trägt systemweit "checked:bg-gold" als Tailwind-Variante für
+    // den Haken-Zustand — das ist kein Ruhezustand und außerhalb dieser Datei nicht änderbar.
+    const u = userEvent.setup();
+    renderPanel();
+    await u.click(screen.getByRole("button", { name: "Pause einlegen" }));
+    const dialog = screen.getByRole("dialog");
+    const confirmButton = within(dialog).getByRole("button", { name: "Pause starten" });
+    const restingGoldClasses = (confirmButton.getAttribute("class") ?? "").split(/\s+/).filter((token) => !token.includes(":") && /(^|-)gold(-strong)?$/.test(token));
+    expect(restingGoldClasses).toEqual([]);
+  });
+
   it("Selbstsperre: die Bestätigung im Zwei-Schritt-Dialog bleibt gesperrt, bis die Checkbox angehakt ist", async () => {
     const u = userEvent.setup();
     renderPanel();
