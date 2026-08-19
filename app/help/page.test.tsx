@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { CURRENCY_NOTICE } from "@/lib/constants";
 import HelpPage from "./page";
 
 describe("HelpPage", () => {
@@ -14,5 +15,11 @@ describe("HelpPage", () => {
   it("verwendet höchstens eine goldene Fläche", () => {
     const { container } = render(<HelpPage />);
     expect(container.querySelectorAll(".bg-gold").length).toBeLessThanOrEqual(1);
+  });
+
+  it("nennt in den Nutzungsbedingungen den Hinweis auf die Spielwährung ohne Geldwert", () => {
+    render(<HelpPage />);
+    expect(screen.getByRole("heading", { level: 2, name: "Nutzungsbedingungen" })).toBeInTheDocument();
+    expect(screen.getAllByText(CURRENCY_NOTICE).length).toBeGreaterThan(0);
   });
 });

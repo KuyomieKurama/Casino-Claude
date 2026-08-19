@@ -54,7 +54,7 @@ describe("RgContext — Migration einer lokal gesetzten Selbstsperre", () => {
 
   it("mit einem vor der Umstellung lokal gesetzten Sperrvermerk: überträgt die Sperre einmalig auf den Server, statt sie zu verwerfen", async () => {
     // Simuliert einen früheren Besuch mit SCHEMA_VERSION 3 (vor der serverseitigen Umstellung).
-    writeSlice("wallet", { wallet: { demoBalanceMinor: 500, bonusBalanceMinor: 0, freeSpins: 0 }, transactions: [], nextSeq: 1 });
+    writeSlice("wallet", { wallet: { balanceMinor: 500, bonusBalanceMinor: 0, freeSpins: 0 }, transactions: [], nextSeq: 1 });
     flushNow();
     window.localStorage.setItem(
       STORAGE_KEY,

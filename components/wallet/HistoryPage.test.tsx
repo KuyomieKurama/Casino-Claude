@@ -11,11 +11,10 @@ function tx(over: Partial<Transaction> = {}): Transaction {
     id: "tx1",
     seq: 1,
     userId: "u1",
-    type: "demo_bet",
+    type: "bet",
     amountMinor: -100,
     balanceAfterMinor: 99_900,
     createdAt: "2026-08-15T10:00:00.000Z",
-    isDemo: true,
     ...over,
   };
 }

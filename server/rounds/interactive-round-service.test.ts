@@ -64,7 +64,7 @@ describe("startInteractiveRound — Mines", () => {
     expect(result.data.state).not.toHaveProperty("hitCell");
 
     const wallet = await findWallet(db, userId);
-    expect(wallet?.demoBalanceMinor).toBe(START_BALANCE_MINOR - 100);
+    expect(wallet?.balanceMinor).toBe(START_BALANCE_MINOR - 100);
   });
 
   test("maxReturnMinor entspricht der obersten Stufe der Multiplikator-Staffel (m3, alle Felder aufgedeckt)", async () => {
@@ -93,7 +93,7 @@ describe("startInteractiveRound — Mines", () => {
       expect(second.data.roundId).toBe(first.data.roundId);
     }
     const wallet = await findWallet(db, userId);
-    expect(wallet?.demoBalanceMinor).toBe(START_BALANCE_MINOR - 100); // nicht zweimal abgebucht
+    expect(wallet?.balanceMinor).toBe(START_BALANCE_MINOR - 100); // nicht zweimal abgebucht
   });
 
   test("Invariante 1: ein Einsatz über dem Bestand wird abgelehnt, kein Teilzustand", async () => {
@@ -107,7 +107,7 @@ describe("startInteractiveRound — Mines", () => {
 
     expect(result).toEqual({ ok: false, code: "INSUFFICIENT_FUNDS" });
     const wallet = await findWallet(db, userId);
-    expect(wallet?.demoBalanceMinor).toBe(START_BALANCE_MINOR);
+    expect(wallet?.balanceMinor).toBe(START_BALANCE_MINOR);
   });
 
   test("lehnt einen Einsatz außerhalb der Modus-Grenzen ab", async () => {
@@ -139,7 +139,7 @@ describe("startInteractiveRound — Mines", () => {
 
     const wallet = await findWallet(db, userId);
     const ledgerSum = await sumLedgerAmountForUser(db, userId);
-    expect(ledgerSum).toBe(wallet?.demoBalanceMinor);
+    expect(ledgerSum).toBe(wallet?.balanceMinor);
   });
 });
 
@@ -221,7 +221,7 @@ describe("startInteractiveRound — Freirunde", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const walletAfter = await findWallet(db, userId);
-    expect(walletAfter?.demoBalanceMinor).toBe(START_BALANCE_MINOR); // unverändert — kein Abzug
+    expect(walletAfter?.balanceMinor).toBe(START_BALANCE_MINOR); // unverändert — kein Abzug
     expect(walletAfter?.freeSpins).toBe(0);
     const entries = await listLedgerEntries(db, userId, 10);
     expect(entries.some((e) => e.type === "free_spin")).toBe(true);

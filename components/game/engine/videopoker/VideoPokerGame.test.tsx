@@ -48,7 +48,7 @@ function mockVideoPokerRoutes(seed: number, stakeMinor: number, startBalanceMino
           usedFreeSpin: false,
           nextSeq: 1,
           state: { hand, finalHand: null, category: null },
-          wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
         });
       }
 
@@ -66,7 +66,7 @@ function mockVideoPokerRoutes(seed: number, stakeMinor: number, startBalanceMino
           outcomeLabel: result.outcomeLabel,
           seed,
           state: { hand, finalHand: result.finalHand, category: result.category },
-          wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor + result.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: startBalanceMinor - stakeMinor + result.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           detail: { category: result.category, multiplier: result.multiplier },
         });
       }

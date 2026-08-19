@@ -76,7 +76,7 @@ describe("resolveLedgerHistoryPage", () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
     for (let i = 1; i <= HISTORY_PAGE_SIZE; i++) {
-      await insertLedgerEntry(db, { userId, seq: i, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000 });
+      await insertLedgerEntry(db, { userId, seq: i, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000 });
     }
 
     const page = await resolveLedgerHistoryPage(db, userId, {});
@@ -91,7 +91,7 @@ describe("resolveLedgerHistoryPage", () => {
     const userId = await seedUser(db);
     const count = HISTORY_PAGE_SIZE + 5;
     for (let i = 1; i <= count; i++) {
-      await insertLedgerEntry(db, { userId, seq: i, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000 });
+      await insertLedgerEntry(db, { userId, seq: i, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000 });
     }
 
     const page1 = await resolveLedgerHistoryPage(db, userId, {});
@@ -107,7 +107,7 @@ describe("resolveLedgerHistoryPage", () => {
   test("Zeitraum-Filter 'today' schließt ältere Einträge aus", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
 
     const page = await resolveLedgerHistoryPage(db, userId, { range: "today" });
 
@@ -119,8 +119,8 @@ describe("resolveLedgerHistoryPage", () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
     await seedGameMode(db, "g-neon-nights");
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-neon-nights" });
-    await insertLedgerEntry(db, { userId, seq: 2, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-neon-nights" });
+    await insertLedgerEntry(db, { userId, seq: 2, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
 
     const page = await resolveLedgerHistoryPage(db, userId, { gameId: "g-neon-nights" });
 
@@ -132,8 +132,8 @@ describe("resolveLedgerHistoryPage", () => {
     const db = await createTestDatabase();
     const userA = await seedUser(db, "user-a");
     const userB = await seedUser(db, "user-b");
-    await insertLedgerEntry(db, { userId: userA, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
-    await insertLedgerEntry(db, { userId: userB, seq: 1, type: "demo_credit", amountMinor: 500_000, balanceAfterMinor: 500_000 });
+    await insertLedgerEntry(db, { userId: userA, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId: userB, seq: 1, type: "credit", amountMinor: 500_000, balanceAfterMinor: 500_000 });
 
     const page = await resolveLedgerHistoryPage(db, userA, {});
 
@@ -152,13 +152,13 @@ describe("resolveRecentLedgerEntries", () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
     for (let i = 1; i <= 15; i++) {
-      await insertLedgerEntry(db, { userId, seq: i, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000 });
+      await insertLedgerEntry(db, { userId, seq: i, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000 });
     }
 
     const recent = await resolveRecentLedgerEntries(db, userId, 10);
 
     expect(recent).toHaveLength(10);
     expect(recent[0]?.seq).toBe(15);
-    expect(recent[0]?.isDemo).toBe(true);
+    expect(recent[0]?.type).toBe("bet");
   });
 });

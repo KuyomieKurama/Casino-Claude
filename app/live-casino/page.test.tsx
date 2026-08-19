@@ -14,7 +14,7 @@ function renderPage() {
 describe("LiveCasinoPage", () => {
   it("zeigt Überschrift und kennzeichnet den Dealer-Bereich klar als Illustration", () => {
     renderPage();
-    expect(screen.getByRole("heading", { level: 1, name: /Live-Casino-Demos/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: /Live-Casino/ })).toBeInTheDocument();
     expect(screen.getByText("Dealer-Bereich (Illustration)")).toBeInTheDocument();
     expect(screen.getByText(/kein Video, keine realen Personen/)).toBeInTheDocument();
   });

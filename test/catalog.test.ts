@@ -66,3 +66,51 @@ describe("Katalog und Engine-Registry", () => {
     expect(findPaytable("gibt-es-nicht")).toBeUndefined();
   });
 });
+
+/**
+ * Regressionstest (Auftrag „Prototyp-Sprache entfernen"): Nur die Anzeigenamen dieser sieben
+ * Spiele haben sich geändert (kein "Demo"-Wortlaut mehr) — ihre IDs, Slugs und alle davon
+ * abgeleiteten Paytable-Schlüssel MÜSSEN wortgleich bleiben, sonst brechen RTP-Zuordnung und
+ * URLs. Ein versehentliches Mitziehen der ID bei einer künftigen Namensänderung fällt hier auf.
+ */
+describe("Umbenannte Anzeigenamen — IDs, Slugs und Paytable-Schlüssel bleiben unverändert", () => {
+  const renamed: readonly { id: string; slug: string; name: string }[] = [
+    { id: "g-plinko-demo", slug: "plinko-demo", name: "Plinko" },
+    { id: "g-mines-demo", slug: "mines-demo", name: "Mines" },
+    { id: "g-dice-demo", slug: "dice-demo", name: "Dice" },
+    { id: "g-wheel-demo", slug: "wheel-demo", name: "Wheel" },
+    { id: "g-live-roulette-demo", slug: "live-roulette-demo", name: "Live Roulette" },
+    { id: "g-live-blackjack-demo", slug: "live-blackjack-demo", name: "Live Blackjack" },
+    { id: "g-live-baccarat-demo", slug: "live-baccarat-demo", name: "Live Baccarat" },
+  ];
+
+  it("IDs und Slugs enthalten weiterhin das ursprüngliche '-demo'-Suffix", () => {
+    for (const r of renamed) {
+      const game = rawGames.find((g) => g.id === r.id);
+      expect(game, `Spiel ${r.id} fehlt in data/games.ts`).toBeDefined();
+      expect(game!.slug).toBe(r.slug);
+      expect(game!.id.endsWith("-demo")).toBe(true);
+      expect(game!.slug.endsWith("-demo")).toBe(true);
+    }
+  });
+
+  it("Anzeigenamen enthalten kein 'Demo' mehr", () => {
+    for (const r of renamed) {
+      const game = rawGames.find((g) => g.id === r.id)!;
+      expect(game.name).toBe(r.name);
+      expect(game.name).not.toMatch(/Demo/i);
+    }
+  });
+
+  it("Paytable-Schlüssel referenzieren weiterhin dieselben, unveränderten IDs", () => {
+    for (const r of renamed) {
+      const tables = paytablesOf(r.id);
+      for (const t of tables) {
+        expect(t.gameId === r.id || t.gameId.startsWith(`${r.id}::`)).toBe(true);
+      }
+    }
+    // Stichprobe: Plinko und das Live-Roulette-Wettset sind bekannte Träger von Tabellen.
+    expect(paytablesOf("g-plinko-demo").length).toBeGreaterThan(0);
+    expect(paytablesOf("g-live-roulette-demo").length).toBeGreaterThan(0);
+  });
+});

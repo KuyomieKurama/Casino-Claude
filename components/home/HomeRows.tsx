@@ -54,7 +54,7 @@ export function HomeRows() {
       <GameRow id="new" title="Neu hinzugefügt" games={fresh} href="/casino?cat=new" />
       <GameRow id="slots" title="Slots" games={slots} href="/casino?cat=slots" />
       <GameRow id="table" title="Tischspiele" games={table} href="/casino?cat=blackjack" hrefLabel="Zur Lobby" />
-      <GameRow id="live" title="Live-Casino-Demos" games={live} href="/live-casino" />
+      <GameRow id="live" title="Live-Casino" games={live} href="/live-casino" />
     </div>
   );
 }

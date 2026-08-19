@@ -1,6 +1,6 @@
 # Casino Claude — Projekt-Anweisungen
 
-**velora-casino-demo** v0.1.0 — interaktive Casino-Lobby mit Authentifizierung, Datenbankpersistierung und Demo-Spielmechanik. 24 Spieltitel über sieben Engine-Familien, davon 23 aktiv spielbar; ein Titel (Staubpfad) ist absichtlich deaktiviert, um den Zustand "Zurzeit nicht verfügbar" zu zeigen. Echtgeld-Transaktionen nicht implementiert.
+**velora-casino-demo** v0.1.0 — interaktive Casino-Lobby mit Authentifizierung, Datenbankpersistierung und Spielwährung (Credits). Spielen erfordert ein Konto; bei der Kontoanlage erhält jeder Nutzer 10.000 Credits Startguthaben. 24 Spieltitel über sieben Engine-Familien, davon 23 aktiv spielbar; ein Titel (Staubpfad) ist absichtlich deaktiviert, um den Zustand "Zurzeit nicht verfügbar" zu zeigen. Credits sind eine Spielwährung ohne Geldwert (kein Ein-/Auszahlungsweg) — Echtgeld-Transaktionen sind nicht implementiert, es gibt keine Glücksspiel-Lizenz.
 
 > **Warnung**: `.claude/memory/`, `.claude/skills/` und `.claude/agents/` beschreiben das fremde Projekt "Yozora" (Homelab-Dashboard). Sie sind für dieses Repository ungültig. Gültig sind nur `.claude/rules/ecc/common/*` und `.claude/rules/ecc/typescript/*`, die projektneutrale ECC-Standards definieren.
 
@@ -35,7 +35,7 @@ Die Test-Suite ist in drei Gruppen aufgeteilt, um schnelle lokale Entwicklung zu
 |----------|--------|----------|-------|
 | `npm test` | Alle Tests außer RTP-Simulationen | ~120 Sekunden | Entwicklung: schnell, vollständig |
 | `npm run test:rtp` | Nur die fünf RTP-Simulationstests | ~18 Sekunden | RTP-Belege isoliert prüfen |
-| `npm run test:full` | Alle 1021 Tests | ~127 Sekunden | Verifikation, CI/CD, Release |
+| `npm run test:full` | Alle 1026 Tests | ~127 Sekunden | Verifikation, CI/CD, Release |
 
 **RTP-Simulationstests** (mit `@rtp`-Tag markiert, übersprungenin `npm test`):
 - `lib/rng.test.ts`: #5b — 69 Paytables, 158.9 Mio. Runden
@@ -66,7 +66,7 @@ app/                    # App Router; Routengruppe (user) für eingeloggte Berei
 middleware.ts           # Cookie-Präsenz prüfen, Umleitung nach /login?next=… (KEINE Autorisierung!)
 components/
   ui/                   # Zustandslose Primitive (kein Context, keine Fachlogik)
-  layout/               # Header, Footer, BottomNavigation, DemoBanner
+  layout/               # Header, Footer, BottomNavigation, SystemNotices
   auth/                 # OAuthButtons, Login/Register-Komponenten
   game/                 # GameCard, GameGrid, Filter, Suche, Favoriten, Lobby
     engine/

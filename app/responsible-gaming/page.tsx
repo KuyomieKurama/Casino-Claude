@@ -9,7 +9,7 @@ export default function ResponsibleGamingPage() {
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Responsible Gaming</h1>
         <p className="measure mt-1 text-sm text-muted">
-          Spielzeit, Pause, Demo-Limit und Selbstsperre — jederzeit erreichbar. Sperren und Pausen blockieren tatsächlich, auch nach einem Reload.
+          Spielzeit, Pause, Zeitlimit und Selbstsperre — jederzeit erreichbar. Sperren und Pausen blockieren tatsächlich, auch nach einem Reload.
         </p>
       </header>
       <RgPanel />

@@ -55,7 +55,7 @@ function mockBaccaratRoundResponse() {
               result: "banker",
               natural: false,
             },
-            wallet: { demoBalanceMinor: 100_095, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: 100_095, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
         { status: 200, headers: { "content-type": "application/json" } },

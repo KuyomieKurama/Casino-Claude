@@ -43,6 +43,13 @@
       "when": 1787060526578,
       "tag": "0005_tearful_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787094751022,
+      "tag": "0006_rename_wallet_and_ledger_demo_fields",
+      "breakpoints": true
     }
   ]
 }

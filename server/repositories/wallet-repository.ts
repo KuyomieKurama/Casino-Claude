@@ -16,7 +16,7 @@ import type { CreditsMinor } from "@/types/money";
 
 export interface WalletRecord {
   userId: string;
-  demoBalanceMinor: CreditsMinor;
+  balanceMinor: CreditsMinor;
   bonusBalanceMinor: CreditsMinor;
   freeSpins: number;
   nextSeq: number;
@@ -26,7 +26,7 @@ export interface WalletRecord {
 function toRecord(row: typeof wallet.$inferSelect): WalletRecord {
   return {
     userId: row.userId,
-    demoBalanceMinor: row.demoBalanceMinor,
+    balanceMinor: row.balanceMinor,
     bonusBalanceMinor: row.bonusBalanceMinor,
     freeSpins: row.freeSpins,
     nextSeq: row.nextSeq,
@@ -50,11 +50,11 @@ export async function findWallet(db: AppDatabase, userId: string): Promise<Walle
 export async function insertWalletIfMissing(
   db: AppDatabase,
   userId: string,
-  startDemoBalanceMinor: CreditsMinor,
+  startBalanceMinor: CreditsMinor,
 ): Promise<{ walletRecord: WalletRecord; created: boolean }> {
   const [inserted] = await db
     .insert(wallet)
-    .values({ userId, demoBalanceMinor: startDemoBalanceMinor, bonusBalanceMinor: 0, freeSpins: 0, nextSeq: 2 })
+    .values({ userId, balanceMinor: startBalanceMinor, bonusBalanceMinor: 0, freeSpins: 0, nextSeq: 2 })
     .onConflictDoNothing({ target: wallet.userId })
     .returning();
   if (inserted) return { walletRecord: toRecord(inserted), created: true };
@@ -72,7 +72,7 @@ export type DebitResult = { ok: true; walletRecord: WalletRecord } | { ok: false
 
 /**
  * Bucht einen Einsatz mit dem im Auftrag vorgegebenen bedingten UPDATE. `fromBonusMinor` und
- * `fromDemoMinor` kommen aus `lib/wallet-policy.ts::splitStakeAcrossBalances` (dieselbe Regel wie
+ * `fromBalanceMinor` kommen aus `lib/wallet-policy.ts::splitStakeAcrossBalances` (dieselbe Regel wie
  * im Client-Reducer). Null betroffene Zeilen ⇒ `{ ok: false }` — der Aufrufer wertet das als
  * `INSUFFICIENT_FUNDS` und rollt die gesamte Transaktion zurück (Invariante 1: Einsätze über dem
  * Bestand werden abgelehnt, nicht gekappt).
@@ -80,18 +80,18 @@ export type DebitResult = { ok: true; walletRecord: WalletRecord } | { ok: false
 export async function debitForStake(
   db: AppDatabase,
   userId: string,
-  input: { fromBonusMinor: CreditsMinor; fromDemoMinor: CreditsMinor },
+  input: { fromBonusMinor: CreditsMinor; fromBalanceMinor: CreditsMinor },
 ): Promise<DebitResult> {
   const [row] = await db
     .update(wallet)
     .set({
       bonusBalanceMinor: sql`${wallet.bonusBalanceMinor} - ${input.fromBonusMinor}`,
-      demoBalanceMinor: sql`${wallet.demoBalanceMinor} - ${input.fromDemoMinor}`,
+      balanceMinor: sql`${wallet.balanceMinor} - ${input.fromBalanceMinor}`,
       nextSeq: sql`${wallet.nextSeq} + 1`,
       updatedAt: new Date(),
     })
     .where(
-      sql`${wallet.userId} = ${userId} AND ${wallet.bonusBalanceMinor} >= ${input.fromBonusMinor} AND ${wallet.demoBalanceMinor} >= ${input.fromDemoMinor}`,
+      sql`${wallet.userId} = ${userId} AND ${wallet.bonusBalanceMinor} >= ${input.fromBonusMinor} AND ${wallet.balanceMinor} >= ${input.fromBalanceMinor}`,
     )
     .returning();
   return row ? { ok: true, walletRecord: toRecord(row) } : { ok: false };
@@ -125,7 +125,7 @@ export async function creditReturn(
   const [row] = await db
     .update(wallet)
     .set({
-      demoBalanceMinor: sql`LEAST(${wallet.demoBalanceMinor} + ${amountMinor}, ${maxBalanceMinor})`,
+      balanceMinor: sql`LEAST(${wallet.balanceMinor} + ${amountMinor}, ${maxBalanceMinor})`,
       nextSeq: sql`${wallet.nextSeq} + 1`,
       updatedAt: new Date(),
     })

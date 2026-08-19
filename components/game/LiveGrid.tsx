@@ -9,7 +9,7 @@ export function LiveGrid() {
   const live = games.filter((g) => g.isLiveDemo);
   return (
     <AsyncBoundary status={hydrated ? "ready" : "loading"} skeleton={<GameGridSkeleton count={3} />}>
-      <GameGrid games={live} dense heading="Live-Demo-Tische" />
+      <GameGrid games={live} dense heading="Live-Tische" />
     </AsyncBoundary>
   );
 }

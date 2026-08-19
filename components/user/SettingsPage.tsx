@@ -18,7 +18,7 @@ import { clearPersisted } from "@/lib/storage";
 /**
  * Einstellungen: Profil (schreibgeschützte Übersicht — die Serversitzung ist jetzt die
  * Quelle der Wahrheit, ein clientseitiges Bearbeiten ohne Server-Gegenstück wäre irreführend),
- * Sprache (UI-Attrappe, Annahme A2), alle Demo-Daten löschen.
+ * Sprache (UI-Attrappe, Annahme A2), lokale Daten löschen.
  *
  * Der frühere Demo-Admin-Umschalter (Konzept C1, offener clientseitiger Schalter ohne echten
  * Schutz) entfällt ersatzlos: Admin-Zugriff ist jetzt eine echte, serverseitig geprüfte Rolle
@@ -48,7 +48,7 @@ export function SettingsPage() {
         <div className="flex flex-col gap-3 sm:max-w-md">
           <Input label="Anzeigename" value={user?.displayName ?? ""} readOnly hint="Wird beim Anmelden aus deinem Konto übernommen." />
           <Input label="E-Mail" value={user?.email ?? ""} readOnly hint="Die E-Mail dient nur zur Wiedererkennung des Kontos." />
-          <Select label="Sprache" options={[{ value: "de", label: "Deutsch" }]} value="de" onChange={() => undefined} hint="Sprachauswahl ist im Prototyp eine Attrappe (nur Deutsch)." />
+          <Select label="Sprache" options={[{ value: "de", label: "Deutsch" }]} value="de" onChange={() => undefined} hint="Sprachauswahl ist aktuell eine Attrappe (nur Deutsch)." />
         </div>
       </Card>
 
@@ -59,18 +59,18 @@ export function SettingsPage() {
 
       <Card as="section" aria-labelledby="danger-title" className="space-y-3 border-danger/40">
         <h2 id="danger-title" className="text-md font-semibold text-primary">
-          Demo-Daten löschen
+          Lokale Daten löschen
         </h2>
-        <p className="measure text-sm text-muted">Entfernt Guthaben, Historie, Favoriten und Responsible-Gaming-Einstellungen aus diesem Browser und meldet dich ab. Eine Selbstsperre wird dadurch ebenfalls entfernt — bitte bewusst entscheiden.</p>
+        <p className="measure text-sm text-muted">Entfernt Favoriten und andere lokal in diesem Browser gespeicherte Anzeigedaten und meldet dich ab. Guthaben, Historie und Responsible-Gaming-Einstellungen sind serverseitig gespeichert und bleiben im Konto erhalten — auch eine Selbstsperre wird dadurch NICHT aufgehoben.</p>
         <Button variant="danger" onClick={() => setConfirmClear(true)} iconLeft={<Trash2 className="size-4" aria-hidden="true" />}>
-          Alle Demo-Daten löschen
+          Lokale Daten löschen
         </Button>
       </Card>
 
       <Modal
         open={confirmClear}
         onClose={() => setConfirmClear(false)}
-        title="Alle Demo-Daten löschen?"
+        title="Lokale Daten löschen?"
         description="Das lässt sich nicht rückgängig machen. Die Seite wird danach neu geladen."
         size="sm"
         footer={
@@ -83,7 +83,7 @@ export function SettingsPage() {
               onClick={async () => {
                 await logout();
                 clearPersisted();
-                toast({ tone: "info", title: "Abgemeldet.", description: "Alle Demo-Daten wurden entfernt." });
+                toast({ tone: "info", title: "Abgemeldet.", description: "Lokale Daten wurden entfernt." });
                 router.push("/");
                 // Harter Reload, damit alle Provider sauber mit Defaults starten
                 setTimeout(() => window.location.reload(), 50);

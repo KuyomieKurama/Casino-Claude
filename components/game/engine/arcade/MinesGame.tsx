@@ -150,7 +150,7 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
       actionHint={
         open
           ? "Auszahlen beendet die Runde und schreibt den aktuellen Multiplikator gut. Kein Echtgeld."
-          : `Startet eine Demo-Runde und zieht ${formatCreditsWithUnit(round.stake)} Demo-Guthaben ab. Kein Echtgeld.`
+          : `Startet eine Runde und zieht ${formatCreditsWithUnit(round.stake)} Guthaben ab. Kein Echtgeld.`
       }
       controls={
         <fieldset disabled={open || round.busy} className="space-y-2">

@@ -33,15 +33,15 @@ export function SystemNotices() {
     if (status === "corrupt") {
       toast({
         tone: "warning",
-        title: "Gespeicherte Demo-Daten waren beschädigt.",
-        description: "Sie wurden verworfen. Der Prototyp startet mit Standardwerten.",
+        title: "Gespeicherte lokale Daten waren beschädigt.",
+        description: "Sie wurden verworfen. Guthaben, Historie und Responsible-Gaming-Einstellungen sind davon nicht betroffen, sie liegen serverseitig.",
         duration: 8000,
       });
     } else if (status === "unsupported-version") {
       toast({
         tone: "warning",
-        title: "Gespeicherte Demo-Daten stammen aus einer anderen Version.",
-        description: "Sie wurden verworfen statt geraten. Der Prototyp startet mit Standardwerten.",
+        title: "Gespeicherte lokale Daten stammen aus einer anderen Version.",
+        description: "Sie wurden verworfen statt geraten. Guthaben, Historie und Responsible-Gaming-Einstellungen sind davon nicht betroffen, sie liegen serverseitig.",
         duration: 8000,
       });
     }
@@ -49,7 +49,7 @@ export function SystemNotices() {
       toast({
         tone: "warning",
         title: "Speichern ist in diesem Browser nicht möglich.",
-        description: "Der Prototyp läuft im Arbeitsspeicher. Guthaben, Favoriten und Einstellungen gehen beim Neuladen verloren.",
+        description: "Favoriten und lokale Anzeigeeinstellungen gehen beim Neuladen verloren. Guthaben, Historie und Responsible-Gaming-Einstellungen sind davon nicht betroffen, sie liegen serverseitig.",
         duration: 0,
       });
     }

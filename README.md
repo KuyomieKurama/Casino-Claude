@@ -1,8 +1,8 @@
-# Velora Casino Demo
+# Velora Casino
 
-Interaktive Casino-Lobby mit Authentifizierung, Datenbankpersistierung und Demo-Spielmechanik. 24 Spieltitel über sieben Engine-Familien. Zweck ist die Demonstration von Oberfläche, Bedienung, Informationsarchitektur und funktionsfähiger Spiellogik.
+Interaktive Casino-Lobby mit Authentifizierung, Datenbankpersistierung und Spielwährung (Credits). 24 Spieltitel über sieben Engine-Familien, davon 23 aktiv spielbar. Spielen erfordert ein Konto; bei der Kontoanlage erhält jeder Nutzer 10.000 Credits Startguthaben.
 
-**Echtgeld nicht implementiert. Keine Einzahlung. Keine Auszahlung. Keine Lizenz.**
+**Credits sind eine Spielwährung ohne Geldwert. Echtgeld nicht implementiert. Keine Einzahlung. Keine Auszahlung. Keine Lizenz.**
 
 ## Schnellstart
 
@@ -59,11 +59,11 @@ app/               Routen und Layouts (App Router); (user)-Gruppe für eingelogg
 middleware.ts      Cookie-Präsenz prüfen, Umleitung nach /login
 components/
   ui/              zustandslose Primitive (Button, Input, Modal, Toast …) — kennen keine Fachlogik
-  layout/          Header, Bottom-Nav, Footer, Demo-Streifen, systemweite Hinweise
+  layout/          Header, Bottom-Nav, Footer, systemweite Hinweise
   auth/            Login/Register/OAuth-Komponenten
   game/            Spielkarte, Raster, Lobby, Detailseite
   game/engine/     Spiel-Engines: gemeinsame Choreografie (useRound), Rahmen-UI (GameShell), Registry
-  wallet/          Demo-Wallet, Guthabenanzeige, Transaktionsliste
+  wallet/          WalletCard, Guthabenanzeige, Transaktionsliste
   rg/              Session-Timer, Responsible-Gaming-Panel, Zwei-Schritt-Dialoge
   feedback/        EmptyState, ErrorState, AsyncBoundary
 data/              typisierte Mock-Daten; paytables/ enthält die dokumentierten Auszahlungstabellen
@@ -88,12 +88,12 @@ types/             gemeinsame Typen
 
 ## Tests
 
-**1021 Tests**, aufgeteilt in drei Gruppen für schnelles Feedback:
+**1026 Tests**, aufgeteilt in drei Gruppen für schnelles Feedback:
 
 ```bash
-npm test                # Schnell: 1017 Tests ohne RTP-Simulationen (~120 Sekunden)
+npm test                # Schnell: 1021 Tests ohne RTP-Simulationen (~120 Sekunden)
 npm run test:rtp        # RTP-Belege: 5 Simulationtests (~18 Sekunden)
-npm run test:full       # Alles: 1021 Tests (~127 Sekunden)
+npm run test:full       # Alles: 1026 Tests (~127 Sekunden)
 npm run test:watch      # Watch-Modus mit Standard-Config (schnell)
 ```
 
@@ -185,7 +185,7 @@ Ohne OAuth sind Passwort-basierte Registrierung und Anmeldung immer verfügbar.
 
 ## Bewusst nicht vorhanden
 
-**Dark Patterns**: Autoplay, Turbospin, betonte Beinahe-Treffer (Near Miss), Gewinnfanfaren bei Rückgaben unter Einsatz (Loss Disguised as Win), vorausgewählte Bonusoptionen, Ton, Countdown-Timer mit Druckwirkung, künstliche Verknappung, Gewinnversprechen, Strategieempfehlungen, Tracking, Analytics.
+**Dark Patterns**: Autoplay, Turbospin, betonte Beinahe-Treffer (Near Miss), Gewinnfanfaren bei Rückgaben unter Einsatz (Loss Disguised as Win, auch akustisch), vorausgewählte Bonusoptionen, ein standardmäßig aktiver Ton, Countdown-Timer mit Druckwirkung, künstliche Verknappung, Gewinnversprechen, Strategieempfehlungen, Tracking, Analytics. Dezente, standardmäßig deaktivierte Interaktionsklänge sind seit dem Auftrag „Klang-Infrastruktur" als Opt-in erlaubt (siehe CLAUDE.md).
 
 **Geschäftslogik**: Echtgeld-Transaktionen, Zahlungsanbindung, KYC, Altersverifikation, E-Mail-Versand (daher kein Passwort-Reset über UI), Lizenzdarstellung, echte Spiel-Engines, Multiplayer, Live-Video.
 

@@ -12,7 +12,7 @@ import { authClient } from "./authClient";
  * abgemeldeten Zustand sofort zeigen statt erst bei der nächsten eigenständigen Navigation.
  *
  * `redirectTo` ist optional: Aufrufstellen, die selbst noch weitere Aufräumarbeiten erledigen
- * (z. B. SettingsPage.tsx vor "Alle Demo-Daten löschen"), navigieren danach selbst.
+ * (z. B. SettingsPage.tsx vor "Lokale Daten löschen"), navigieren danach selbst.
  */
 export function useLogout(): (redirectTo?: string) => Promise<void> {
   const router = useRouter();

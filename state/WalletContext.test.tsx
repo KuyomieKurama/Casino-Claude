@@ -9,7 +9,7 @@ import { useWallet } from "./WalletContext";
  * Auftrag §1/§4: die Guthabenanzeige zeigt beim Laden den serverseitig gelesenen Stand, nicht
  * erst nach der ersten Runde und nicht einen veralteten LocalStorage-Wert. Dieser Test prüft die
  * Verdrahtung AppProviders(walletSnapshot) ⇒ WalletProvider ⇒ Reducer — nicht die Anzeige-
- * Komponenten selbst (die lesen nur `useWallet().wallet`, siehe BalanceDisplay/DemoWallet).
+ * Komponenten selbst (die lesen nur `useWallet().wallet`, siehe BalanceDisplay/WalletCard).
  */
 
 function Probe() {
@@ -17,7 +17,7 @@ function Probe() {
   return (
     <div>
       <span data-testid="hydrated">{String(hydrated)}</span>
-      <span data-testid="demo">{wallet.demoBalanceMinor}</span>
+      <span data-testid="demo">{wallet.balanceMinor}</span>
       <span data-testid="bonus">{wallet.bonusBalanceMinor}</span>
       <span data-testid="spins">{wallet.freeSpins}</span>
     </div>
@@ -42,7 +42,7 @@ describe("WalletContext — Server-Saldo beim Laden (Auftrag §1)", () => {
 
   it("mit walletSnapshot-Prop: zeigt sofort den Serverstand, nicht das hartkodierte Startguthaben", () => {
     render(
-      <AppProviders walletSnapshot={{ demoBalanceMinor: 42_000, bonusBalanceMinor: 500, freeSpins: 3 }}>
+      <AppProviders walletSnapshot={{ balanceMinor: 42_000, bonusBalanceMinor: 500, freeSpins: 3 }}>
         <Probe />
       </AppProviders>,
     );
@@ -54,11 +54,11 @@ describe("WalletContext — Server-Saldo beim Laden (Auftrag §1)", () => {
 
   it("überschreibt einen veralteten LocalStorage-Stand aus einem früheren Besuch (kein Aufblitzen des alten Werts)", () => {
     // Simuliert einen früheren Besuch mit einem längst überholten Kontostand.
-    writeSlice("wallet", { wallet: { demoBalanceMinor: 1, bonusBalanceMinor: 0, freeSpins: 0 }, transactions: [], nextSeq: 1 });
+    writeSlice("wallet", { wallet: { balanceMinor: 1, bonusBalanceMinor: 0, freeSpins: 0 }, transactions: [], nextSeq: 1 });
     flushNow();
 
     render(
-      <AppProviders walletSnapshot={{ demoBalanceMinor: 77_000, bonusBalanceMinor: 0, freeSpins: 0 }}>
+      <AppProviders walletSnapshot={{ balanceMinor: 77_000, bonusBalanceMinor: 0, freeSpins: 0 }}>
         <Probe />
       </AppProviders>,
     );

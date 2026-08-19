@@ -33,7 +33,7 @@ describe("Storage", () => {
   });
 
   it("unbekannte schemaVersion wird verworfen statt geraten", () => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 99, wallet: { demoBalanceMinor: 1 } }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 99, wallet: { balanceMinor: 1 } }));
     const r = loadPersisted();
     expect(r.status).toBe("unsupported-version");
     expect(r.slices).toEqual({});
@@ -50,7 +50,7 @@ describe("Storage", () => {
         schemaVersion: 1,
         session: { user: { id: "u1", displayName: "Alt", email: "alt@beispiel.de" }, adminEnabled: true },
         admin: {},
-        wallet: { demoBalanceMinor: 500 },
+        wallet: { balanceMinor: 500 },
       }),
     );
     const r = loadPersisted();
@@ -68,7 +68,7 @@ describe("Storage", () => {
       JSON.stringify({
         schemaVersion: 2,
         wallet: {
-          wallet: { demoBalanceMinor: 500, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 500, bonusBalanceMinor: 0, freeSpins: 0 },
           transactions: [],
           nextSeq: 1,
           pendingRound: { roundId: "r1", gameId: "g1", stakeMinor: 100, returnMinor: 0, outcomeKey: "pending", seed: 1, startedAt: "2026-01-01T00:00:00.000Z" },
@@ -82,19 +82,19 @@ describe("Storage", () => {
 
   it("schreibt gedrosselt in einen Schlüssel mit schemaVersion und liest die Scheiben zurück", () => {
     vi.useFakeTimers();
-    writeSlice("wallet", { demoBalanceMinor: 123 });
+    writeSlice("wallet", { balanceMinor: 123 });
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
     vi.advanceTimersByTime(300);
     const raw = window.localStorage.getItem(STORAGE_KEY);
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw ?? "{}");
     expect(parsed.schemaVersion).toBe(4);
-    expect(parsed.wallet).toEqual({ demoBalanceMinor: 123 });
+    expect(parsed.wallet).toEqual({ balanceMinor: 123 });
     expect(Object.keys(window.localStorage).filter((k) => k.startsWith("velora"))).toEqual([STORAGE_KEY]);
     __resetStorageForTests();
     const r = loadPersisted();
     expect(r.status).toBe("ok");
-    expect(r.slices.wallet).toEqual({ demoBalanceMinor: 123 });
+    expect(r.slices.wallet).toEqual({ balanceMinor: 123 });
   });
 
   it("eine frühere 'rg'-Scheibe (SCHEMA_VERSION 3, vor der serverseitigen Umstellung) wird sauber verworfen, nicht stillschweigend entsperrt", () => {
@@ -103,7 +103,7 @@ describe("Storage", () => {
     // sieht aber "unsupported-version" statt eines stillschweigend zurückgesetzten Zustands.
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ schemaVersion: 3, wallet: { demoBalanceMinor: 500 }, rg: { selfExcluded: true, sessionStartedAt: "2026-01-01T00:00:00.000Z", reminderIntervalMinutes: 30 } }),
+      JSON.stringify({ schemaVersion: 3, wallet: { balanceMinor: 500 }, rg: { selfExcluded: true, sessionStartedAt: "2026-01-01T00:00:00.000Z", reminderIntervalMinutes: 30 } }),
     );
     const r = loadPersisted();
     expect(r.status).toBe("unsupported-version");
@@ -120,7 +120,7 @@ describe("Storage", () => {
 
   it("readLegacySelfExclusionFlag liefert false ohne 'rg'-Scheibe, bei selfExcluded:false und ohne gespeicherte Daten", () => {
     expect(readLegacySelfExclusionFlag()).toBe(false); // kein Schlüssel vorhanden
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 3, wallet: { demoBalanceMinor: 500 } }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 3, wallet: { balanceMinor: 500 } }));
     expect(readLegacySelfExclusionFlag()).toBe(false); // keine 'rg'-Scheibe
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 3, rg: { selfExcluded: false } }));
     expect(readLegacySelfExclusionFlag()).toBe(false); // explizit nicht gesperrt
@@ -147,7 +147,7 @@ describe("Storage", () => {
   });
 
   it("ein Envelope ohne 'soundPrefs' (z. B. vor dieser Funktion gespeichert) bleibt gültig — additive Scheibe, keine Anhebung nötig", () => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 4, wallet: { demoBalanceMinor: 500 } }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 4, wallet: { balanceMinor: 500 } }));
     const r = loadPersisted();
     expect(r.status).toBe("ok");
     expect(r.slices.soundPrefs).toBeUndefined();

@@ -405,7 +405,7 @@ export const games: readonly Game[] = [
   {
     id: "g-plinko-demo",
     slug: "plinko-demo",
-    name: "Plinko Demo",
+    name: "Plinko",
     category: "arcade",
     providerId: "velora-studios",
     description:
@@ -427,7 +427,7 @@ export const games: readonly Game[] = [
   {
     id: "g-mines-demo",
     slug: "mines-demo",
-    name: "Mines Demo",
+    name: "Mines",
     category: "arcade",
     providerId: "northgate-play",
     description:
@@ -449,7 +449,7 @@ export const games: readonly Game[] = [
   {
     id: "g-dice-demo",
     slug: "dice-demo",
-    name: "Dice Demo",
+    name: "Dice",
     category: "arcade",
     providerId: "kessel-sonne",
     description:
@@ -471,7 +471,7 @@ export const games: readonly Game[] = [
   {
     id: "g-wheel-demo",
     slug: "wheel-demo",
-    name: "Wheel Demo",
+    name: "Wheel",
     category: "gameshow",
     providerId: "fuenf-tuerme",
     description:
@@ -495,7 +495,7 @@ export const games: readonly Game[] = [
   {
     id: "g-live-roulette-demo",
     slug: "live-roulette-demo",
-    name: "Live Roulette Demo",
+    name: "Live Roulette",
     category: "live",
     providerId: "velora-studios",
     description:
@@ -517,7 +517,7 @@ export const games: readonly Game[] = [
   {
     id: "g-live-blackjack-demo",
     slug: "live-blackjack-demo",
-    name: "Live Blackjack Demo",
+    name: "Live Blackjack",
     category: "live",
     providerId: "kessel-sonne",
     description:
@@ -539,7 +539,7 @@ export const games: readonly Game[] = [
   {
     id: "g-live-baccarat-demo",
     slug: "live-baccarat-demo",
-    name: "Live Baccarat Demo",
+    name: "Live Baccarat",
     category: "live",
     providerId: "halbmond-interactive",
     description:

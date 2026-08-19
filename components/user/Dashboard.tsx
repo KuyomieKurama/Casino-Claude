@@ -14,7 +14,6 @@ import { games } from "@/data/catalog";
 import { formatCredits, formatCreditsSigned, formatDuration } from "@/lib/formatters";
 import { Card } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { DemoBadge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { GameCard } from "@/components/game/GameCard";
 import { TransactionList } from "@/components/wallet/TransactionList";
@@ -30,8 +29,8 @@ export function Dashboard() {
   const { toast } = useToast();
 
   const stats = useMemo(() => {
-    const bets = transactions.filter((t) => t.type === "demo_bet" || t.type === "free_spin");
-    const wins = transactions.filter((t) => t.type === "demo_win");
+    const bets = transactions.filter((t) => t.type === "bet" || t.type === "free_spin");
+    const wins = transactions.filter((t) => t.type === "win");
     const staked = bets.reduce((s, t) => s + Math.abs(t.amountMinor), 0);
     const returned = wins.reduce((s, t) => s + t.amountMinor, 0);
     const lastGameId = [...transactions].sort((a, b) => b.seq - a.seq).find((t) => t.gameId)?.gameId;
@@ -50,7 +49,7 @@ export function Dashboard() {
         <Button
           variant="outline"
           onClick={async () => {
-            toast({ tone: "info", title: "Abgemeldet.", description: "Demo-Guthaben und Favoriten bleiben auf diesem Gerät erhalten." });
+            toast({ tone: "info", title: "Abgemeldet.", description: "Guthaben und Favoriten bleiben auf diesem Gerät erhalten." });
             await logout("/");
           }}
           iconLeft={<LogOut className="size-4" aria-hidden="true" />}
@@ -60,7 +59,7 @@ export function Dashboard() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={<Coins className="size-5 text-gold" aria-hidden="true" />} label="Demo-Guthaben" value={hydrated ? `${formatCredits(availableMinor(wallet))} Credits` : "…"} badge />
+        <Stat icon={<Coins className="size-5 text-gold" aria-hidden="true" />} label="Guthaben" value={hydrated ? `${formatCredits(availableMinor(wallet))} Credits` : "…"} />
         <Stat icon={<Dices className="size-5 text-teal" aria-hidden="true" />} label="Gespielte Runden" value={hydrated ? String(stats.rounds) : "…"} />
         <Stat icon={<Heart className="size-5 text-teal" aria-hidden="true" />} label="Favoriten" value={String(favorites.length)} />
         <Stat
@@ -113,7 +112,7 @@ export function Dashboard() {
   );
 }
 
-function Stat({ icon, label, value, badge, valueClass }: { icon: React.ReactNode; label: string; value: string; badge?: boolean; valueClass?: string }) {
+function Stat({ icon, label, value, valueClass }: { icon: React.ReactNode; label: string; value: string; valueClass?: string }) {
   return (
     <Card className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -122,7 +121,6 @@ function Stat({ icon, label, value, badge, valueClass }: { icon: React.ReactNode
       </div>
       <div className="flex items-baseline gap-2">
         <span className={cn("tabular text-xl font-semibold", valueClass ?? "text-primary")}>{value}</span>
-        {badge ? <DemoBadge /> : null}
       </div>
     </Card>
   );

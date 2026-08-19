@@ -1,7 +1,7 @@
 import type { CreditsMinor } from "./money";
 
 export type Wallet = {
-  demoBalanceMinor: CreditsMinor;
+  balanceMinor: CreditsMinor;
   bonusBalanceMinor: CreditsMinor;
   freeSpins: number;
   /** Doppelklick- und Race-Guard: solange true, wird keine zweite Runde angenommen. */
@@ -15,4 +15,4 @@ export type Wallet = {
  * wird — dort als eigenständiger Typ definiert, damit state/** nicht aus @/server/* importieren
  * muss (Schichtregel, CLAUDE.md).
  */
-export type WalletBalance = Pick<Wallet, "demoBalanceMinor" | "bonusBalanceMinor" | "freeSpins">;
+export type WalletBalance = Pick<Wallet, "balanceMinor" | "bonusBalanceMinor" | "freeSpins">;

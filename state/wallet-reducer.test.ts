@@ -17,9 +17,9 @@ import { sampleTransactions } from "@/data/mock-history";
  *    server/rounds/round-service.test.ts ("Idempotenz"),
  *    server/rounds/interactive-round-service.test.ts ("Idempotenz"),
  *    server/rounds/round-action-service.test.ts ("Idempotenz").
- *  - "Bonusguthaben wird vor dem Demoguthaben eingesetzt" →
+ *  - "Bonusguthaben wird vor dem übrigen Guthaben eingesetzt" →
  *    lib/wallet-policy.test.ts::splitStakeAcrossBalances (reine Funktion) UND
- *    server/rounds/round-service.test.ts ("Bonusguthaben wird vor dem Demo-Guthaben eingesetzt",
+ *    server/rounds/round-service.test.ts ("Bonusguthaben wird vor dem übrigen Guthaben eingesetzt",
  *    neu ergänzt — bewiesen, dass der Server dieselbe Regel tatsächlich verdrahtet).
  *  - "Freirunde kostet kein Guthaben, verbraucht aber eine Freirunde" →
  *    server/rounds/interactive-round-service.test.ts ("Freirunde").
@@ -90,10 +90,10 @@ describe("Wallet-Reducer — Invarianten (Aufladen, Zurücksetzen, Bonusgutschri
         } else {
           s = walletReducer(s, { type: "CLEAR_REJECTION" });
         }
-        expect(s.wallet.demoBalanceMinor).toBeGreaterThanOrEqual(0);
+        expect(s.wallet.balanceMinor).toBeGreaterThanOrEqual(0);
         expect(s.wallet.bonusBalanceMinor).toBeGreaterThanOrEqual(0);
         expect(s.wallet.freeSpins).toBeGreaterThanOrEqual(0);
-        expect(Number.isInteger(s.wallet.demoBalanceMinor)).toBe(true);
+        expect(Number.isInteger(s.wallet.balanceMinor)).toBe(true);
       }
       assertChain(s);
     }
@@ -105,7 +105,7 @@ describe("Wallet-Reducer — Invarianten (Aufladen, Zurücksetzen, Bonusgutschri
     s = walletReducer(s, { type: "GRANT_BONUS", bonusMinor: 5000, freeSpins: 0, sourceId: "p-weekend", ctx: ctx() });
     s = walletReducer(s, { type: "TOP_UP", amountMinor: 50_000, ctx: ctx() });
     s = walletReducer(s, { type: "RESET", ctx: ctx() });
-    expect(s.transactions.map((t) => t.type)).toEqual(["demo_credit", "bonus_grant", "demo_credit", "reset"]);
+    expect(s.transactions.map((t) => t.type)).toEqual(["credit", "bonus_grant", "credit", "reset"]);
     assertChain(s);
     expect(availableMinor(s.wallet)).toBe(START_BALANCE_MINOR);
     // Beispielhistorie ist ebenfalls eine gültige Kette — sie startet bewusst bei einem eigenen,
@@ -116,7 +116,7 @@ describe("Wallet-Reducer — Invarianten (Aufladen, Zurücksetzen, Bonusgutschri
     // assertChain() einen Bezug prüfen, den es hier gar nicht geben soll.
     const seeded = { ...createInitialWalletState(sampleTransactions), hydrated: true };
     const lastSampleBalance = sampleTransactions.at(-1)?.balanceAfterMinor ?? 0;
-    seeded.wallet = { ...seeded.wallet, demoBalanceMinor: lastSampleBalance };
+    seeded.wallet = { ...seeded.wallet, balanceMinor: lastSampleBalance };
     assertChain(seeded);
   });
 
@@ -131,7 +131,7 @@ describe("Wallet-Reducer — Invarianten (Aufladen, Zurücksetzen, Bonusgutschri
     const s0 = fresh();
     const huge = walletReducer(s0, { type: "TOP_UP", amountMinor: 999_999_999_99, ctx: ctx() });
     expect(huge.lastRejection?.code).toBe("MAX_BALANCE");
-    expect(huge.wallet.demoBalanceMinor).toBe(s0.wallet.demoBalanceMinor);
+    expect(huge.wallet.balanceMinor).toBe(s0.wallet.balanceMinor);
   });
 
   it("GRANT_BONUS mit ungültigen Werten wird abgelehnt, eine reine Freirunden-Gutschrift von 0 bleibt ein No-Op", () => {
@@ -156,43 +156,43 @@ describe("Wallet-Reducer — Invarianten (Aufladen, Zurücksetzen, Bonusgutschri
     let s = fresh();
     s = walletReducer(s, { type: "TOP_UP", amountMinor: 10_000, ctx: ctx() });
     const before = s.transactions.length;
-    const synced = walletReducer(s, { type: "SERVER_WALLET_SYNC", wallet: { demoBalanceMinor: 55_000, bonusBalanceMinor: 200, freeSpins: 2 } });
-    expect(synced.wallet.demoBalanceMinor).toBe(55_000);
+    const synced = walletReducer(s, { type: "SERVER_WALLET_SYNC", wallet: { balanceMinor: 55_000, bonusBalanceMinor: 200, freeSpins: 2 } });
+    expect(synced.wallet.balanceMinor).toBe(55_000);
     expect(synced.wallet.bonusBalanceMinor).toBe(200);
     expect(synced.wallet.freeSpins).toBe(2);
     expect(synced.transactions).toHaveLength(before); // reiner Anzeige-Abgleich, keine neue Buchung
   });
 
   it("Hydration: defekte Scheibe führt zu Defaults", () => {
-    const a = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: { wallet: { demoBalanceMinor: -5 } }, ctx: ctx() });
+    const a = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: { wallet: { balanceMinor: -5 } }, ctx: ctx() });
     expect(a.hydrated).toBe(true);
-    expect(a.wallet.demoBalanceMinor).toBe(START_BALANCE_MINOR);
+    expect(a.wallet.balanceMinor).toBe(START_BALANCE_MINOR);
     const b = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: "kaputt", ctx: ctx() });
-    expect(b.wallet.demoBalanceMinor).toBe(START_BALANCE_MINOR);
+    expect(b.wallet.balanceMinor).toBe(START_BALANCE_MINOR);
   });
 
   it("Hydration: serverWallet überschreibt einen veralteten LocalStorage-Saldo (Auftrag: durchgängig der Serverstand)", () => {
     const stale = fresh();
-    const persisted = JSON.parse(JSON.stringify(toPersistedWallet({ ...stale, wallet: { ...stale.wallet, demoBalanceMinor: START_BALANCE_MINOR - 100 } })));
-    const serverWallet = { demoBalanceMinor: 42_000, bonusBalanceMinor: 500, freeSpins: 3 };
+    const persisted = JSON.parse(JSON.stringify(toPersistedWallet({ ...stale, wallet: { ...stale.wallet, balanceMinor: START_BALANCE_MINOR - 100 } })));
+    const serverWallet = { balanceMinor: 42_000, bonusBalanceMinor: 500, freeSpins: 3 };
 
     const rehydrated = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: persisted, ctx: ctx(), serverWallet });
 
-    expect(rehydrated.wallet.demoBalanceMinor).toBe(42_000);
+    expect(rehydrated.wallet.balanceMinor).toBe(42_000);
     expect(rehydrated.wallet.bonusBalanceMinor).toBe(500);
     expect(rehydrated.wallet.freeSpins).toBe(3);
   });
 
   it("Hydration: serverWallet gewinnt auch bei einer defekten Scheibe (kein Rückfall auf den hartkodierten Default)", () => {
-    const serverWallet = { demoBalanceMinor: 7_500, bonusBalanceMinor: 0, freeSpins: 0 };
+    const serverWallet = { balanceMinor: 7_500, bonusBalanceMinor: 0, freeSpins: 0 };
     const a = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: "kaputt", ctx: ctx(), serverWallet });
-    expect(a.wallet.demoBalanceMinor).toBe(7_500);
+    expect(a.wallet.balanceMinor).toBe(7_500);
   });
 
   it("Hydration ohne serverWallet verhält sich unverändert (bestehende Aufrufer bleiben kompatibel)", () => {
     const persisted = JSON.parse(JSON.stringify(toPersistedWallet(fresh())));
     const rehydrated = walletReducer(createInitialWalletState(), { type: "HYDRATE", slice: persisted, ctx: ctx() });
-    expect(rehydrated.wallet.demoBalanceMinor).toBe(START_BALANCE_MINOR);
+    expect(rehydrated.wallet.balanceMinor).toBe(START_BALANCE_MINOR);
   });
 
   it("toPersistedWallet liefert keine Rundenfelder mehr (der lokale Rundenpfad wurde entfernt)", () => {

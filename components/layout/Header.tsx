@@ -48,7 +48,7 @@ export function Header() {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <header className="glass signature-bottom sticky top-[var(--demo-stripe-height)] z-40 h-[var(--header-height)]">
+    <header className="glass signature-bottom sticky top-0 z-40 h-[var(--header-height)]">
       <div className="mx-auto flex h-full max-w-[1536px] items-center gap-2 px-3 sm:gap-3 sm:px-6">
         <span className="sm:hidden">
           <Logo compact />

@@ -64,8 +64,8 @@ describe("startNonInteractiveRound", () => {
     expect(result.data.netMinor).toBe(result.data.returnMinor - 100);
 
     const entries = await listLedgerEntries(db, userId, 10);
-    // demo_credit (Start) + demo_bet + demo_win = drei Buchungen für die erste jemals gespielte Runde.
-    expect(entries.map((e) => e.type)).toEqual(["demo_win", "demo_bet", "demo_credit"]);
+    // credit (Start) + bet + win = drei Buchungen für die erste jemals gespielte Runde.
+    expect(entries.map((e) => e.type)).toEqual(["win", "bet", "credit"]);
     expect(entries[2]?.amountMinor).toBe(START_BALANCE_MINOR);
   });
 
@@ -77,13 +77,13 @@ describe("startNonInteractiveRound", () => {
     await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 10, idempotencyKey: "warmup" });
     const before = await findWallet(db, userId);
     expect(before).not.toBeNull();
-    await debitForStake(db, userId, { fromBonusMinor: 0, fromDemoMinor: (before?.demoBalanceMinor ?? 0) - 50 });
+    await debitForStake(db, userId, { fromBonusMinor: 0, fromBalanceMinor: (before?.balanceMinor ?? 0) - 50 });
 
     const result = await startNonInteractiveRound(db, { userId, gameModeId: modeId, stakeMinor: 51, idempotencyKey: "k-over" });
 
     expect(result).toEqual({ ok: false, code: "INSUFFICIENT_FUNDS" });
     const after = await findWallet(db, userId);
-    expect(after?.demoBalanceMinor).toBe(50); // unverändert — kein stiller Teilabzug
+    expect(after?.balanceMinor).toBe(50); // unverändert — kein stiller Teilabzug
     const attempted = await findByIdempotencyKey(db, userId, "k-over");
     expect(attempted).toBeNull(); // keine Runde wurde angelegt
   });
@@ -120,11 +120,11 @@ describe("startNonInteractiveRound", () => {
   /**
    * Serverseitiges Gegenstück zu einer entfernten Aussage aus dem früheren, lokalen START_ROUND-Pfad
    * (state/wallet-reducer.ts, vor Phase 3b): Bonusguthaben wird zuerst eingesetzt, der Rest kommt
-   * aus dem Demo-Guthaben. Die reine Regel (lib/wallet-policy.ts::splitStakeAcrossBalances) ist
+   * aus dem übrigen Guthaben. Die reine Regel (lib/wallet-policy.ts::splitStakeAcrossBalances) ist
    * bereits vollständig in lib/wallet-policy.test.ts geprüft — hier wird bewiesen, dass der Server
    * sie tatsächlich beim Einsatz-Abbuchen verdrahtet, nicht nur, dass die Funktion selbst korrekt ist.
    */
-  test("Bonusguthaben wird vor dem Demo-Guthaben eingesetzt", async () => {
+  test("Bonusguthaben wird vor dem übrigen Guthaben eingesetzt", async () => {
     const db = await createTestDatabase();
     const modeId = await seedMode(db);
     const userId = await seedUser(db, "u1");
@@ -140,9 +140,9 @@ describe("startNonInteractiveRound", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const after = await findWallet(db, userId);
-    // 500 Einsatz: erst die 300 Bonus (auf 0), der Rest (200) kommt aus dem Demo-Guthaben.
+    // 500 Einsatz: erst die 300 Bonus (auf 0), der Rest (200) kommt aus dem übrigen Guthaben.
     expect(after?.bonusBalanceMinor).toBe(0);
-    expect(after?.demoBalanceMinor).toBe((before?.demoBalanceMinor ?? 0) - 200 + result.data.returnMinor);
+    expect(after?.balanceMinor).toBe((before?.balanceMinor ?? 0) - 200 + result.data.returnMinor);
   });
 
   test("Konsistenz: Summe der Ledger-Beträge entspricht dem materialisierten Saldo nach mehreren Runden", async () => {
@@ -157,7 +157,7 @@ describe("startNonInteractiveRound", () => {
 
     const wallet = await findWallet(db, userId);
     const ledgerSum = await sumLedgerAmountForUser(db, userId);
-    expect(ledgerSum).toBe((wallet?.demoBalanceMinor ?? 0) + (wallet?.bonusBalanceMinor ?? 0));
+    expect(ledgerSum).toBe((wallet?.balanceMinor ?? 0) + (wallet?.bonusBalanceMinor ?? 0));
   });
 
   test("ein manipulierter Client, der returnMinor mitschickt, kann das Ergebnis nicht beeinflussen", async () => {
@@ -196,7 +196,7 @@ describe("startNonInteractiveRound", () => {
    * die Gutschrift ist an die WALLET-ANLAGE gebunden (insertWalletIfMissing, „created: true"),
    * nicht an das Zustandekommen einer Sitzung. Dieser Test simuliert mehrere „Logins" (mehrere,
    * voneinander unabhängige Rundenstart-Aufrufe für denselben Nutzer, so wie sie nach jeweils
-   * neuer Anmeldung entstünden) und beweist, dass nur der ERSTE eine demo_credit-Buchung erzeugt.
+   * neuer Anmeldung entstünden) und beweist, dass nur der ERSTE eine credit-Buchung erzeugt.
    */
   test("mehrfaches An- und Abmelden erhöht das Guthaben nicht — die Startguthaben-Buchung bleibt einmalig", async () => {
     const db = await createTestDatabase();
@@ -213,7 +213,7 @@ describe("startNonInteractiveRound", () => {
     expect(third.ok).toBe(true);
 
     const entries = await listLedgerEntries(db, userId, 20);
-    const creditEntries = entries.filter((e) => e.type === "demo_credit");
+    const creditEntries = entries.filter((e) => e.type === "credit");
     // Genau EINE Startguthaben-Buchung über die gesamte „Kontolebensdauer" — unabhängig davon,
     // wie oft sich der Nutzer zwischenzeitlich an- und abgemeldet hat.
     expect(creditEntries).toHaveLength(1);

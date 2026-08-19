@@ -62,7 +62,7 @@ export interface ListAdminUsersResult {
 /**
  * Auflistung mit Rundenzahl je Nutzer (Admin-Auftrag §3: „Anzahl Runden"). Eine aggregierte
  * Abfrage (LEFT JOIN + GROUP BY) statt einer Unterabfrage je Zeile — kein N+1. LIMIT/OFFSET statt
- * Keyset-Cursor: die Nutzerliste ist im Umfang dieses Demo-Projekts klein und ändert sich selten
+ * Keyset-Cursor: die Nutzerliste ist im aktuellen Umfang klein und ändert sich selten
  * gegenüber der Blätterposition, anders als das fortlaufend wachsende Ledger/Audit-Log — OFFSET
  * ist hier die einfachere, ausreichende Lösung (KISS), bleibt aber durch `limit` immer begrenzt.
  */

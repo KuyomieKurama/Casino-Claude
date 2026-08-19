@@ -12,9 +12,9 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
 const typeLabel: Record<TransactionType, string> = {
-  demo_credit: "Demo-Credits hinzugefügt",
-  demo_bet: "Einsatz",
-  demo_win: "Rückgabe",
+  credit: "Credits hinzugefügt",
+  bet: "Einsatz",
+  win: "Rückgabe",
   bonus_grant: "Bonus gutgeschrieben",
   free_spin: "Freirunde eingesetzt",
   reset: "Zurückgesetzt",
@@ -24,7 +24,7 @@ const gameName = (id?: string) => (id ? (games.find((g) => g.id === id)?.name ??
 
 /** Vorzeichen und Farbe: Rückgabe unter Einsatz wird nie als Gewinn gefeiert — nur netto positive Werte sind grün. */
 function amountClass(tx: Transaction): string {
-  if (tx.amountMinor > 0 && tx.type === "demo_win") return "text-success";
+  if (tx.amountMinor > 0 && tx.type === "win") return "text-success";
   if (tx.amountMinor > 0) return "text-teal";
   return "text-primary";
 }
@@ -62,7 +62,7 @@ export function TransactionList({ transactions, hydrated, limit, className, empt
       <EmptyState
         icon={<History aria-hidden="true" />}
         title="Noch keine Buchungen."
-        text="Sobald du eine Demo-Runde spielst oder Demo-Credits hinzufügst, erscheint hier jede Bewegung mit Kontostand danach."
+        text="Sobald du eine Runde spielst oder Credits hinzufügst, erscheint hier jede Bewegung mit Kontostand danach."
         action={emptyAction ?? <LinkButton href="/casino" variant="primary">Zur Lobby</LinkButton>}
         className={className}
       />

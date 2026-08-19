@@ -17,7 +17,7 @@ import { LimitDialog } from "./LimitDialog";
 
 const pauseLabel = (m: number) => (m >= 1440 ? `${m / 1440} Tag` : m >= 60 ? `${m / 60} Std.` : `${m} Min.`);
 
-/** Responsible-Gaming-Bereich (§8.9): Spielzeit, Pause, Demo-Limit, Selbstsperre, Erinnerung, Hilfe. */
+/** Responsible-Gaming-Bereich (§8.9): Spielzeit, Pause, Zeitlimit, Selbstsperre, Erinnerung, Hilfe. */
 export function RgPanel() {
   const rg = useRg();
   const status = useRgStatus(1000);
@@ -97,7 +97,7 @@ export function RgPanel() {
         {/* Limit */}
         <Card as="section" aria-labelledby="limit-title" className="space-y-3">
           <h2 id="limit-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-            <Clock className="size-5 text-teal" aria-hidden="true" /> Demo-Zeitlimit pro Sitzung
+            <Clock className="size-5 text-teal" aria-hidden="true" /> Zeitlimit pro Sitzung
           </h2>
           <p className="text-sm text-muted">Nach Ablauf sind Spielstarts blockiert, bis du hier bewusst eine neue Sitzung beginnst. Gerechnet wird aus Zeitstempeln, auch über Reloads hinweg.</p>
           <div className="flex flex-wrap items-end gap-2">
@@ -107,7 +107,7 @@ export function RgPanel() {
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : undefined;
                 rg.setSessionLimit(v);
-                toast({ tone: "success", title: v ? `Demo-Limit auf ${formatDuration(v * 60_000)} gesetzt.` : "Demo-Limit entfernt." });
+                toast({ tone: "success", title: v ? `Zeitlimit auf ${formatDuration(v * 60_000)} gesetzt.` : "Zeitlimit entfernt." });
               }}
               options={[{ value: "", label: "Kein Limit" }, ...SESSION_LIMIT_OPTIONS_MINUTES.map((m) => ({ value: String(m), label: pauseLabel(m) }))]}
               containerClassName="w-40"
@@ -162,7 +162,7 @@ export function RgPanel() {
         </h2>
         <p className="measure text-sm text-muted">{RG_NOTICE}</p>
         <p className="measure text-sm text-muted">
-          Ein Echtgeldprodukt müsste hier auf Beratungsangebote, Sperrsysteme und gesetzliche Schutzmechanismen des jeweiligen Rechtsraums verweisen. Dieser Prototyp nennt bewusst keine konkreten Stellen, um nichts Falsches zu behaupten.
+          Ein Echtgeldprodukt müsste hier auf Beratungsangebote, Sperrsysteme und gesetzliche Schutzmechanismen des jeweiligen Rechtsraums verweisen. Diese Anwendung nennt bewusst keine konkreten Stellen, um nichts Falsches zu behaupten.
         </p>
         <LinkButton href="/help" variant="outline" className="self-start">
           Zur Hilfe & FAQ

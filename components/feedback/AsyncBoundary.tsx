@@ -60,7 +60,7 @@ export function AsyncBoundary({ status, skeleton, errorTitle, errorText, onRetry
     return (
       <ErrorState
         title={errorTitle ?? "Dieser Bereich konnte nicht geladen werden."}
-        text={errorText ?? "Der simulierte Dienst hat nicht geantwortet. Du kannst es erneut versuchen; der Rest der Seite bleibt nutzbar."}
+        text={errorText ?? "Der Dienst hat nicht geantwortet. Du kannst es erneut versuchen; der Rest der Seite bleibt nutzbar."}
         onRetry={onRetry}
       />
     );

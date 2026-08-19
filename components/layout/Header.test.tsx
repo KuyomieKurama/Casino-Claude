@@ -4,6 +4,8 @@ import type { User } from "@/types/user";
 import { AppProviders } from "@/state/AppProviders";
 import { __resetStorageForTests } from "@/lib/storage";
 import { __resetSoundStoreForTests } from "@/components/sound/sound-store";
+import { START_BALANCE_MINOR } from "@/lib/constants";
+import { formatCredits } from "@/lib/formatters";
 import { Header } from "./Header";
 
 const usePathnameMock = vi.fn();
@@ -95,16 +97,20 @@ describe("Header — Admin-Sichtbarkeit", () => {
 });
 
 describe("Header — Guthabenanzeige", () => {
+  // Die frühere DEMO-Kennzeichnung (Badge) entfiel mit der Demo-Bereinigung
+  // (components/wallet/BalanceDisplay.tsx) — geprüft wird stattdessen der tatsächlich
+  // angezeigte Startguthabenbetrag (Einheit „Credits" separat, siehe max-xs:sr-only).
   test("zeigt die Guthabenanzeige für angemeldete Nutzer", () => {
     renderHeader("/", player);
-    expect(screen.getByText("DEMO")).toBeInTheDocument();
+    expect(screen.getByText(formatCredits(START_BALANCE_MINOR))).toBeInTheDocument();
+    expect(screen.getByText("Credits")).toBeInTheDocument();
   });
 
   // Auftrag „Spielen nur angemeldet": ohne Sitzung existiert kein Wallet, die Anzeige eines
   // hypothetischen Guthabens wäre irreführend (components/wallet/BalanceDisplay.tsx).
   test("zeigt keine Guthabenanzeige für abgemeldete Besucher", () => {
     renderHeader("/", null);
-    expect(screen.queryByText("DEMO")).not.toBeInTheDocument();
+    expect(screen.queryByText(formatCredits(START_BALANCE_MINOR))).not.toBeInTheDocument();
   });
 });
 

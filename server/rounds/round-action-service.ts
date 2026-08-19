@@ -49,7 +49,7 @@ export interface ApplyActionOpenData {
   stakeMinor: number;
   state: unknown;
   /** Auch bei offener Runde nötig: Verdoppeln/Teilen bucht sofort einen Zusatzeinsatz (Auftrag §2). */
-  wallet: { demoBalanceMinor: number; bonusBalanceMinor: number; freeSpins: number };
+  wallet: { balanceMinor: number; bonusBalanceMinor: number; freeSpins: number };
 }
 
 export interface ApplyActionSettledData {
@@ -64,7 +64,7 @@ export interface ApplyActionSettledData {
   outcomeLabel: string;
   seed: number;
   state: unknown;
-  wallet: { demoBalanceMinor: number; bonusBalanceMinor: number; freeSpins: number };
+  wallet: { balanceMinor: number; bonusBalanceMinor: number; freeSpins: number };
   /**
    * Engine-spezifische Zusatzdaten für die Anzeige (z. B. Blackjack: Ergebnis je Hand). Der
    * Client zeichnet NUR, was hier steht — keine lokale Nachrechnung anhand aufgedeckter Karten,
@@ -78,11 +78,11 @@ export type ApplyActionData = ApplyActionOpenData | ApplyActionSettledData;
 export type ApplyActionResult = { ok: true; data: ApplyActionData } | { ok: false; code: WalletRejectionCode };
 
 function toWallet(record: WalletRecord): Wallet {
-  return { demoBalanceMinor: record.demoBalanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins, roundInFlight: false };
+  return { balanceMinor: record.balanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins, roundInFlight: false };
 }
 
 function toSnapshot(record: WalletRecord) {
-  return { demoBalanceMinor: record.demoBalanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
+  return { balanceMinor: record.balanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
 }
 
 /**
@@ -183,7 +183,7 @@ async function processAction<TState>(
     const wallet = await findWallet(tx, input.userId);
     if (!wallet) throw new Error(`Wallet für Nutzer „${input.userId}" fehlt — Zusatzeinsatz kann nicht gebucht werden.`);
     const split = splitStakeAcrossBalances(toWallet(wallet), additionalMinor);
-    const debit = await debitForStake(tx, input.userId, { fromBonusMinor: split.fromBonus, fromDemoMinor: split.fromDemo });
+    const debit = await debitForStake(tx, input.userId, { fromBonusMinor: split.fromBonus, fromBalanceMinor: split.fromBalance });
     // Null betroffene Zeilen (wie Auftrag §2 in round-service.ts): das bedingte UPDATE ist der
     // eigentliche Schutz gegen Wettläufe — die Zeilensperre auf game_round serialisiert hier
     // zusätzlich gleichzeitige Aktionen auf DERSELBEN Runde, ersetzt aber nicht die WHERE-Bedingung.
@@ -192,10 +192,10 @@ async function processAction<TState>(
     await insertLedgerEntry(tx, {
       userId: input.userId,
       seq: debit.walletRecord.nextSeq - 1,
-      type: "demo_bet",
+      type: "bet",
       amountMinor: -additionalMinor,
-      balanceAfterMinor: debit.walletRecord.demoBalanceMinor + debit.walletRecord.bonusBalanceMinor,
-      fromDemoMinor: split.fromDemo,
+      balanceAfterMinor: debit.walletRecord.balanceMinor + debit.walletRecord.bonusBalanceMinor,
+      fromBalanceMinor: split.fromBalance,
       fromBonusMinor: split.fromBonus,
       gameModeId: round.gameModeId,
       roundId: round.id,
@@ -256,9 +256,9 @@ async function buildResponse<TState>(
   await insertLedgerEntry(tx, {
     userId: round.userId,
     seq: walletAfterCredit.nextSeq - 1,
-    type: "demo_win",
+    type: "win",
     amountMinor: settlement.returnMinor,
-    balanceAfterMinor: walletAfterCredit.demoBalanceMinor + walletAfterCredit.bonusBalanceMinor,
+    balanceAfterMinor: walletAfterCredit.balanceMinor + walletAfterCredit.bonusBalanceMinor,
     gameModeId: round.gameModeId,
     roundId: round.id,
   });

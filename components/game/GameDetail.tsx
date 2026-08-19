@@ -27,7 +27,7 @@ import { FavoriteButton } from "./FavoriteButton";
 import { GameCard } from "./GameCard";
 import { ModeSwitcher } from "./ModeSwitcher";
 import { PaytableView } from "./PaytableView";
-import { DemoWallet } from "@/components/wallet/DemoWallet";
+import { WalletCard } from "@/components/wallet/WalletCard";
 import { cn } from "@/lib/cn";
 
 const volatilityLabel = { low: "Niedrig", medium: "Mittel", high: "Hoch" } as const;
@@ -92,7 +92,7 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
    * ein Durchschnitt, den keine einzelne Wette hat, wäre irreführend.
    */
   const rtpFact = (() => {
-    if (game.rtpDemo !== undefined) return `Demo-Wert ${formatPercent(game.rtpDemo)}`;
+    if (game.rtpDemo !== undefined) return formatPercent(game.rtpDemo);
     if (tables.length > 1) {
       const values = tables.map(rtpOf).sort((a, b) => a - b);
       return `Je nach Wette ${formatPercent(values[0]!)} – ${formatPercent(values.at(-1)!)} (siehe Tabellen unten)`;
@@ -127,11 +127,11 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
                 Zurzeit nicht verfügbar
               </Badge>
             ) : playable ? (
-              <Badge tone="teal">Demo spielbar</Badge>
+              <Badge tone="teal">Spielbar</Badge>
             ) : (
-              <Badge tone="neutral">Demo folgt</Badge>
+              <Badge tone="neutral">Bald verfügbar</Badge>
             )}
-            {game.isLiveDemo ? <Badge tone="teal">Live-Demo · Simulation</Badge> : null}
+            {game.isLiveDemo ? <Badge tone="teal">Live · Simulation</Badge> : null}
             {game.isNew ? <Badge tone="teal">Neu</Badge> : null}
           </div>
           <h1 id="game-title" className="font-display text-2xl text-primary sm:text-3xl">
@@ -178,12 +178,12 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
                 </Button>
               ) : (
                 <Button variant="primary" size="lg" onClick={() => setPlaying(true)} iconLeft={<Play className="size-4" aria-hidden="true" />}>
-                  Demo spielen
+                  Spielen
                 </Button>
               )
             ) : (
               <Button variant="outline" disabled aria-describedby="not-playable-hint">
-                Demo folgt
+                Bald verfügbar
               </Button>
             )}
             <FavoriteButton gameId={game.id} gameName={game.name} size="md" />
@@ -206,10 +206,10 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
           ) : null}
           {!playable && !inactive ? (
             <p id="not-playable-hint" className="text-sm text-muted">
-              Für dieses Spiel ist im Prototyp noch keine Engine hinterlegt.
+              Für dieses Spiel ist noch keine Engine hinterlegt.
             </p>
           ) : null}
-          <p className="text-xs text-muted">Demo-Guthaben: Runden ziehen Demo-Credits ab und schreiben Rückgaben gut. Kein Echtgeld, keine Auszahlung.</p>
+          <p className="text-xs text-muted">Guthaben: Runden ziehen Credits ab und schreiben Rückgaben gut. Kein Echtgeld, keine Auszahlung.</p>
         </div>
       </section>
 
@@ -222,7 +222,7 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
             <Engine game={game} simulateLoadError={simulateError} onStatusChange={setRoundStatus} />
           </div>
           <div className="min-w-0">
-            <DemoWallet compact />
+            <WalletCard compact />
           </div>
         </section>
       ) : null}
@@ -231,14 +231,14 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
       <section aria-labelledby="facts-title" className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <Card>
           <h2 id="facts-title" className="text-md font-semibold text-primary">
-            Fakten zur Demo
+            Spieldaten
           </h2>
           <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
             <Fact label="RTP">{rtpFact}</Fact>
             <Fact label="Volatilität">{game.volatility ? volatilityLabel[game.volatility] : "–"}</Fact>
-            <Fact label="Minimale Demo-Runde">{formatCredits(game.minDemoBetMinor)} Credits</Fact>
-            <Fact label="Maximale Demo-Runde">{formatCredits(game.maxDemoBetMinor)} Credits</Fact>
-            <Fact label="Demo-Schwierigkeit">{difficultyLabel[game.demoDifficulty]}</Fact>
+            <Fact label="Minimaler Einsatz">{formatCredits(game.minDemoBetMinor)} Credits</Fact>
+            <Fact label="Maximaler Einsatz">{formatCredits(game.maxDemoBetMinor)} Credits</Fact>
+            <Fact label="Schwierigkeit">{difficultyLabel[game.demoDifficulty]}</Fact>
             <Fact label="Mechanik">{game.tags.length ? game.tags.map(mechanicLabel).join(", ") : "–"}</Fact>
           </dl>
         </Card>
@@ -247,7 +247,7 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
             <ShieldCheck className="size-5 text-teal" aria-hidden="true" />
             Responsible Gaming
           </h2>
-          <p className="text-sm text-muted">Spielzeit, Pause, Demo-Limit und Selbstsperre gelten auch hier. Die aktuelle Sitzung siehst du jederzeit im Bereich Responsible Gaming.</p>
+          <p className="text-sm text-muted">Spielzeit, Pause, Zeitlimit und Selbstsperre gelten auch hier. Die aktuelle Sitzung siehst du jederzeit im Bereich Responsible Gaming.</p>
           <LinkButton href="/responsible-gaming" variant="outline" className="self-start">
             Zu Responsible Gaming
           </LinkButton>
@@ -268,12 +268,12 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
               <div className="overflow-x-auto rounded-card border border-border-subtle">
                 <table className="w-full min-w-[360px] text-sm">
                   <caption className="px-4 py-3 text-left text-sm text-muted">
-                    Demo-RTP je Wette. Der Wert ist der Erwartungswert der jeweiligen Tabelle.
+                    RTP je Wette. Der Wert ist der Erwartungswert der jeweiligen Tabelle.
                   </caption>
                   <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
                     <tr>
                       <th scope="col" className="px-4 py-2 font-medium">Wette</th>
-                      <th scope="col" className="px-4 py-2 text-right font-medium">Demo-RTP</th>
+                      <th scope="col" className="px-4 py-2 text-right font-medium">RTP</th>
                       <th scope="col" className="px-4 py-2 text-right font-medium">Ergebnisklassen</th>
                     </tr>
                   </thead>
@@ -311,8 +311,8 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
             title="Keine feste Auszahlungstabelle"
             text={
               Engine
-                ? "Der Ausgang hängt hier von deinen Entscheidungen ab, nicht von einer festen Tabelle. Deshalb weist der Prototyp für dieses Spiel keinen RTP-Wert aus — behauptet würde nur, was auch geprüft werden kann."
-                : "Ohne geprüfte Tabelle zeigt der Prototyp keinen RTP-Wert an (Regel: ausgewiesener RTP muss der Tabelle entsprechen)."
+                ? "Der Ausgang hängt hier von deinen Entscheidungen ab, nicht von einer festen Tabelle. Deshalb wird für dieses Spiel kein RTP-Wert ausgewiesen — behauptet wird nur, was auch geprüft werden kann."
+                : "Ohne geprüfte Tabelle wird kein RTP-Wert angezeigt (Regel: ausgewiesener RTP muss der Tabelle entsprechen)."
             }
           />
         </section>

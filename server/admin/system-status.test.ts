@@ -72,7 +72,7 @@ describe("resolveIntegrityCheck — Admin-Auftrag §1 (Ledger-Summe gegen materi
     const db = await createTestDatabase();
     await db.insert(user).values({ id: "u1", name: "A", email: "a@example.com" });
     const { walletRecord } = await insertWalletIfMissing(db, "u1", 100_000);
-    await insertLedgerEntry(db, { userId: "u1", seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: walletRecord.demoBalanceMinor });
+    await insertLedgerEntry(db, { userId: "u1", seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: walletRecord.balanceMinor });
 
     const result = await resolveIntegrityCheck(db);
 
@@ -84,11 +84,11 @@ describe("resolveIntegrityCheck — Admin-Auftrag §1 (Ledger-Summe gegen materi
     const db = await createTestDatabase();
     await db.insert(user).values({ id: "u1", name: "A", email: "a@example.com" });
     await insertWalletIfMissing(db, "u1", 100_000);
-    await insertLedgerEntry(db, { userId: "u1", seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId: "u1", seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
 
     // Manipulation direkt an der Wallet-Tabelle vorbei am Ledger — genau der Fall, den die
     // Integritätsprüfung aufdecken soll (z. B. ein Bug, der den Saldo ohne Buchung ändert).
-    await db.update(wallet).set({ demoBalanceMinor: 999_999 }).where(eq(wallet.userId, "u1"));
+    await db.update(wallet).set({ balanceMinor: 999_999 }).where(eq(wallet.userId, "u1"));
 
     const result = await resolveIntegrityCheck(db);
 

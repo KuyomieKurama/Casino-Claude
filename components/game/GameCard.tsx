@@ -42,7 +42,7 @@ export function GameCard({ game, variant = "default", className, priority }: Gam
     </Badge>
   ) : game.isLiveDemo ? (
     <Badge tone="teal" icon={<Radio className="size-3" aria-hidden="true" />}>
-      Live-Demo
+      Live
     </Badge>
   ) : game.isNew ? (
     <Badge tone="teal">Neu</Badge>
@@ -112,7 +112,7 @@ export function GameCard({ game, variant = "default", className, priority }: Gam
           {siblingHint ? <p className="text-xs text-muted/80">{siblingHint}</p> : null}
           <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
             <LinkButton href={href} variant={inactive ? "outline" : "primary"} iconLeft={<Play className="size-4" aria-hidden="true" />}>
-              {inactive ? "Details ansehen" : "Demo spielen"}
+              {inactive ? "Details ansehen" : "Spielen"}
             </LinkButton>
             <FavoriteButton gameId={game.id} gameName={game.name} size="md" />
           </div>
@@ -145,8 +145,8 @@ export function GameCard({ game, variant = "default", className, priority }: Gam
         </p>
         {siblingHint ? <p className="line-clamp-1 text-xs text-muted/80">{siblingHint}</p> : null}
         <div className="mt-auto pt-2">
-          <LinkButton href={href} variant="outline" size="sm" fullWidth iconLeft={<Play className="size-4" aria-hidden="true" />} aria-label={`${game.name}: ${inactive ? "Details ansehen" : "Demo spielen"}`}>
-            {inactive ? "Details ansehen" : "Demo spielen"}
+          <LinkButton href={href} variant="outline" size="sm" fullWidth iconLeft={<Play className="size-4" aria-hidden="true" />} aria-label={`${game.name}: ${inactive ? "Details ansehen" : "Spielen"}`}>
+            {inactive ? "Details ansehen" : "Spielen"}
           </LinkButton>
         </div>
       </div>

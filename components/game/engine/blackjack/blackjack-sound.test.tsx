@@ -68,7 +68,7 @@ function mockDeal() {
           usedFreeSpin: false,
           nextSeq: 1,
           state: openState,
-          wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
         });
       }
       throw new Error(`unerwarteter Aufruf ${url}`);
@@ -93,7 +93,7 @@ function mockDealThenStand(settlement: { netMinor: number; returnMinor: number; 
           usedFreeSpin: false,
           nextSeq: 1,
           state: openState,
-          wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
         });
       }
       if (url.toString().endsWith("/actions") && body.action === "stand") {
@@ -108,7 +108,7 @@ function mockDealThenStand(settlement: { netMinor: number; returnMinor: number; 
           outcomeLabel: settlement.outcomeLabel,
           seed: 1,
           state: { ...openState, phase: "done", dealer: [...openState.dealer, { rank: "K", suit: "diamonds" }] },
-          wallet: { demoBalanceMinor: 99_900 + settlement.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 99_900 + settlement.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           detail: { hands: [settlement.outcomeKey] },
         });
       }
@@ -203,7 +203,7 @@ describe("BlackjackGame — Klang", () => {
             usedFreeSpin: false,
             nextSeq: 1,
             state: openState,
-            wallet: { demoBalanceMinor: 50, bonusBalanceMinor: 0, freeSpins: 0 }, // reicht nicht für Verdoppeln
+            wallet: { balanceMinor: 50, bonusBalanceMinor: 0, freeSpins: 0 }, // reicht nicht für Verdoppeln
           });
         }
         // Jede weitere Aktion (hier: Verdoppeln) wird mangels Deckung abgelehnt.

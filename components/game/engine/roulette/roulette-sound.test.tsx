@@ -60,7 +60,7 @@ function mockRoundResponse(data: { returnMinor: number; netMinor: number; outcom
             usedFreeSpin: false,
             betKey: "red",
             detail: data.detail,
-            wallet: { demoBalanceMinor: data.balanceMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: data.balanceMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
         { status: 200, headers: { "content-type": "application/json" } },

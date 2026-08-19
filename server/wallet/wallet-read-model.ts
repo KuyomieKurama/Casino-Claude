@@ -16,7 +16,7 @@ import type { CreditsMinor } from "@/types/money";
  * keine Autorisierungsentscheidung vor, sie liest strikt nur das Wallet der übergebenen ID.
  */
 export interface WalletBalanceSnapshot {
-  demoBalanceMinor: CreditsMinor;
+  balanceMinor: CreditsMinor;
   bonusBalanceMinor: CreditsMinor;
   freeSpins: number;
 }
@@ -30,12 +30,12 @@ export interface WalletBalanceSnapshot {
  * Kein Fehler, kein Sonderfall in der Oberfläche.
  */
 function defaultWalletBalance(): WalletBalanceSnapshot {
-  return { demoBalanceMinor: START_BALANCE_MINOR, bonusBalanceMinor: 0, freeSpins: 0 };
+  return { balanceMinor: START_BALANCE_MINOR, bonusBalanceMinor: 0, freeSpins: 0 };
 }
 
 export async function resolveWalletBalance(db: AppDatabase, userId: string | null): Promise<WalletBalanceSnapshot> {
   if (userId === null) return defaultWalletBalance();
   const record = await findWallet(db, userId);
   if (!record) return defaultWalletBalance();
-  return { demoBalanceMinor: record.demoBalanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
+  return { balanceMinor: record.balanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
 }

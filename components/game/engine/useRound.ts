@@ -46,7 +46,7 @@ export type UseRoundOptions = {
   server?: boolean;
   simulateLoadError?: boolean;
   onStatusChange?: (status: RoundStatus) => void;
-  /** Voreingestellter Einsatz; wird auf den Demo-Bereich des Spiels begrenzt. */
+  /** Voreingestellter Einsatz; wird auf den Einsatzbereich des Spiels begrenzt. */
   defaultStakeMinor?: number;
 };
 

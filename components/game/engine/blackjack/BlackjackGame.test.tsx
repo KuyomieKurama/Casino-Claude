@@ -19,7 +19,7 @@ import { applyAction, beginRound, roundSettlement, type BlackjackAction, type Ro
 
 const game = games.find((g) => g.id === "g-classic-blackjack")!;
 const live = games.find((g) => g.id === "g-live-blackjack-demo")!;
-const STAKE = 100; // Voreinstellung der Engine, liegt im Demo-Bereich des Spiels
+const STAKE = 100; // Voreinstellung der Engine, liegt im Einsatzbereich des Spiels
 const START_BALANCE_MINOR = 100_000;
 
 /** Erster Seed, dessen Startbild eine spielbare Hand ergibt (kein sofortiger Blackjack). */
@@ -72,7 +72,7 @@ function mockBlackjackRoutes(seed: number, stakeMinor: number, startBalanceMinor
             betKey: null,
             usedFreeSpin: false,
             state: publicView(state, true),
-            wallet: { demoBalanceMinor: walletMinor() + settlement.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: walletMinor() + settlement.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
             detail: { hands: settlement.results.map((r) => r.kind) },
           });
         }
@@ -86,7 +86,7 @@ function mockBlackjackRoutes(seed: number, stakeMinor: number, startBalanceMinor
           usedFreeSpin: false,
           nextSeq: 1,
           state: publicView(state, false),
-          wallet: { demoBalanceMinor: walletMinor(), bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: walletMinor(), bonusBalanceMinor: 0, freeSpins: 0 },
         });
       }
 
@@ -109,7 +109,7 @@ function mockBlackjackRoutes(seed: number, stakeMinor: number, startBalanceMinor
             outcomeLabel: settlement.outcomeLabel,
             seed,
             state: publicView(state, true),
-            wallet: { demoBalanceMinor: walletMinor() + settlement.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: walletMinor() + settlement.returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
             detail: { hands: settlement.results.map((r) => r.kind) },
           });
         }
@@ -119,7 +119,7 @@ function mockBlackjackRoutes(seed: number, stakeMinor: number, startBalanceMinor
           nextSeq: seq + 1,
           stakeMinor: stakeMinor + extraStakeMinor,
           state: publicView(state, false),
-          wallet: { demoBalanceMinor: walletMinor(), bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: walletMinor(), bonusBalanceMinor: 0, freeSpins: 0 },
         });
       }
       throw new Error(`mockBlackjackRoutes: unerwarteter Aufruf ${String(url)}`);
@@ -157,7 +157,7 @@ describe("BlackjackGame — Oberfläche und Server-Verdrahtung (Phase 3b)", () =
     expect(screen.getByRole("button", { name: /Karten geben/ })).toBeEnabled();
   });
 
-  it("bucht beim Verdoppeln einen zweiten Einsatz vom Demo-Guthaben ab", async () => {
+  it("bucht beim Verdoppeln einen zweiten Einsatz vom Guthaben ab", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     mockBlackjackRoutes(PLAYABLE_SEED, STAKE, START_BALANCE_MINOR);
     render(
@@ -208,7 +208,7 @@ describe("BlackjackGame — Oberfläche und Server-Verdrahtung (Phase 3b)", () =
               usedFreeSpin: false,
               nextSeq: 1,
               state: publicView(state, false),
-              wallet: { demoBalanceMinor: 50, bonusBalanceMinor: 0, freeSpins: 0 },
+              wallet: { balanceMinor: 50, bonusBalanceMinor: 0, freeSpins: 0 },
             },
           });
         }

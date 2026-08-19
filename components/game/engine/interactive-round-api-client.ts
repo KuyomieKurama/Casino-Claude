@@ -11,7 +11,7 @@ import type { WalletRejectionCode } from "@/lib/wallet-policy";
  */
 
 export type RoundApiWalletSnapshot = {
-  demoBalanceMinor: number;
+  balanceMinor: number;
   bonusBalanceMinor: number;
   freeSpins: number;
 };
@@ -86,7 +86,7 @@ export type RoundActionApiInput = {
 function isWalletSnapshot(value: unknown): value is RoundApiWalletSnapshot {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return typeof v.demoBalanceMinor === "number" && typeof v.bonusBalanceMinor === "number" && typeof v.freeSpins === "number";
+  return typeof v.balanceMinor === "number" && typeof v.bonusBalanceMinor === "number" && typeof v.freeSpins === "number";
 }
 
 function isNonEmptyString(value: unknown): value is string {

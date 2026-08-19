@@ -11,12 +11,11 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/feedback/ErrorState";
-import { DemoBadge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 import type { LastRoundResult } from "./useRound";
 import { useSound } from "./sound/useEngineSound";
 
-/** Feste Einsatzstufen; jede Engine filtert auf ihren Demo-Bereich. */
+/** Feste Einsatzstufen; jede Engine filtert auf ihren erlaubten Einsatzbereich. */
 export const STAKE_PRESETS = [10, 25, 50, 100, 200, 500, 1000, 2000, 5000, 10000] as const;
 
 export function stakeOptionsFor(game: Game): number[] {
@@ -52,14 +51,14 @@ export type GameShellProps = {
   onUseFreeSpinChange: (value: boolean) => void;
   /** Text des Start-Buttons; Standard „Runde starten“. */
   startLabel?: string;
-  /** Kontexthinweis vor der Aktion (Demo-Kennzeichnung Ebene 3). */
+  /** Kontexthinweis vor der Aktion. */
   actionHint?: ReactNode;
   /** Einsatz während einer offenen interaktiven Runde sperren. */
   stakeLocked?: boolean;
 };
 
 /**
- * Geteilte Hülle für alle Spiel-Engines: Kopfzeile mit DEMO-Kennzeichnung und Pause,
+ * Geteilte Hülle für alle Spiel-Engines: Kopfzeile mit Spieltitel und Pause,
  * Spielfläche, Netto-Ergebnisanzeige, Einsatzsteuerung mit Inline-Fehler, RG-Sperre sowie
  * Lade- und Fehlerzustand. Alle sieben RoundStatus-Werte haben hier eine eigene Darstellung.
  *
@@ -101,7 +100,7 @@ export function GameShell(props: GameShellProps) {
     return (
       <ErrorState
         title="Das Spiel konnte nicht geladen werden."
-        text="Der simulierte Spieldienst hat nicht geantwortet. Es wurde kein Guthaben bewegt. Du kannst es erneut versuchen."
+        text="Der Spieldienst hat nicht geantwortet. Es wurde kein Guthaben bewegt. Du kannst es erneut versuchen."
         onRetry={onRetryLoad}
         extra={<LinkButton href="/casino" variant="ghost">Zur Lobby</LinkButton>}
       />
@@ -123,7 +122,6 @@ export function GameShell(props: GameShellProps) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h2 className="font-display text-lg text-primary">{game.name}</h2>
-          <DemoBadge />
         </div>
         <Button
           variant="ghost"
@@ -200,7 +198,7 @@ export function GameShell(props: GameShellProps) {
           <Button variant="outline" onClick={() => changeStake(1)} disabled={busy || stakeLocked || index >= options.length - 1} aria-label="Einsatz erhöhen" iconLeft={<Plus className="size-4" aria-hidden="true" />} />
         </div>
         <p className="text-xs text-muted">
-          Demo-Bereich: {formatCredits(game.minDemoBetMinor)} – {formatCredits(game.maxDemoBetMinor)} Credits
+          Einsatzbereich: {formatCredits(game.minDemoBetMinor)} – {formatCredits(game.maxDemoBetMinor)} Credits
         </p>
 
         {freeSpins > 0 ? (
@@ -214,14 +212,14 @@ export function GameShell(props: GameShellProps) {
 
         {inlineErrorMessage || insufficient ? (
           <p id="stake-error" role="alert" className="text-sm text-danger">
-            {inlineErrorMessage ?? "Dein Demo-Guthaben reicht für diese Runde nicht aus. Setze es zurück oder füge Demo-Credits hinzu."}
+            {inlineErrorMessage ?? "Dein Guthaben reicht für diese Runde nicht aus. Setze es zurück oder füge Credits hinzu."}
           </p>
         ) : null}
 
         <p className="text-xs text-muted">
           {actionHint ?? (
             <>
-              Startet eine Demo-Runde und zieht {useFreeSpin ? "eine Freirunde" : `${formatCreditsWithUnit(stake)} Demo-Guthaben`} ab. Kein Echtgeld.
+              Startet eine Runde und zieht {useFreeSpin ? "eine Freirunde" : `${formatCreditsWithUnit(stake)} Guthaben`} ab. Kein Echtgeld.
             </>
           )}
         </p>

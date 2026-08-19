@@ -182,7 +182,7 @@ export interface IntegrityCheckResult {
  * Serverseitige Fassung der Invariante „Saldo entspricht der Transaktionskette" (Admin-Auftrag
  * §1, siehe auch server/db/schema.ts::wallet-Kommentar und die Konsistenztests in
  * server/wallet/wallet-read-model.test.ts / server/rounds/round-service.test.ts): für jeden
- * Nutzer mit einem Wallet muss `demo_balance_minor + bonus_balance_minor` exakt der Summe aller
+ * Nutzer mit einem Wallet muss `balance_minor + bonus_balance_minor` exakt der Summe aller
  * `ledger_entry.amount_minor`-Zeilen entsprechen. Eine einzelne aggregierte Abfrage (LEFT JOIN +
  * GROUP BY) statt einer Schleife über alle Nutzer — kein N+1.
  */
@@ -190,11 +190,11 @@ export async function resolveIntegrityCheck(db: AppDatabase): Promise<IntegrityC
   const rows = await executeRaw<{ user_id: string; wallet_balance_minor: string; ledger_sum_minor: string } & Record<string, unknown>>(db, sql`
     select
       w.user_id as user_id,
-      (w.demo_balance_minor + w.bonus_balance_minor) as wallet_balance_minor,
+      (w.balance_minor + w.bonus_balance_minor) as wallet_balance_minor,
       coalesce(sum(l.amount_minor), 0) as ledger_sum_minor
     from wallet w
     left join ledger_entry l on l.user_id = w.user_id
-    group by w.user_id, w.demo_balance_minor, w.bonus_balance_minor
+    group by w.user_id, w.balance_minor, w.bonus_balance_minor
   `);
 
   const mismatches: LedgerIntegrityMismatch[] = [];

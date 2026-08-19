@@ -64,7 +64,7 @@ function mockRoundResponse(data: {
   outcomeLabel: string;
   betKey?: string;
   detail?: Record<string, unknown>;
-  demoBalanceMinor: number;
+  balanceMinor: number;
 }) {
   vi.stubGlobal(
     "fetch",
@@ -84,7 +84,7 @@ function mockRoundResponse(data: {
             usedFreeSpin: false,
             betKey: data.betKey ?? null,
             ...(data.detail ? { detail: data.detail } : {}),
-            wallet: { demoBalanceMinor: data.demoBalanceMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: data.balanceMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
         { status: 200, headers: { "content-type": "application/json" } },
@@ -122,7 +122,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
           usedFreeSpin: false,
           nextSeq: 1,
           state: { mines, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 25 - mines },
-          wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
         });
       }
 
@@ -151,7 +151,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
                 positions,
                 hitCell: cell,
               },
-              wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+              wallet: { balanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
             });
           }
           revealed = [...revealed, cell];
@@ -168,7 +168,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
               multiplier: minesMultiplier(mines, revealed.length),
               cellsRemaining: 25 - mines - revealed.length,
             },
-            wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           });
         }
         if (action === "cashOut") {
@@ -193,7 +193,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
               positions,
               hitCell: null,
             },
-            wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor + returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: startBalanceMinor - stakeMinor + returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           });
         }
       }
@@ -224,7 +224,7 @@ describe("Arcade-Oberflächen", () => {
       outcomeKey: "mid",
       outcomeLabel: "Mitte · 2×",
       detail: { path: "LRLRLRLRLRLR", bucket: 6 },
-      demoBalanceMinor: 100_200,
+      balanceMinor: 100_200,
     });
     render(
       <AppProviders>
@@ -248,7 +248,7 @@ describe("Arcade-Oberflächen", () => {
       outcomeKey: "seg-3",
       outcomeLabel: "Segment 4 · 2×",
       detail: { index: 3 },
-      demoBalanceMinor: 100_200,
+      balanceMinor: 100_200,
     });
     render(
       <AppProviders>
@@ -270,7 +270,7 @@ describe("Arcade-Oberflächen", () => {
       outcomeLabel: "Treffer — Wurf 7",
       betKey: "under-11",
       detail: { roll: 7, betId: "under-11", win: true },
-      demoBalanceMinor: 100_870,
+      balanceMinor: 100_870,
     });
     render(
       <AppProviders>

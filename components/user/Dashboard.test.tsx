@@ -23,7 +23,7 @@ describe("Dashboard", () => {
   it("zeigt Begrüßung und die vier Kennzahlen-Karten", () => {
     renderDashboard();
     expect(screen.getByRole("heading", { level: 1, name: /Hallo, Ada Beispiel/ })).toBeInTheDocument();
-    expect(screen.getByText("Demo-Guthaben")).toBeInTheDocument();
+    expect(screen.getByText("Guthaben")).toBeInTheDocument();
     expect(screen.getByText("Gespielte Runden")).toBeInTheDocument();
     expect(screen.getByText("Favoriten")).toBeInTheDocument();
     expect(screen.getByText("Netto (Rückgabe − Einsatz)")).toBeInTheDocument();

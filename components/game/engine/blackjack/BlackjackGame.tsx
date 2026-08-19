@@ -240,7 +240,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
       controls={controls}
       actionHint={
         <>
-          Startet eine Demo-Runde und zieht {formatCreditsWithUnit(r.stake)} Demo-Guthaben ab. Verdoppeln und Teilen
+          Startet eine Runde und zieht {formatCreditsWithUnit(r.stake)} Guthaben ab. Verdoppeln und Teilen
           buchen währenddessen jeweils einen weiteren Einsatz in gleicher Höhe ab. Kein Echtgeld.
         </>
       }
@@ -316,7 +316,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
         {/* Einsatzführung transparent ausweisen — Kennzeichnung Ebene 3 vor geldbewegenden Aktionen */}
         <p className="rounded-control border border-border-control bg-base p-3 text-xs text-muted">
           <strong className="font-medium text-primary">Zum Einsatz:</strong> Verdoppeln und Teilen erhöhen den Einsatz
-          dieser Runde. Der Zusatzeinsatz wird sofort vom Demo-Guthaben abgebucht und erscheint als eigene Buchung mit
+          dieser Runde. Der Zusatzeinsatz wird sofort vom Guthaben abgebucht und erscheint als eigene Buchung mit
           derselben Runden-ID in deiner Historie. Reicht das Guthaben dafür nicht, bleibt die Aktion aus und der Tisch
           unverändert.
         </p>
@@ -333,7 +333,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
           </Button>
           {rulesOpen ? (
             <div id="blackjack-rules" className="mt-2 space-y-2 rounded-control border border-border-subtle bg-base p-3 text-sm text-muted anim-fade-in">
-              <h4 className="text-sm font-medium text-primary">Regeln dieser Demo</h4>
+              <h4 className="text-sm font-medium text-primary">Regeln</h4>
               <ul className="list-disc space-y-1 pl-5">
                 <li>Ziel ist eine Hand, die näher an 21 liegt als die des Dealers, ohne 21 zu überschreiten.</li>
                 <li>Zahlenkarten zählen ihren Wert, Bube, Dame und König zählen 10, ein Ass zählt 11 oder 1.</li>
@@ -344,7 +344,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
                 <li>Teilen ist bei zwei Karten gleichen Rangs möglich, einmal pro Runde. Geteilte Asse erhalten je eine Karte.</li>
                 <li>Blackjack (Ass plus Zehnerkarte aus den ersten beiden Karten) zahlt 3:2, ein gewöhnlicher Gewinn 1:1.</li>
                 <li>Bei Gleichstand gibt es den Einsatz zurück (Push). Über 21 verliert die Hand sofort.</li>
-                <li>Versicherung und Aufgeben sind in dieser Demo nicht enthalten.</li>
+                <li>Versicherung und Aufgeben sind derzeit nicht umgesetzt.</li>
               </ul>
               <p>
                 Diese Übersicht beschreibt die Regeln. Sie enthält bewusst keine Empfehlung, wie zu entscheiden ist.
@@ -412,7 +412,7 @@ function LiveTableIllustration() {
       <div aria-hidden="true" className="mt-1 h-px w-full bg-gold/60" />
       <p className="mt-2 text-xs text-muted">
         Statische Illustration eines Tischausschnitts. Dieser Live-Bereich zeigt weder Video noch Personen; gespielt wird
-        dieselbe simulierte Demo-Runde wie an den übrigen Blackjack-Tischen.
+        dieselbe Runde wie an den übrigen Blackjack-Tischen.
       </p>
     </section>
   );

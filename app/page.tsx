@@ -9,15 +9,15 @@ import { promotions } from "@/data/promotions";
 /**
  * Startseite: Der Einstieg bleibt bewusst schmal (drei Zeilen, keine eigene goldene Aktion),
  * damit das hervorgehobene Spiel in HomeRows — mit der einen goldenen Fläche des Bildschirms
- * ("Demo spielen") — bereits im ersten sichtbaren Bereich steht, statt von einer zusätzlichen
- * Marketingfläche nach unten verdrängt zu werden (Auftrag §2). Der frühere zweite goldene Button
- * hier ("Demo starten") entfiel deshalb ersatzlos — er duplizierte nur die Aktion der Spielkarte.
+ * ("Spielen") — bereits im ersten sichtbaren Bereich steht, statt von einer zusätzlichen
+ * Marketingfläche nach unten verdrängt zu werden (Auftrag §2). Ein zweiter goldener Button
+ * hier würde nur die Aktion der Spielkarte duplizieren, deshalb bleibt er weg.
  */
 export default function HomePage() {
   return (
     <div className="space-y-xl pt-4 sm:space-y-2xl sm:pt-6">
       <section aria-labelledby="hero-title">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal">Demo-Prototyp</p>
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-teal">Spielwährung ohne Geldwert</p>
         <h1 id="hero-title" className="font-display measure mt-2 text-xl text-primary sm:text-2xl">
           {HERO_TEXT}
         </h1>

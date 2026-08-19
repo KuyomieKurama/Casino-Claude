@@ -17,21 +17,21 @@ const mockLogins = [
 ];
 
 /**
- * Sicherheit (§8.8, überarbeitet): Passwortänderung und Zwei-Faktor-Authentifizierung existieren
- * in diesem Prototyp nicht — es gibt weder einen Endpunkt, der ein neues Passwort entgegennimmt,
+ * Sicherheit (§8.8, überarbeitet): Passwortänderung und Zwei-Faktor-Authentifizierung sind derzeit
+ * nicht umgesetzt — es gibt weder einen Endpunkt, der ein neues Passwort entgegennimmt,
  * noch einen E-Mail-Versand für einen Bestätigungs- oder Rücksetzlink, noch einen Dienst, der
  * 2FA-Codes ausstellt und prüft. Ein Formular ohne wirkende Gegenstelle stünde hier nur zum Schein
  * — deshalb zeigt diese Seite an seiner Stelle einen erklärenden Hinweis, kein Eingabeformular
  * (Auftrag „Ehrlichkeit der Oberfläche"). Geräte und Login-Historie bleiben als klar markierte
  * Beispieldaten erhalten, weil sie nichts vortäuschen, das nicht da ist — sie illustrieren nur,
- * was ein Echtgeldprodukt hier zeigen würde.
+ * was hier zusätzlich stehen könnte.
  */
 export function SecurityPage() {
   return (
     <div className="anim-panel-in space-y-6">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Sicherheit</h1>
-        <p className="mt-1 text-sm text-muted">Passwortänderung und Zwei-Faktor-Authentifizierung sind in diesem Prototyp nicht umgesetzt. Geräte und Login-Historie unten sind Beispieldaten zur Illustration, keine echten Aufzeichnungen.</p>
+        <p className="mt-1 text-sm text-muted">Passwortänderung und Zwei-Faktor-Authentifizierung sind derzeit nicht umgesetzt. Geräte und Login-Historie unten sind Beispieldaten zur Illustration, keine echten Aufzeichnungen.</p>
       </header>
 
       <Card as="section" aria-labelledby="pw-title" className="space-y-2">
@@ -50,7 +50,7 @@ export function SecurityPage() {
           <Badge tone="neutral">Nicht möglich</Badge>
         </h2>
         <p className="measure text-sm text-muted">
-          2FA benötigt einen Server, der Codes ausstellt und prüft. Dieser Prototyp hat keinen — deshalb bleibt die Funktion vollständig weg statt nur deaktiviert angezeigt zu werden. Ein Echtgeldprodukt sollte 2FA verpflichtend anbieten.
+          2FA benötigt einen Dienst, der Codes ausstellt und prüft. Den gibt es hier noch nicht — deshalb bleibt die Funktion vollständig weg statt nur deaktiviert angezeigt zu werden. Ein Echtgeldprodukt sollte 2FA verpflichtend anbieten.
         </p>
       </Card>
 

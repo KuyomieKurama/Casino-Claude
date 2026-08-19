@@ -60,7 +60,7 @@ export function createAuth(database: AppDatabase) {
   warnIfIpRateLimitDisabled(ipRateLimitEnabled);
 
   return betterAuth({
-    appName: "Velora Casino Demo",
+    appName: "Velora Casino",
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(database, { provider: "pg", schema: authSchema }),

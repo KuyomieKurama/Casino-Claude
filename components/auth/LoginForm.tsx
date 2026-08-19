@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { DEMO_ACCOUNT_HINT, PASSWORD_HINT } from "@/lib/constants";
+import { ACCOUNT_CURRENCY_HINT, PASSWORD_HINT } from "@/lib/constants";
 import { firstErrorField, validateLogin, type FieldErrors, type LoginFields } from "@/lib/validation";
 import { safeNext } from "@/lib/safe-redirect";
 import { loginErrorMessage } from "@/lib/auth-errors";
@@ -75,7 +75,7 @@ export function LoginForm({ providers }: LoginFormProps) {
         <h1 id="login-title" className="font-display text-2xl text-primary">
           Anmelden
         </h1>
-        <p className="mt-1 text-sm text-muted">{DEMO_ACCOUNT_HINT}</p>
+        <p className="mt-1 text-sm text-muted">{ACCOUNT_CURRENCY_HINT}</p>
       </div>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {formError ? (

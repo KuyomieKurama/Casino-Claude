@@ -15,8 +15,8 @@ describe("BonusesPage", () => {
   it("zeigt die Überschriftenfolge ohne Sprünge (h1 → h2) und die Kernelemente", () => {
     renderBonuses();
     expect(screen.getByRole("heading", { level: 1, name: "Boni" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Aktivierte Demo-Promotions" })).toBeInTheDocument();
-    expect(screen.getByText("Bonus-Credits (Demo)")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Aktivierte Promotions" })).toBeInTheDocument();
+    expect(screen.getByText("Bonus-Credits")).toBeInTheDocument();
     expect(screen.getByText("Freirunden")).toBeInTheDocument();
   });
 

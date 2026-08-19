@@ -61,7 +61,7 @@ export function validateRegister(input: {
   if (!input.passwordConfirm) errors.passwordConfirm = "Bitte wiederhole das Passwort.";
   else if (input.password !== input.passwordConfirm)
     errors.passwordConfirm = "Die Passwörter stimmen nicht überein. Bitte gib beide identisch ein.";
-  if (!input.acceptTerms) errors.acceptTerms = "Bitte stimme den Demo-Nutzungsbedingungen zu, um fortzufahren.";
+  if (!input.acceptTerms) errors.acceptTerms = "Bitte stimme den Nutzungsbedingungen zu, um fortzufahren.";
   return errors;
 }
 

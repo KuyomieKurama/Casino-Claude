@@ -18,7 +18,7 @@ describe("resolveWalletBalance — Auftrag §1", () => {
 
     const balance = await resolveWalletBalance(db, null);
 
-    expect(balance).toEqual({ demoBalanceMinor: START_BALANCE_MINOR, bonusBalanceMinor: 0, freeSpins: 0 });
+    expect(balance).toEqual({ balanceMinor: START_BALANCE_MINOR, bonusBalanceMinor: 0, freeSpins: 0 });
   });
 
   test("angemeldeter Nutzer ohne angelegtes Wallet (noch nie gespielt): dasselbe Standard-Startguthaben, kein Fehler", async () => {
@@ -27,18 +27,18 @@ describe("resolveWalletBalance — Auftrag §1", () => {
 
     const balance = await resolveWalletBalance(db, userId);
 
-    expect(balance).toEqual({ demoBalanceMinor: START_BALANCE_MINOR, bonusBalanceMinor: 0, freeSpins: 0 });
+    expect(balance).toEqual({ balanceMinor: START_BALANCE_MINOR, bonusBalanceMinor: 0, freeSpins: 0 });
   });
 
   test("Nutzer mit angelegtem Wallet: der tatsächliche, gebuchte Stand — nicht das Startguthaben", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
     await insertWalletIfMissing(db, userId, START_BALANCE_MINOR);
-    await debitForStake(db, userId, { fromBonusMinor: 0, fromDemoMinor: 5_000 });
+    await debitForStake(db, userId, { fromBonusMinor: 0, fromBalanceMinor: 5_000 });
 
     const balance = await resolveWalletBalance(db, userId);
 
-    expect(balance.demoBalanceMinor).toBe(START_BALANCE_MINOR - 5_000);
+    expect(balance.balanceMinor).toBe(START_BALANCE_MINOR - 5_000);
   });
 
   test("Autorisierung: liest ausschließlich das Wallet der übergebenen userId", async () => {
@@ -50,19 +50,19 @@ describe("resolveWalletBalance — Auftrag §1", () => {
 
     const balance = await resolveWalletBalance(db, userA);
 
-    expect(balance.demoBalanceMinor).toBe(1_000);
+    expect(balance.balanceMinor).toBe(1_000);
   });
 
   test("Konsistenz (Auftrag §8): die Summe aller Ledger-Beträge entspricht dem gelesenen Saldo", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
     const { walletRecord } = await insertWalletIfMissing(db, userId, START_BALANCE_MINOR);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: START_BALANCE_MINOR, balanceAfterMinor: START_BALANCE_MINOR });
-    await debitForStake(db, userId, { fromBonusMinor: 0, fromDemoMinor: 1_500 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: START_BALANCE_MINOR, balanceAfterMinor: START_BALANCE_MINOR });
+    await debitForStake(db, userId, { fromBonusMinor: 0, fromBalanceMinor: 1_500 });
     await insertLedgerEntry(db, {
       userId,
       seq: walletRecord.nextSeq + 1,
-      type: "demo_bet",
+      type: "bet",
       amountMinor: -1_500,
       balanceAfterMinor: START_BALANCE_MINOR - 1_500,
     });
@@ -70,6 +70,6 @@ describe("resolveWalletBalance — Auftrag §1", () => {
     const balance = await resolveWalletBalance(db, userId);
     const ledgerSum = await sumLedgerAmountForUser(db, userId);
 
-    expect(balance.demoBalanceMinor + balance.bonusBalanceMinor).toBe(ledgerSum);
+    expect(balance.balanceMinor + balance.bonusBalanceMinor).toBe(ledgerSum);
   });
 });

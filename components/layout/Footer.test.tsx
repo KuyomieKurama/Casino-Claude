@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import type { User } from "@/types/user";
 import { AppProviders } from "@/state/AppProviders";
+import { CURRENCY_NOTICE } from "@/lib/constants";
 import { Footer } from "./Footer";
 
 const routerRefreshMock = vi.fn();
@@ -26,8 +27,13 @@ describe("Footer — Konto-Bereich spiegelt den Anmeldezustand", () => {
     renderFooter(null);
     const nav = screen.getByRole("navigation", { name: "Konto" });
     expect(within(nav).getByRole("link", { name: "Anmelden" })).toBeInTheDocument();
-    expect(within(nav).getByRole("link", { name: "Demo-Konto anlegen" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Konto anlegen" })).toBeInTheDocument();
     expect(within(nav).queryByRole("button", { name: "Abmelden" })).not.toBeInTheDocument();
+  });
+
+  test("weist auf die Spielwährung ohne Geldwert hin", () => {
+    renderFooter(null);
+    expect(screen.getByText(CURRENCY_NOTICE)).toBeInTheDocument();
   });
 
   test("zeigt angemeldet Nutzerbereich, Einstellungen und Abmelden, kein Anmelden mehr", () => {

@@ -266,8 +266,8 @@ export function RouletteGame({ game, simulateLoadError = false, onStatusChange }
       startLabel="Kugel werfen"
       actionHint={
         <>
-          Wirft eine Demo-Runde auf {BET_LABEL[kind]} und zieht{" "}
-          {round.useFreeSpin ? "eine Freirunde" : `${formatCreditsWithUnit(round.stake)} Demo-Guthaben`} ab. Kein Echtgeld.
+          Wirft eine Runde auf {BET_LABEL[kind]} und zieht{" "}
+          {round.useFreeSpin ? "eine Freirunde" : `${formatCreditsWithUnit(round.stake)} Guthaben`} ab. Kein Echtgeld.
         </>
       }
     >

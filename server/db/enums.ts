@@ -84,9 +84,9 @@ export type LoginAttemptSubjectKind = (typeof LOGIN_ATTEMPT_SUBJECT_KIND_VALUES)
  * neuer Wert dort NICHT stillschweigend an dieser Stelle fehlt.
  */
 export const LEDGER_ENTRY_TYPE_VALUES = [
-  "demo_credit",
-  "demo_bet",
-  "demo_win",
+  "credit",
+  "bet",
+  "win",
   "bonus_grant",
   "free_spin",
   "reset",

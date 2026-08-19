@@ -1,12 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { AppProviders } from "@/state/AppProviders";
-import { DemoWallet } from "./DemoWallet";
+import { WalletCard } from "./WalletCard";
 
 function renderWallet() {
   return render(
     <AppProviders>
-      <DemoWallet />
+      <WalletCard />
     </AppProviders>,
   );
 }
@@ -18,10 +18,10 @@ function renderWallet() {
  * mit dem Serverwert. Das war bisher nirgends für Nutzer sichtbar. Dieser Test belegt den neuen,
  * sichtbaren Hinweis.
  */
-describe("DemoWallet", () => {
+describe("WalletCard", () => {
   it("zeigt die Kernelemente: Guthaben, Bonus-Credits, Freirunden, Aktionen", () => {
     renderWallet();
-    expect(screen.getByRole("heading", { level: 2, name: "Demo-Guthaben" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Guthaben" })).toBeInTheDocument();
     expect(screen.getByText("Bonus-Credits")).toBeInTheDocument();
     expect(screen.getByText("Freirunden")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Zurücksetzen" })).toBeInTheDocument();

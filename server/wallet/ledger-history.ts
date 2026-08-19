@@ -92,7 +92,6 @@ function toTransaction(entry: LedgerEntryRecord): Transaction {
     ...(entry.gameModeId !== null ? { gameId: entry.gameModeId } : {}),
     ...(entry.roundId !== null ? { roundId: entry.roundId } : {}),
     createdAt: entry.createdAt,
-    isDemo: true,
   };
 }
 

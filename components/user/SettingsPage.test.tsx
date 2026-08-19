@@ -58,10 +58,10 @@ describe("SettingsPage", () => {
     expect(emailField.value).toBe("ada@example.com");
   });
 
-  it("öffnet den Bestätigungsdialog für das Löschen der Demo-Daten und erlaubt Abbrechen", async () => {
+  it("öffnet den Bestätigungsdialog für das Löschen der lokalen Daten und erlaubt Abbrechen", async () => {
     const u = userEvent.setup();
     renderSettings();
-    await u.click(screen.getByRole("button", { name: /Alle Demo-Daten löschen/i }));
+    await u.click(screen.getByRole("button", { name: /Lokale Daten löschen/i }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText(/lässt sich nicht rückgängig machen/i)).toBeInTheDocument();
     await u.click(within(dialog).getByRole("button", { name: "Abbrechen" }));

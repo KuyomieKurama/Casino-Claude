@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { DEMO_ACCOUNT_HINT, PASSWORD_HINT } from "@/lib/constants";
+import { ACCOUNT_CURRENCY_HINT, PASSWORD_HINT } from "@/lib/constants";
 import { firstErrorField, validateRegister, PASSWORD_MIN_LENGTH, type FieldErrors, type RegisterFields } from "@/lib/validation";
 import { safeNext } from "@/lib/safe-redirect";
 import { registerErrorMessage } from "@/lib/auth-errors";
@@ -88,7 +88,7 @@ export function RegisterForm({ providers }: RegisterFormProps) {
         <h1 id="register-title" className="font-display text-2xl text-primary">
           Konto anlegen
         </h1>
-        <p className="mt-1 text-sm text-muted">{DEMO_ACCOUNT_HINT}</p>
+        <p className="mt-1 text-sm text-muted">{ACCOUNT_CURRENCY_HINT}</p>
       </div>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {formError ? (
@@ -104,7 +104,7 @@ export function RegisterForm({ providers }: RegisterFormProps) {
           ref={refs.acceptTerms}
           label={
             <>
-              Ich stimme den <Link href="/help" className="font-medium text-gold hover:text-gold-strong">Nutzungsbedingungen</Link> zu und verstehe, dass dies ein Prototyp ohne Echtgeld ist.
+              Ich stimme den <Link href="/help" className="font-medium text-gold hover:text-gold-strong">Nutzungsbedingungen</Link> zu und weiß, dass Credits eine Spielwährung ohne Geldwert sind.
             </>
           }
           checked={acceptTerms}

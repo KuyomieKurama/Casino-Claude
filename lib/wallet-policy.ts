@@ -50,9 +50,9 @@ function fail<T>(code: WalletRejectionCode): PolicyResult<T> {
   return { ok: false, code };
 }
 
-/** Verfügbares Guthaben für Einsätze: Demo- plus Bonusguthaben (additiv, ohne Bedingungen). */
+/** Verfügbares Guthaben für Einsätze: Guthaben plus Bonusguthaben (additiv, ohne Bedingungen). */
 export function availableMinor(wallet: Wallet): CreditsMinor {
-  return wallet.demoBalanceMinor + wallet.bonusBalanceMinor;
+  return wallet.balanceMinor + wallet.bonusBalanceMinor;
 }
 
 /** Responsible-Gaming-Sperre (Pause, Limit, Selbstsperre) blockiert jede einsatzbezogene Aktion. */
@@ -107,24 +107,24 @@ export function checkFreeSpinAvailable(freeSpins: number): PolicyResult<void> {
   return ok(undefined);
 }
 
-/** Verfügbares Guthaben (Demo- plus Bonusanteil) muss den angeforderten Betrag decken. */
+/** Verfügbares Guthaben (Guthaben plus Bonusanteil) muss den angeforderten Betrag decken. */
 export function checkFundsAvailable(wallet: Wallet, amountMinor: CreditsMinor): PolicyResult<void> {
   if (availableMinor(wallet) < amountMinor) return fail("INSUFFICIENT_FUNDS");
   return ok(undefined);
 }
 
 /**
- * Teilt einen Betrag auf Bonus- und Demoguthaben auf: Bonusguthaben wird zuerst verbraucht,
- * der Rest kommt aus dem Demoguthaben. Der Aufrufer muss vorher mit `checkFundsAvailable`
+ * Teilt einen Betrag auf Bonus- und Guthaben auf: Bonusguthaben wird zuerst verbraucht,
+ * der Rest kommt aus dem übrigen Guthaben. Der Aufrufer muss vorher mit `checkFundsAvailable`
  * sichergestellt haben, dass die Summe reicht — hier wird nicht mehr geprüft, nur aufgeteilt.
  */
 export function splitStakeAcrossBalances(
   wallet: Wallet,
   amountMinor: CreditsMinor,
-): { fromBonus: CreditsMinor; fromDemo: CreditsMinor } {
+): { fromBonus: CreditsMinor; fromBalance: CreditsMinor } {
   const fromBonus = Math.min(wallet.bonusBalanceMinor, amountMinor);
-  const fromDemo = amountMinor - fromBonus;
-  return { fromBonus, fromDemo };
+  const fromBalance = amountMinor - fromBonus;
+  return { fromBonus, fromBalance };
 }
 
 /**
@@ -172,11 +172,11 @@ export function computeRaisedMaxReturn(
   return Math.round(round.maxReturnMinor * factor);
 }
 
-/** Obergrenze für das Demo-Guthaben bei Gutschriften (Aufladen) — Anzeige und Formatierung bleiben stabil. */
+/** Obergrenze für das Guthaben bei Gutschriften (Aufladen) — Anzeige und Formatierung bleiben stabil. */
 export function checkMaxBalanceAfterCredit(
-  currentDemoBalanceMinor: CreditsMinor,
+  currentBalanceMinor: CreditsMinor,
   incomingMinor: CreditsMinor,
 ): PolicyResult<CreditsMinor> {
-  if (currentDemoBalanceMinor + incomingMinor > MAX_BALANCE_MINOR) return fail("MAX_BALANCE");
+  if (currentBalanceMinor + incomingMinor > MAX_BALANCE_MINOR) return fail("MAX_BALANCE");
   return ok(incomingMinor);
 }

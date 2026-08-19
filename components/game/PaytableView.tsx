@@ -4,7 +4,7 @@ import { formatMultiplier, formatPercent } from "@/lib/formatters";
 
 /**
  * Einsehbare Auszahlungstabelle (§6): Ergebnisklassen, Multiplikatoren, Wahrscheinlichkeiten,
- * Beitrag zum Erwartungswert. Die Summe der Beiträge ist der ausgewiesene Demo-RTP.
+ * Beitrag zum Erwartungswert. Die Summe der Beiträge ist der ausgewiesene RTP.
  *
  * Bewusst engine-unabhängig: keine Symbole, keine Spielgrafik. Was hier steht, gilt für Slots,
  * Roulette, Baccarat und Arcade gleichermaßen — die Tabelle ist die geprüfte Wahrheit über die
@@ -17,7 +17,7 @@ export function PaytableView({ paytable }: { paytable: Paytable }) {
     <div className="overflow-x-auto rounded-card border border-border-subtle">
       <table className="w-full min-w-[440px] text-sm">
         <caption className="px-4 py-3 text-left text-sm text-muted">
-          Dokumentierte Auszahlungstabelle. Erwartungswert = Demo-RTP {formatPercent(ev)}. Jede Runde zieht genau eine Ergebnisklasse anhand dieser
+          Dokumentierte Auszahlungstabelle. Erwartungswert = RTP {formatPercent(ev)}. Jede Runde zieht genau eine Ergebnisklasse anhand dieser
           Wahrscheinlichkeiten (gesäter Zufallsgenerator, kein Zustand zwischen Runden).
         </caption>
         <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">

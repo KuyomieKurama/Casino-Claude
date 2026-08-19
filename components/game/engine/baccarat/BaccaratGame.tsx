@@ -146,7 +146,7 @@ export function BaccaratGame({ game, simulateLoadError, onStatusChange }: GameEn
       </div>
       <p className="text-xs text-muted">
         Die angegebene Rückgabe enthält den Einsatz. Der RTP ist der Erwartungswert der hinterlegten
-        Auszahlungstabelle dieser Wette — ein Demo-Wert, keine Aussage über eine einzelne Runde.
+        Auszahlungstabelle dieser Wette — keine Aussage über eine einzelne Runde.
       </p>
       {bet === undefined ? (
         <p className="text-xs text-muted">Ohne gewählte Wette startet keine Runde.</p>
@@ -322,7 +322,7 @@ function DealerIllustration() {
         </g>
       </svg>
       <p className="mt-1 text-xs text-muted">
-        Die Runden dieses Tisches laufen in der Demo genauso ab wie im normalen Baccarat. Es ist keine
+        Die Runden dieses Tisches laufen genauso ab wie im normalen Baccarat. Es ist keine
         Übertragung angebunden.
       </p>
     </section>

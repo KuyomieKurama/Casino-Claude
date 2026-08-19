@@ -11,7 +11,7 @@ Diese Anleitung richtet sich an Administratoren, die Linux bedienen können, die
 - **Frontend**: Next.js 15.5.23 (App Router), React 19, TypeScript, Tailwind CSS 4
 - **Backend**: Node.js-Server, better-auth (Authentifizierung, OAuth, Sessions)
 - **Datenbank**: PostgreSQL 17 mit Drizzle ORM
-- **Tests**: Vitest (920 Tests)
+- **Tests**: Vitest (1026 Tests)
 - **Statischer Export nicht möglich**: Die Anwendung benötigt eine laufende Node.js-Umgebung und Datenbankverbindung
 
 **Was nach der Installation läuft:**
@@ -1196,32 +1196,32 @@ sudo certbot renew --dry-run
 
 ### Bekannte Einschränkungen
 
-Die Anwendung ist ein Demo-System **ohne**:
+Die Anwendung hat folgende bewusste Einschränkungen, **ohne**:
 
 - **E-Mail-Versand**: Kein Passwort-Reset über die Oberfläche; Passwörter können nur direkt in der Datenbank zurückgesetzt werden
 - **Strukturiertes Logging**: Logs gehen ins systemd-Journal; kein zentrales Logging (ELK, Loki)
 - **Automatische Sicherung**: Keine integrierten Backup-Cronjobs; manuelle Verwaltung nötig (siehe Abschnitt Betrieb)
 - **Security Headers**: Keine CSP, HSTS oder anderen HTTP-Security-Header im Code; diese sollten vom Reverse Proxy gesetzt werden
 - **Altersprüfung / KYC**: Keine Identitätsprüfung
-- **Echte Zahlungen**: Nur Demo-Guthaben, keine Echtgeld-Transaktionen oder Auszahlungen
+- **Echte Zahlungen**: Nur Credits als Spielwährung ohne Geldwert, keine Echtgeld-Transaktionen oder Auszahlungen
 
 ---
 
 ## Einordnung: Was ist velora-casino-demo?
 
-**velora-casino-demo** ist eine Prototyp-Anwendung zur Demonstration von:
-- Benutzerauthentifizierung und Autorisierung
-- Datenbankpersistierung und Spiel-State-Management
-- Spieloberflächen und Spiel-Engines
-- Responsible-Gaming-Features (Session-Timer, Limits)
+**velora-casino-demo** ist eine vollständige Fullstack-Anwendung mit:
+- Benutzerauthentifizierung und Autorisierung (better-auth, PostgreSQL)
+- Datenbankpersistierung und serverseitigem Spiel-State
+- Spieloberflächen und Spiel-Engines mit Spielwährung (Credits) — Spielen erfordert ein Konto, jede Kontoanlage erhält 10.000 Credits Startguthaben
+- Responsible-Gaming-Features (Session-Timer, Limits, Selbstsperre)
 
 **Es ist nicht:**
-- Eine echte Casino-Plattform
-- Mit echtem Geld verbunden
+- Eine echte Casino-Plattform mit Echtgeld
+- Mit echtem Geld verbunden — Credits sind eine Spielwährung ohne Geldwert, ohne Ein- oder Auszahlungsweg
 - Lizenziert (keine Glücksspiel-Lizenz)
-- Für öffentliche Operationen bestimmt
+- Für den Betrieb mit echten Einsätzen bestimmt
 
-Wenn es öffentlich zugänglich ist, muss das transparent gemacht werden: "Dies ist ein Demo-System mit Spielgeld, keine realen Transaktionen."
+Wenn die Instanz öffentlich zugänglich ist, muss das transparent gemacht werden: "Diese Anwendung verwendet ausschließlich Credits als Spielwährung ohne Geldwert, kein Echtgeld, keine Glücksspiel-Lizenz."
 
 ---
 
@@ -1237,4 +1237,4 @@ Wenn es öffentlich zugänglich ist, muss das transparent gemacht werden: "Dies 
 
 ---
 
-Letzte Aktualisierung: 2026-08-18
+Letzte Aktualisierung: 2026-08-19

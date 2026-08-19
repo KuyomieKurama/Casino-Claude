@@ -44,18 +44,18 @@ describe("insertLedgerEntry — Append-only Ledger", () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
 
-    const entry = await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    const entry = await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
 
-    expect(entry.type).toBe("demo_credit");
+    expect(entry.type).toBe("credit");
     expect(entry.amountMinor).toBe(100_000);
   });
 
   test("zwei Einträge desselben Nutzers mit derselben seq verletzen den Unique-Index", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
 
-    await expect(insertLedgerEntry(db, { userId, seq: 1, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 99_900 })).rejects.toThrow();
+    await expect(insertLedgerEntry(db, { userId, seq: 1, type: "bet", amountMinor: -100, balanceAfterMinor: 99_900 })).rejects.toThrow();
   });
 });
 
@@ -69,9 +69,9 @@ describe("sumLedgerAmountForUser — Konsistenz (Auftrag §8)", () => {
   test("summiert Einsätze (negativ) und Gutschriften (positiv) korrekt", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
-    await insertLedgerEntry(db, { userId, seq: 2, type: "demo_bet", amountMinor: -500, balanceAfterMinor: 99_500 });
-    await insertLedgerEntry(db, { userId, seq: 3, type: "demo_win", amountMinor: 1_200, balanceAfterMinor: 100_700 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 2, type: "bet", amountMinor: -500, balanceAfterMinor: 99_500 });
+    await insertLedgerEntry(db, { userId, seq: 3, type: "win", amountMinor: 1_200, balanceAfterMinor: 100_700 });
 
     expect(await sumLedgerAmountForUser(db, userId)).toBe(100_700);
   });
@@ -81,8 +81,8 @@ describe("listLedgerEntries", () => {
   test("liefert Einträge absteigend nach seq", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
-    await insertLedgerEntry(db, { userId, seq: 2, type: "demo_bet", amountMinor: -500, balanceAfterMinor: 99_500 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 2, type: "bet", amountMinor: -500, balanceAfterMinor: 99_500 });
 
     const entries = await listLedgerEntries(db, userId);
 
@@ -97,7 +97,7 @@ describe("listLedgerEntriesPage — Paginierung", () => {
       await insertLedgerEntry(db, {
         userId,
         seq: i,
-        type: i % 2 === 0 ? "demo_win" : "demo_bet",
+        type: i % 2 === 0 ? "win" : "bet",
         amountMinor: i % 2 === 0 ? 100 : -100,
         balanceAfterMinor: 100_000,
         ...(gameModeId ? { gameModeId } : {}),
@@ -158,7 +158,7 @@ describe("listLedgerEntriesPage — Paginierung", () => {
     const userId = await seedUser(db);
     await seedGameModes(db, ["g-neon-nights", "g-other"]);
     await seedEntries(db, userId, 5, "g-neon-nights");
-    await insertLedgerEntry(db, { userId, seq: 6, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-other" });
+    await insertLedgerEntry(db, { userId, seq: 6, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-other" });
 
     const page = await listLedgerEntriesPage(db, userId, { limit: 20, gameModeId: "g-neon-nights" });
 
@@ -169,7 +169,7 @@ describe("listLedgerEntriesPage — Paginierung", () => {
   test("filtert nach Zeitraum (createdAfter)", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
 
     const future = new Date(Date.now() + 3_600_000).toISOString();
     const page = await listLedgerEntriesPage(db, userId, { limit: 20, createdAfterIso: future });
@@ -181,8 +181,8 @@ describe("listLedgerEntriesPage — Paginierung", () => {
     const db = await createTestDatabase();
     const userA = await seedUser(db, "user-a");
     const userB = await seedUser(db, "user-b");
-    await insertLedgerEntry(db, { userId: userA, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
-    await insertLedgerEntry(db, { userId: userB, seq: 1, type: "demo_credit", amountMinor: 200_000, balanceAfterMinor: 200_000 });
+    await insertLedgerEntry(db, { userId: userA, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId: userB, seq: 1, type: "credit", amountMinor: 200_000, balanceAfterMinor: 200_000 });
 
     const page = await listLedgerEntriesPage(db, userA, { limit: 20 });
 
@@ -195,8 +195,8 @@ describe("countLedgerEntries", () => {
   test("zählt Einträge des Nutzers, ohne alle Zeilen zu laden", async () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
-    await insertLedgerEntry(db, { userId, seq: 2, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 99_900 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 2, type: "bet", amountMinor: -100, balanceAfterMinor: 99_900 });
 
     expect(await countLedgerEntries(db, userId, {})).toBe(2);
   });
@@ -205,8 +205,8 @@ describe("countLedgerEntries", () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
     await seedGameModes(db, ["g-a", "g-b"]);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-a" });
-    await insertLedgerEntry(db, { userId, seq: 2, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-b" });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-a" });
+    await insertLedgerEntry(db, { userId, seq: 2, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-b" });
 
     expect(await countLedgerEntries(db, userId, { gameModeId: "g-a" })).toBe(1);
   });
@@ -217,10 +217,10 @@ describe("listDistinctGameModeIds", () => {
     const db = await createTestDatabase();
     const userId = await seedUser(db);
     await seedGameModes(db, ["g-a", "g-b"]);
-    await insertLedgerEntry(db, { userId, seq: 1, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-a" });
-    await insertLedgerEntry(db, { userId, seq: 2, type: "demo_win", amountMinor: 100, balanceAfterMinor: 100_000, gameModeId: "g-a" });
-    await insertLedgerEntry(db, { userId, seq: 3, type: "demo_bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-b" });
-    await insertLedgerEntry(db, { userId, seq: 4, type: "demo_credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
+    await insertLedgerEntry(db, { userId, seq: 1, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-a" });
+    await insertLedgerEntry(db, { userId, seq: 2, type: "win", amountMinor: 100, balanceAfterMinor: 100_000, gameModeId: "g-a" });
+    await insertLedgerEntry(db, { userId, seq: 3, type: "bet", amountMinor: -100, balanceAfterMinor: 100_000, gameModeId: "g-b" });
+    await insertLedgerEntry(db, { userId, seq: 4, type: "credit", amountMinor: 100_000, balanceAfterMinor: 100_000 });
 
     const ids = await listDistinctGameModeIds(db, userId);
 

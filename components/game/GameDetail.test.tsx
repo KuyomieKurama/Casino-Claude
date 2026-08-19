@@ -99,7 +99,7 @@ describe("GameDetail — Moduswechsel (Auftrag §3)", () => {
     renderDetail();
 
     // Spielfläche öffnen — die Fake-Engine meldet sofort "playing" über onStatusChange.
-    await user.click(screen.getByRole("button", { name: /Demo spielen/ }));
+    await user.click(screen.getByRole("button", { name: /^Spielen$/ }));
     expect(await screen.findByText("Fake-Spielfläche")).toBeInTheDocument();
 
     await user.click(screen.getByRole("link", { name: "Zu Modus Amerikanisch wechseln" }));
@@ -115,17 +115,17 @@ describe("GameDetail — Anmeldepflicht (Auftrag „Spielen nur angemeldet“)",
     renderDetail(european, rouletteModes, "Roulette", null);
 
     expect(screen.getByRole("heading", { name: european.name })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Fakten zur Demo" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Spieldaten" })).toBeInTheDocument();
   });
 
   it("zeigt ohne Anmeldung einen Anmelde-Hinweis anstelle des Startknopfes", () => {
     // Truthy Engine (wie bei den Moduswechsel-Tests oben): der Login-Hinweis ersetzt den
-    // Startknopf nur für spielbare Titel — ohne Engine würde ohnehin „Demo folgt" stehen,
+    // Startknopf nur für spielbare Titel — ohne Engine würde ohnehin „Bald verfügbar" stehen,
     // unabhängig vom Anmeldezustand, und der Test würde nichts über die Anmeldepflicht beweisen.
     engineForMock.mockReturnValue(FakeEngine);
     renderDetail(european, rouletteModes, "Roulette", null);
 
-    expect(screen.queryByRole("button", { name: /Demo spielen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Spielen$/ })).not.toBeInTheDocument();
     expect(screen.getByText(/Zum Spielen ist eine Anmeldung nötig/)).toBeInTheDocument();
   });
 
@@ -141,7 +141,7 @@ describe("GameDetail — Anmeldepflicht (Auftrag „Spielen nur angemeldet“)",
     engineForMock.mockReturnValue(FakeEngine);
     renderDetail();
 
-    expect(screen.getByRole("button", { name: /Demo spielen/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Spielen$/ })).toBeInTheDocument();
     expect(screen.queryByText(/Zum Spielen ist eine Anmeldung nötig/)).not.toBeInTheDocument();
   });
 });

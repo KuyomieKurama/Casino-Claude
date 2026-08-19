@@ -34,7 +34,7 @@ describe("RgPanel", () => {
     renderPanel();
     expect(screen.getByRole("heading", { level: 2, name: /Aktueller Status/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /Session-Pause/ })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: /Demo-Zeitlimit pro Sitzung/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: /Zeitlimit pro Sitzung/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /Selbstsperre/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /Hilfe/ })).toBeInTheDocument();
   });

@@ -58,7 +58,7 @@ export const rgReasonText: Record<RgBlockReason, { title: string; body: string }
     body: "Du hast eine Pause eingelegt. Spielstarts sind bis zum Ende der Pause blockiert.",
   },
   "limit-reached": {
-    title: "Demo-Zeitlimit erreicht",
+    title: "Zeitlimit erreicht",
     body: "Dein selbst gesetztes Zeitlimit für diese Sitzung ist erreicht. Spielstarts sind blockiert, bis du unter Responsible Gaming eine neue Sitzung beginnst.",
   },
 };

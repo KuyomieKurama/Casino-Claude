@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { PRODUCT_NAME, RG_NOTICE } from "@/lib/constants";
+import { CURRENCY_NOTICE, PRODUCT_NAME, RG_NOTICE } from "@/lib/constants";
 import { useSession } from "@/state/SessionContext";
 import { useLogout } from "@/components/auth/useLogout";
 
@@ -9,7 +9,7 @@ const playColumn = {
   title: "Spielen",
   links: [
     { href: "/casino", label: "Casino-Lobby" },
-    { href: "/live-casino", label: "Live-Casino-Demos" },
+    { href: "/live-casino", label: "Live-Casino" },
     { href: "/promotions", label: "Promotions" },
   ],
 };
@@ -39,6 +39,7 @@ export function Footer() {
         <div className="space-y-3">
           <p className="font-display text-lg text-primary">{PRODUCT_NAME}</p>
           <p className="measure text-sm text-muted">{RG_NOTICE}</p>
+          <p className="measure text-xs text-muted">{CURRENCY_NOTICE}</p>
           <p className="text-xs text-muted">
             Keine Lizenzangaben, keine Zahlungsanbindung, keine Auszahlungen. Alle Spieltitel, Anbieter und Aktionen sind frei erfunden.
           </p>
@@ -107,7 +108,7 @@ export function Footer() {
                 </li>
                 <li>
                   <Link href="/register" className={linkClass}>
-                    Demo-Konto anlegen
+                    Konto anlegen
                   </Link>
                 </li>
               </>

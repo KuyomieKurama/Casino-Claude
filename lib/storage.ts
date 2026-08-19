@@ -180,7 +180,7 @@ export function writeSlice(key: SliceKey, value: unknown): void {
   flushTimer = setTimeout(flushNow, WRITE_THROTTLE_MS);
 }
 
-/** Entfernt alle persistierten Demo-Daten (Logout „alles löschen“, Tests). */
+/** Entfernt alle persistierten lokalen Daten (Logout „alles löschen“, Tests). */
 export function clearPersisted(): void {
   if (flushTimer) {
     clearTimeout(flushTimer);

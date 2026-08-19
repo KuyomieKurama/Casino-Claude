@@ -44,7 +44,7 @@ export interface StartRoundInput {
 }
 
 export interface RoundWalletSnapshot {
-  demoBalanceMinor: number;
+  balanceMinor: number;
   bonusBalanceMinor: number;
   freeSpins: number;
 }
@@ -69,7 +69,7 @@ export type StartRoundResult = { ok: true; data: StartRoundData } | { ok: false;
 
 function toWallet(record: WalletRecord): Wallet {
   return {
-    demoBalanceMinor: record.demoBalanceMinor,
+    balanceMinor: record.balanceMinor,
     bonusBalanceMinor: record.bonusBalanceMinor,
     freeSpins: record.freeSpins,
     roundInFlight: false,
@@ -77,7 +77,7 @@ function toWallet(record: WalletRecord): Wallet {
 }
 
 function toSnapshot(record: WalletRecord): RoundWalletSnapshot {
-  return { demoBalanceMinor: record.demoBalanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
+  return { balanceMinor: record.balanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
 }
 
 /** Transcript-Form der Runde (jsonb) — genug, um dieselbe Runde später erneut aufzulösen (Wiedergabetest). */
@@ -180,14 +180,14 @@ export async function startNonInteractiveRound(db: AppDatabase, input: StartRoun
       await insertLedgerEntry(tx, {
         userId: input.userId,
         seq: 1,
-        type: "demo_credit",
+        type: "credit",
         amountMinor: START_BALANCE_MINOR,
         balanceAfterMinor: START_BALANCE_MINOR,
       });
     }
 
     let usedFreeSpin = false;
-    let fromDemoMinor = 0;
+    let fromBalanceMinor = 0;
     let fromBonusMinor = 0;
     let walletAfterDebit: WalletRecord;
 
@@ -204,9 +204,9 @@ export async function startNonInteractiveRound(db: AppDatabase, input: StartRoun
       const fundsCheck = checkFundsAvailable(toWallet(freshWallet), input.stakeMinor);
       if (!fundsCheck.ok) return { ok: false, code: fundsCheck.code };
       const split = splitStakeAcrossBalances(toWallet(freshWallet), input.stakeMinor);
-      fromDemoMinor = split.fromDemo;
+      fromBalanceMinor = split.fromBalance;
       fromBonusMinor = split.fromBonus;
-      const debit = await debitForStake(tx, input.userId, { fromBonusMinor, fromDemoMinor });
+      const debit = await debitForStake(tx, input.userId, { fromBonusMinor, fromBalanceMinor });
       // Null betroffene Zeilen (Auftrag §2): ein gleichzeitiger Einsatz hat das Guthaben zwischen
       // Vorabcheck und bedingtem UPDATE verbraucht. Rollback der gesamten Transaktion — nichts
       // wird gebucht, die Ablehnung ist für den Client sichtbar, kein stiller Fallback.
@@ -244,7 +244,7 @@ export async function startNonInteractiveRound(db: AppDatabase, input: StartRoun
       throw new Error(`Runde für Nutzer „${input.userId}" konnte nicht angelegt werden (Idempotenzschlüssel oder offene Runde kollidiert).`);
     }
 
-    const availableAfterDebit = walletAfterDebit.demoBalanceMinor + walletAfterDebit.bonusBalanceMinor;
+    const availableAfterDebit = walletAfterDebit.balanceMinor + walletAfterDebit.bonusBalanceMinor;
     if (usedFreeSpin) {
       await insertLedgerEntry(tx, {
         userId: input.userId,
@@ -259,10 +259,10 @@ export async function startNonInteractiveRound(db: AppDatabase, input: StartRoun
       await insertLedgerEntry(tx, {
         userId: input.userId,
         seq: walletAfterDebit.nextSeq - 1,
-        type: "demo_bet",
+        type: "bet",
         amountMinor: -input.stakeMinor,
         balanceAfterMinor: availableAfterDebit,
-        fromDemoMinor,
+        fromBalanceMinor,
         fromBonusMinor,
         gameModeId: mode.id,
         roundId,
@@ -270,13 +270,13 @@ export async function startNonInteractiveRound(db: AppDatabase, input: StartRoun
     }
 
     // Rückgabe gutschreiben — auch bei 0 (Nullrunde): jede Runde schließt mit genau einer
-    // demo_win-Buchung ab, unabhängig vom Betrag (spiegelt state/wallet-reducer.ts::settle()).
+    // win-Buchung ab, unabhängig vom Betrag (spiegelt state/wallet-reducer.ts::settle()).
     const walletAfterCredit = await creditReturn(tx, input.userId, outcome.returnMinor, MAX_BALANCE_MINOR);
-    const availableAfterCredit = walletAfterCredit.demoBalanceMinor + walletAfterCredit.bonusBalanceMinor;
+    const availableAfterCredit = walletAfterCredit.balanceMinor + walletAfterCredit.bonusBalanceMinor;
     await insertLedgerEntry(tx, {
       userId: input.userId,
       seq: walletAfterCredit.nextSeq - 1,
-      type: "demo_win",
+      type: "win",
       amountMinor: outcome.returnMinor,
       balanceAfterMinor: availableAfterCredit,
       gameModeId: mode.id,

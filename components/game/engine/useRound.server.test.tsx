@@ -40,7 +40,7 @@ function ServerHarness() {
   return (
     <div>
       <span data-testid="status">{round.status}</span>
-      <span data-testid="balance">{round.wallet.demoBalanceMinor}</span>
+      <span data-testid="balance">{round.wallet.balanceMinor}</span>
       <span data-testid="net">{round.last ? round.last.netMinor : "—"}</span>
       <span data-testid="error">{round.inlineError?.code ?? ""}</span>
       <span data-testid="canstart">{String(round.canStart)}</span>
@@ -94,7 +94,7 @@ describe("useRound — serverseitige, nicht-interaktive Runden (Phase 3a)", () =
           seed: 42,
           usedFreeSpin: false,
           betKey: "under-50",
-          wallet: { demoBalanceMinor: 99_800, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 99_800, bonusBalanceMinor: 0, freeSpins: 0 },
         },
       }),
     );
@@ -190,7 +190,7 @@ describe("useRound — serverseitige, nicht-interaktive Runden (Phase 3a)", () =
           seed: 1,
           usedFreeSpin: false,
           betKey: "under-50",
-          wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
         },
       }),
     );

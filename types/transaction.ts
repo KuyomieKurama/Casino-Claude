@@ -1,9 +1,9 @@
 import type { CreditsMinor } from "./money";
 
 export type TransactionType =
-  | "demo_credit"
-  | "demo_bet"
-  | "demo_win"
+  | "credit"
+  | "bet"
+  | "win"
   | "bonus_grant"
   | "free_spin"
   | "reset";
@@ -21,5 +21,4 @@ export type Transaction = {
   /** Verbindet Einsatz und Ergebnis derselben Runde. */
   roundId?: string;
   createdAt: string;
-  isDemo: true;
 };

@@ -1,7 +1,6 @@
 "use client";
 
 import { Coins } from "lucide-react";
-import { DemoBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatCredits } from "@/lib/formatters";
 import { useSession } from "@/state/SessionContext";
@@ -15,7 +14,7 @@ export type BalanceDisplayProps = {
 };
 
 /**
- * Guthaben mit Einheit „Credits“ und DEMO-Kürzel (Kennzeichnung Ebene 2).
+ * Guthaben mit Einheit „Credits“.
  * Vor der Hydration ein Skeleton in Zielgröße — nie ein Platzhalterwert.
  *
  * Ohne Sitzung wird NICHTS angezeigt (Auftrag „Spielen nur angemeldet"): der Server liefert für
@@ -43,7 +42,6 @@ export function BalanceDisplay({ variant = "inline", className }: BalanceDisplay
         ) : (
           <Skeleton className="h-4 w-[9.5ch]" />
         )}
-        <DemoBadge />
       </span>
     );
   }
@@ -58,7 +56,6 @@ export function BalanceDisplay({ variant = "inline", className }: BalanceDisplay
       ) : (
         <Skeleton className="h-8 w-[10ch]" />
       )}
-      <DemoBadge />
     </span>
   );
 }

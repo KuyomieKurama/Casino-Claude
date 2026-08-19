@@ -20,10 +20,10 @@ import type { GameModeRecord } from "@/server/repositories/types";
  *
  * `game` (Titel) trägt dagegen NUR die Felder des jeweiligen STANDARDMODUS (buildGameInput liest
  * nur die defaultMode-Quellzeile) — für Geschwistermodi wie „American Roulette“ oder
- * „Live Roulette Demo“ hätte ein Titel-Override von category/providerId/isFeatured/isNew/
+ * „Live Roulette“ hätte ein Titel-Override von category/providerId/isFeatured/isNew/
  * isPopular/popularityScore/releasedAt die bisherige Modus-Genauigkeit stillschweigend
  * überschrieben (American Roulette würde z. B. den Anbieter und die Beliebtheit von European
- * Roulette erben, die drei Live-Demos würden ihre Kategorie "live" verlieren). Diese Felder
+ * Roulette erben, die drei Live-Titel würden ihre Kategorie "live" verlieren). Diese Felder
  * bleiben deshalb bewusst bei `data/games.ts` (Quelle der Wahrheit für den Seed, siehe
  * server/seed/grouping.ts-Kommentar) — die Modus-Ebene der Datenbank ist für sie schlicht nicht
  * granular genug. Rein darstellerische Felder ohne DB-Spalte (Thumbnail, Tags, Volatilität,

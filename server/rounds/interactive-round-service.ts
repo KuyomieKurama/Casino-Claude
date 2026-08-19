@@ -44,7 +44,7 @@ export interface StartInteractiveRoundInput {
 }
 
 export interface RoundWalletSnapshot {
-  demoBalanceMinor: number;
+  balanceMinor: number;
   bonusBalanceMinor: number;
   freeSpins: number;
 }
@@ -83,11 +83,11 @@ export type StartInteractiveRoundData = StartInteractiveOpenData | StartInteract
 export type StartInteractiveRoundResult = { ok: true; data: StartInteractiveRoundData } | { ok: false; code: WalletRejectionCode };
 
 function toWallet(record: WalletRecord): Wallet {
-  return { demoBalanceMinor: record.demoBalanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins, roundInFlight: false };
+  return { balanceMinor: record.balanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins, roundInFlight: false };
 }
 
 function toSnapshot(record: WalletRecord): RoundWalletSnapshot {
-  return { demoBalanceMinor: record.demoBalanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
+  return { balanceMinor: record.balanceMinor, bonusBalanceMinor: record.bonusBalanceMinor, freeSpins: record.freeSpins };
 }
 
 function runnerFor(engine: InteractiveEngineKey): InteractiveEngineRunner<unknown> {
@@ -197,11 +197,11 @@ export async function startInteractiveRound(db: AppDatabase, input: StartInterac
 
     const { walletRecord: freshWallet, created } = await insertWalletIfMissing(tx, input.userId, START_BALANCE_MINOR);
     if (created) {
-      await insertLedgerEntry(tx, { userId: input.userId, seq: 1, type: "demo_credit", amountMinor: START_BALANCE_MINOR, balanceAfterMinor: START_BALANCE_MINOR });
+      await insertLedgerEntry(tx, { userId: input.userId, seq: 1, type: "credit", amountMinor: START_BALANCE_MINOR, balanceAfterMinor: START_BALANCE_MINOR });
     }
 
     let usedFreeSpin = false;
-    let fromDemoMinor = 0;
+    let fromBalanceMinor = 0;
     let fromBonusMinor = 0;
     let walletAfterDebit: WalletRecord;
 
@@ -216,9 +216,9 @@ export async function startInteractiveRound(db: AppDatabase, input: StartInterac
       const fundsCheck = checkFundsAvailable(toWallet(freshWallet), input.stakeMinor);
       if (!fundsCheck.ok) return { ok: false, code: fundsCheck.code };
       const split = splitStakeAcrossBalances(toWallet(freshWallet), input.stakeMinor);
-      fromDemoMinor = split.fromDemo;
+      fromBalanceMinor = split.fromBalance;
       fromBonusMinor = split.fromBonus;
-      const debit = await debitForStake(tx, input.userId, { fromBonusMinor, fromDemoMinor });
+      const debit = await debitForStake(tx, input.userId, { fromBonusMinor, fromBalanceMinor });
       if (!debit.ok) return { ok: false, code: "INSUFFICIENT_FUNDS" };
       walletAfterDebit = debit.walletRecord;
     }
@@ -247,7 +247,7 @@ export async function startInteractiveRound(db: AppDatabase, input: StartInterac
       throw new Error(`Runde für Nutzer „${input.userId}" konnte nicht angelegt werden (Idempotenzschlüssel oder offene Runde kollidiert).`);
     }
 
-    const availableAfterDebit = walletAfterDebit.demoBalanceMinor + walletAfterDebit.bonusBalanceMinor;
+    const availableAfterDebit = walletAfterDebit.balanceMinor + walletAfterDebit.bonusBalanceMinor;
     if (usedFreeSpin) {
       await insertLedgerEntry(tx, {
         userId: input.userId,
@@ -262,10 +262,10 @@ export async function startInteractiveRound(db: AppDatabase, input: StartInterac
       await insertLedgerEntry(tx, {
         userId: input.userId,
         seq: walletAfterDebit.nextSeq - 1,
-        type: "demo_bet",
+        type: "bet",
         amountMinor: -input.stakeMinor,
         balanceAfterMinor: availableAfterDebit,
-        fromDemoMinor,
+        fromBalanceMinor,
         fromBonusMinor,
         gameModeId: mode.id,
         roundId,
@@ -286,9 +286,9 @@ export async function startInteractiveRound(db: AppDatabase, input: StartInterac
     await insertLedgerEntry(tx, {
       userId: input.userId,
       seq: walletAfterCredit.nextSeq - 1,
-      type: "demo_win",
+      type: "win",
       amountMinor: settlement.returnMinor,
-      balanceAfterMinor: walletAfterCredit.demoBalanceMinor + walletAfterCredit.bonusBalanceMinor,
+      balanceAfterMinor: walletAfterCredit.balanceMinor + walletAfterCredit.bonusBalanceMinor,
       gameModeId: mode.id,
       roundId,
     });

@@ -35,7 +35,7 @@ type WalletValue = {
    * nicht-interaktiven Runde in die Anzeige ein (components/game/engine/useRound.ts). Bucht keine
    * eigene Transaktion — die liegt bereits im Server-Ledger, dies ist reiner Anzeige-Abgleich.
    */
-  syncServerWallet: (wallet: { demoBalanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number }) => void;
+  syncServerWallet: (wallet: { balanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number }) => void;
 };
 
 const WalletContext = createContext<WalletValue | null>(null);
@@ -119,7 +119,7 @@ export function WalletProvider({ children, initialWallet }: WalletProviderProps)
   );
   const clearRejection = useCallback(() => dispatch({ type: "CLEAR_REJECTION" }), []);
   const syncServerWallet = useCallback(
-    (walletSnapshot: { demoBalanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number }) => {
+    (walletSnapshot: { balanceMinor: CreditsMinor; bonusBalanceMinor: CreditsMinor; freeSpins: number }) => {
       const action: WalletAction = { type: "SERVER_WALLET_SYNC", wallet: walletSnapshot };
       stateRef.current = walletReducer(stateRef.current, action);
       dispatch(action);

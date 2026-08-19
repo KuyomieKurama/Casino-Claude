@@ -11,12 +11,12 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 
 const statusLabel: Record<Promotion["status"], { label: string; tone: "teal" | "neutral" | "warning" }> = {
-  active: { label: "Aktiv (Demo)", tone: "teal" },
+  active: { label: "Aktiv", tone: "teal" },
   upcoming: { label: "Demnächst (Mock)", tone: "neutral" },
   expired: { label: "Beendet (Mock)", tone: "warning" },
 };
 
-/** Promotions mit Detailansicht und „Demo aktivieren“ (Kontexthinweis vor der Aktion, Ebene 3). */
+/** Promotions mit Detailansicht und Aktivieren-Aktion (Kontexthinweis vor der Aktion). */
 export function PromotionsList() {
   const { hydrated, grantBonus, transactions } = useWallet();
   const { toast } = useToast();
@@ -29,7 +29,7 @@ export function PromotionsList() {
     const rejection = grantBonus({ bonusMinor: p.reward.bonusMinor ?? 0, freeSpins: p.reward.freeSpins ?? 0, sourceId: p.id });
     setConfirm(null);
     if (rejection) toast({ tone: "warning", title: rejection.message });
-    else toast({ tone: "success", title: `„${p.title}“ aktiviert.`, description: `${p.rewardLabel} wurde dem Demo-Wallet gutgeschrieben.` });
+    else toast({ tone: "success", title: `„${p.title}“ aktiviert.`, description: `${p.rewardLabel} wurde deinem Guthaben gutgeschrieben.` });
   };
 
   return (
@@ -49,7 +49,7 @@ export function PromotionsList() {
                 <p className="text-sm text-muted">{p.description}</p>
                 <dl className="space-y-1 text-sm">
                   <div className="flex justify-between gap-3">
-                    <dt className="text-muted">Demo-Belohnung</dt>
+                    <dt className="text-muted">Belohnung</dt>
                     <dd className="text-right font-medium text-primary">{p.rewardLabel}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
@@ -60,7 +60,7 @@ export function PromotionsList() {
                 <div className="mt-auto pt-2">
                   {p.status === "active" && hasReward(p) ? (
                     <Button variant="outline" fullWidth disabled={!hydrated || claimed} onClick={() => setConfirm(p)}>
-                      {claimed ? "Bereits aktiviert" : "Demo aktivieren"}
+                      {claimed ? "Bereits aktiviert" : "Aktivieren"}
                     </Button>
                   ) : (
                     <Button variant="outline" fullWidth disabled>
@@ -77,7 +77,7 @@ export function PromotionsList() {
         open={confirm !== null}
         onClose={() => setConfirm(null)}
         title={confirm ? `„${confirm.title}“ aktivieren?` : ""}
-        description={confirm ? `${confirm.rewardLabel} wird dem Demo-Wallet gutgeschrieben — ohne Bedingungen. Es wird kein Echtgeld bewegt.` : undefined}
+        description={confirm ? `${confirm.rewardLabel} wird deinem Guthaben gutgeschrieben — ohne Bedingungen. Es wird kein Echtgeld bewegt.` : undefined}
         size="sm"
         footer={
           <>
@@ -85,7 +85,7 @@ export function PromotionsList() {
               Abbrechen
             </Button>
             <Button variant="primary" onClick={() => confirm && activate(confirm)}>
-              Demo aktivieren
+              Aktivieren
             </Button>
           </>
         }

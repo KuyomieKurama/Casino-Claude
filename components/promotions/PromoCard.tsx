@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 
 const statusLabel: Record<Promotion["status"], { label: string; tone: "teal" | "neutral" | "warning" }> = {
-  active: { label: "Aktiv (Demo)", tone: "teal" },
+  active: { label: "Aktiv", tone: "teal" },
   upcoming: { label: "Demnächst (Mock)", tone: "neutral" },
   expired: { label: "Beendet (Mock)", tone: "warning" },
 };
@@ -24,7 +24,7 @@ export function PromoCard({ promo, className, compact }: { promo: Promotion; cla
       <p className={cn("text-sm text-muted", compact && "line-clamp-2")}>{promo.description}</p>
       <dl className="mt-auto space-y-1 text-sm">
         <div className="flex justify-between gap-3">
-          <dt className="text-muted">Demo-Belohnung</dt>
+          <dt className="text-muted">Belohnung</dt>
           <dd className="text-right font-medium text-primary">{promo.rewardLabel}</dd>
         </div>
         <div className="flex justify-between gap-3">

@@ -11,7 +11,7 @@ export const categoryMeta: readonly CategoryMeta[] = [
   { id: "poker", label: "Poker", color: "#2E5A45" },
   { id: "arcade", label: "Arcade", color: "#2E5A5A" },
   { id: "gameshow", label: "Game Shows", color: "#5A4A2E" },
-  { id: "live", label: "Live-Demos", color: "#2E3A5A" },
+  { id: "live", label: "Live", color: "#2E3A5A" },
 ];
 
 export function categoryLabel(id: GameCategory): string {
@@ -34,7 +34,7 @@ export const lobbyCategories: readonly { id: LobbyCategoryId; label: string }[] 
   { id: "poker", label: "Poker" },
   { id: "arcade", label: "Arcade" },
   { id: "gameshow", label: "Game Shows" },
-  { id: "live", label: "Live-Demos" },
+  { id: "live", label: "Live" },
   { id: "new", label: "Neu" },
   { id: "popular", label: "Beliebt" },
   { id: "favorites", label: "Favoriten" },

@@ -29,7 +29,7 @@ describe("SecurityPage", () => {
     const badges = screen.getAllByText("Nicht möglich");
     expect(badges).toHaveLength(2);
     expect(screen.getByText(/keinen Endpunkt, der ein neues Passwort entgegennimmt/i)).toBeInTheDocument();
-    expect(screen.getByText(/2FA benötigt einen Server, der Codes ausstellt und prüft/i)).toBeInTheDocument();
+    expect(screen.getByText(/2FA benötigt einen Dienst, der Codes ausstellt und prüft/i)).toBeInTheDocument();
   });
 
   it("kennzeichnet Geräte und Login-Historie als Beispieldaten (Mock)", () => {

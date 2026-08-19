@@ -11,7 +11,7 @@ export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
 
 /**
  * Status nie allein über Farbe: Badges tragen immer Text (und optional ein Icon).
- * `teal` ist die Demo-Kennzeichnung; `gold` bleibt Umriss, keine gefüllte Fläche.
+ * `gold` bleibt Umriss, keine gefüllte Fläche.
  */
 const tones: Record<BadgeTone, string> = {
   neutral: "border-border-control text-muted",
@@ -36,14 +36,5 @@ export function Badge({ tone = "neutral", icon, size = "sm", className, children
       {icon}
       {children}
     </span>
-  );
-}
-
-/** Kürzel „DEMO“ — Ebene 2 der Kennzeichnung im Header. */
-export function DemoBadge({ className }: { className?: string }) {
-  return (
-    <Badge tone="teal" className={cn("tracking-wider", className)} aria-label="Demo-Modus">
-      DEMO
-    </Badge>
   );
 }

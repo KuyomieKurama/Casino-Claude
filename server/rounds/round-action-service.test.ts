@@ -43,9 +43,9 @@ async function seedUserAndWallet(db: TestDatabase): Promise<void> {
   await insertLedgerEntry(db, {
     userId: USER_ID,
     seq: 1,
-    type: "demo_credit",
+    type: "credit",
     amountMinor: START_BALANCE_MINOR,
-    balanceAfterMinor: walletRecord.demoBalanceMinor,
+    balanceAfterMinor: walletRecord.balanceMinor,
   });
 }
 
@@ -55,15 +55,15 @@ async function seedUserAndWallet(db: TestDatabase): Promise<void> {
  * damit die Konsistenzprüfung (Ledger-Summe = Saldo) in diesen isolierten Tests aussagekräftig bleibt.
  */
 async function debitStakeWithLedger(db: TestDatabase, userId: string, stakeMinor: number): Promise<void> {
-  const debit = await debitForStake(db, userId, { fromBonusMinor: 0, fromDemoMinor: stakeMinor });
+  const debit = await debitForStake(db, userId, { fromBonusMinor: 0, fromBalanceMinor: stakeMinor });
   if (!debit.ok) throw new Error("Testaufbau fehlgeschlagen: Grundeinsatz konnte nicht abgebucht werden.");
   await insertLedgerEntry(db, {
     userId,
     seq: debit.walletRecord.nextSeq - 1,
-    type: "demo_bet",
+    type: "bet",
     amountMinor: -stakeMinor,
-    balanceAfterMinor: debit.walletRecord.demoBalanceMinor + debit.walletRecord.bonusBalanceMinor,
-    fromDemoMinor: stakeMinor,
+    balanceAfterMinor: debit.walletRecord.balanceMinor + debit.walletRecord.bonusBalanceMinor,
+    fromBalanceMinor: stakeMinor,
     fromBonusMinor: 0,
   });
 }
@@ -144,9 +144,9 @@ describe("applyRoundAction — Mines", () => {
     expect(result.data.state).toMatchObject({ positions, hitCell: mineCell });
 
     const wallet = await findWallet(db, USER_ID);
-    expect(wallet?.demoBalanceMinor).toBe(START_BALANCE_MINOR - 100);
+    expect(wallet?.balanceMinor).toBe(START_BALANCE_MINOR - 100);
     const ledgerSum = await sumLedgerAmountForUser(db, USER_ID);
-    expect(ledgerSum).toBe(wallet?.demoBalanceMinor);
+    expect(ledgerSum).toBe(wallet?.balanceMinor);
   });
 
   test("cashOut nach zwei sicheren Feldern bucht die korrekte Rückgabe und schließt die Runde ab", async () => {
@@ -168,7 +168,7 @@ describe("applyRoundAction — Mines", () => {
     expect(r3.data.returnMinor).toBeGreaterThan(0);
 
     const wallet = await findWallet(db, USER_ID);
-    expect(wallet?.demoBalanceMinor).toBe(START_BALANCE_MINOR - 500 + r3.data.returnMinor);
+    expect(wallet?.balanceMinor).toBe(START_BALANCE_MINOR - 500 + r3.data.returnMinor);
   });
 
   test("Wiedergabe: aus (stakeMinor, seed, actions[]) unabhängig neu aufgelöst ergibt exakt return_minor", async () => {
@@ -296,9 +296,9 @@ describe("applyRoundAction — Blackjack (Zusatzeinsatz)", () => {
     if (!found) return;
 
     // Grundeinsatz (200, aus dem Testaufbau) und Zusatzeinsatz (double, ebenfalls 200) sind zwei
-    // getrennte demo_bet-Buchungen mit derselben roundId — kein zusammengefasster Einzeleintrag.
+    // getrennte bet-Buchungen mit derselben roundId — kein zusammengefasster Einzeleintrag.
     const entries = await listLedgerEntries(found.db, USER_ID, 10);
-    const betEntries = entries.filter((e) => e.type === "demo_bet" && e.roundId === found!.round.id);
+    const betEntries = entries.filter((e) => e.type === "bet" && e.roundId === found!.round.id);
     expect(betEntries).toHaveLength(1); // die zweite (Zusatz-)Buchung — der Grundeinsatz kam ohne roundId aus dem Testaufbau.
     expect(betEntries[0]?.amountMinor).toBe(-200);
   });
@@ -328,13 +328,13 @@ describe("applyRoundAction — Blackjack (Zusatzeinsatz)", () => {
     // Guthaben bis auf 100 herunterbuchen — der Zusatzeinsatz beim Verdoppeln (200) übersteigt das.
     const before = await findWallet(db, USER_ID);
     if (!before) throw new Error("Testaufbau fehlgeschlagen: Wallet fehlt.");
-    await debitForStake(db, USER_ID, { fromBonusMinor: 0, fromDemoMinor: before.demoBalanceMinor - 100 });
+    await debitForStake(db, USER_ID, { fromBonusMinor: 0, fromBalanceMinor: before.balanceMinor - 100 });
 
     const result = await applyRoundAction(db, { userId: USER_ID, roundId: round.id, seq: 1, action: "double", payload: {} });
 
     expect(result).toEqual({ ok: false, code: "INSUFFICIENT_FUNDS" });
     const after = await findWallet(db, USER_ID);
-    expect(after?.demoBalanceMinor).toBe(100); // unverändert — kein stiller Teilabzug
+    expect(after?.balanceMinor).toBe(100); // unverändert — kein stiller Teilabzug
   });
 
   test("Responsible-Gaming-Sperre (Auftrag „Server statt Client“): ein selbstgesperrter Nutzer kann double (Zusatzeinsatz) nicht buchen", async () => {
@@ -359,9 +359,9 @@ describe("applyRoundAction — Blackjack (Zusatzeinsatz)", () => {
 
     expect(result).toEqual({ ok: false, code: "RG_BLOCKED" });
     const after = await findWallet(db, USER_ID);
-    expect(after?.demoBalanceMinor).toBe(before?.demoBalanceMinor); // kein Zusatzeinsatz gebucht
+    expect(after?.balanceMinor).toBe(before?.balanceMinor); // kein Zusatzeinsatz gebucht
     const entries = await listLedgerEntries(db, USER_ID, 10);
-    expect(entries.some((e) => e.type === "demo_bet" && e.roundId === round.id)).toBe(false);
+    expect(entries.some((e) => e.type === "bet" && e.roundId === round.id)).toBe(false);
   });
 
   test("hit nach stand wird abgelehnt", async () => {

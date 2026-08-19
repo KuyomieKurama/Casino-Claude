@@ -111,16 +111,16 @@ async function checkFundExhaustion(db: Db): Promise<boolean> {
   const startBalance = (n / 2) * stakeMinor;
   await insertWalletIfMissing(db, userId, startBalance);
 
-  const results = await Promise.all(Array.from({ length: n }, () => debitForStake(db, userId, { fromBonusMinor: 0, fromDemoMinor: stakeMinor })));
+  const results = await Promise.all(Array.from({ length: n }, () => debitForStake(db, userId, { fromBonusMinor: 0, fromBalanceMinor: stakeMinor })));
   const successCount = results.filter((r) => r.ok).length;
   const wallet = await findWallet(db, userId);
   const ledgerSum = await sumLedgerAmountForUser(db, userId); // 0 erwartet: dieser Test bucht keine Ledger-Einträge, nur Wallet-UPDATEs.
 
   console.log(`Startguthaben: ${startBalance} Minor, Einsatz je Versuch: ${stakeMinor} Minor, Versuche: ${n}.`);
   console.log(`Erwartet: genau ${n / 2} erfolgreiche Buchungen, Saldo danach 0.`);
-  console.log(`Tatsächlich: ${successCount} erfolgreich, ${n - successCount} abgelehnt, Saldo danach ${wallet?.demoBalanceMinor}.`);
+  console.log(`Tatsächlich: ${successCount} erfolgreich, ${n - successCount} abgelehnt, Saldo danach ${wallet?.balanceMinor}.`);
 
-  const ok = successCount === n / 2 && wallet?.demoBalanceMinor === 0 && (wallet?.demoBalanceMinor ?? -1) >= 0;
+  const ok = successCount === n / 2 && wallet?.balanceMinor === 0 && (wallet?.balanceMinor ?? -1) >= 0;
   console.log(ok ? "ERGEBNIS: BESTANDEN" : "ERGEBNIS: FEHLGESCHLAGEN");
   console.log(`(Ledger-Summe zur Kontrolle: ${ledgerSum} — dieser Test bucht bewusst keine Ledger-Einträge.)`);
   return ok;
@@ -182,8 +182,8 @@ async function checkFullRoundConcurrency(db: Db): Promise<boolean> {
   const ledgerSum = await sumLedgerAmountForUser(db, userId);
 
   console.log(`${successCount} von ${n} gleichzeitigen Rundenstarts erfolgreich (Startguthaben deckt alle ${n} Einsätze).`);
-  console.log(`Saldo danach: ${wallet?.demoBalanceMinor}, Ledger-Summe: ${ledgerSum}.`);
-  const ok = successCount === n && (wallet?.demoBalanceMinor ?? -1) >= 0 && ledgerSum === (wallet?.demoBalanceMinor ?? -1);
+  console.log(`Saldo danach: ${wallet?.balanceMinor}, Ledger-Summe: ${ledgerSum}.`);
+  const ok = successCount === n && (wallet?.balanceMinor ?? -1) >= 0 && ledgerSum === (wallet?.balanceMinor ?? -1);
   console.log(ok ? "ERGEBNIS: BESTANDEN" : "ERGEBNIS: FEHLGESCHLAGEN");
   return ok;
 }
@@ -225,11 +225,11 @@ async function checkInteractiveActionRace(db: Db): Promise<boolean> {
 
     const successCount = [a, b].filter((r) => r.ok).length;
     const actions = await findActionsForRound(db, roundId);
-    // Zwei demo_bet-Buchungen mit dieser roundId sind KORREKT: die eine aus dem Rundenstart
+    // Zwei bet-Buchungen mit dieser roundId sind KORREKT: die eine aus dem Rundenstart
     // (Grundeinsatz) plus höchstens eine weitere aus "double" — nicht "genau 1", wie ein naiver
     // Filter nahelegen würde. Der belastbare Nachweis ist der SALDO: er darf nur um genau
     // Grundeinsatz + EINEN Zusatzeinsatz gesunken sein, nie um zwei Zusatzeinsätze.
-    const bookings = (await listLedgerEntries(db, userId, 20)).filter((e) => e.roundId === roundId && e.type === "demo_bet");
+    const bookings = (await listLedgerEntries(db, userId, 20)).filter((e) => e.roundId === roundId && e.type === "bet");
     const wallet = await findWallet(db, userId);
     // "double" deckt beim Einzelblatt eine Karte auf und beendet die Hand sofort (unveränderte
     // Fachlogik, components/game/engine/blackjack/blackjack-logic.ts) — der Ausgang (Sieg,
@@ -240,16 +240,16 @@ async function checkInteractiveActionRace(db: Db): Promise<boolean> {
     // obwohl serverseitig alles korrekt gebucht wurde.
     const successful = a.ok ? a : b.ok ? b : null;
     const settledReturnMinor = successful && successful.data.status === "settled" ? successful.data.returnMinor : 0;
-    const expectedDemoBalance = START_BALANCE_MINOR - stakeMinor - stakeMinor + settledReturnMinor;
+    const expectedBalance = START_BALANCE_MINOR - stakeMinor - stakeMinor + settledReturnMinor;
 
     console.log(`Versuch ${attempt + 1}: ${successCount} von 2 gleichzeitigen "double"-Aufrufen angenommen.`);
     console.log(`Aktionsprotokoll der Runde: ${actions.length} Zeile(n) (erwartet: 1 — nur EIN "double" wurde tatsächlich angewendet).`);
-    console.log(`demo_bet-Buchungen dieser Runde insgesamt: ${bookings.length} (erwartet: 2 — Grundeinsatz + ein Zusatzeinsatz).`);
+    console.log(`bet-Buchungen dieser Runde insgesamt: ${bookings.length} (erwartet: 2 — Grundeinsatz + ein Zusatzeinsatz).`);
     console.log(
-      `Saldo danach: ${wallet?.demoBalanceMinor} (erwartet: ${expectedDemoBalance}, d. h. Grundeinsatz + Zusatzeinsatz minus gemeldeter Rückgabe ${settledReturnMinor} — eine doppelte Buchung würde stattdessen ${expectedDemoBalance - stakeMinor} ergeben).`,
+      `Saldo danach: ${wallet?.balanceMinor} (erwartet: ${expectedBalance}, d. h. Grundeinsatz + Zusatzeinsatz minus gemeldeter Rückgabe ${settledReturnMinor} — eine doppelte Buchung würde stattdessen ${expectedBalance - stakeMinor} ergeben).`,
     );
 
-    const ok = successCount === 1 && actions.length === 1 && bookings.length === 2 && wallet?.demoBalanceMinor === expectedDemoBalance;
+    const ok = successCount === 1 && actions.length === 1 && bookings.length === 2 && wallet?.balanceMinor === expectedBalance;
     console.log(ok ? "ERGEBNIS: BESTANDEN" : "ERGEBNIS: FEHLGESCHLAGEN");
     return ok;
   }

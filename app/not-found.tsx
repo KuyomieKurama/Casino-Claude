@@ -11,7 +11,7 @@ export default function NotFound() {
         icon={<Compass aria-hidden="true" />}
         headingLevel={1}
         title="Diese Seite gibt es nicht."
-        text="Die Adresse ist falsch geschrieben oder das Spiel existiert in diesem Prototyp nicht. Zurück in die Lobby, oder direkt suchen."
+        text="Die Adresse ist falsch geschrieben oder das Spiel existiert nicht. Zurück in die Lobby, oder direkt suchen."
         action={<LinkButton href="/casino" variant="primary">Zur Lobby</LinkButton>}
       >
         <NotFoundSearch />

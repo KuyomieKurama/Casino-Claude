@@ -347,7 +347,7 @@ function PaytableView({ stakeMinor, achieved }: { stakeMinor: number; achieved: 
       </div>
       <p className="mt-2 text-xs text-muted">
         Der Royal Flush zahlt 250× — das ist die Ein-Münzen-Spalte der 9/6-Tabelle. Der oft genannte
-        Wert 800× gilt nur bei fünffachem Einsatz, den dieser Prototyp nicht kennt.
+        Wert 800× gilt nur bei fünffachem Einsatz, den diese Variante nicht kennt.
       </p>
       <p className="mt-1 text-xs text-muted">
         Für dieses Spiel wird kein RTP ausgewiesen: Die Rückgabe hängt davon ab, welche Karten du

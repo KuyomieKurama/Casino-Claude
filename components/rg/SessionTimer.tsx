@@ -51,7 +51,7 @@ export function SessionTimer({ variant = "full", className }: SessionTimerProps)
         <Skeleton className="h-8 w-[8ch]" />
       )}
       {status.hydrated && status.sessionRemainingMs !== undefined ? (
-        <span className="text-sm text-muted">Verbleibend bis zum Demo-Limit: {formatDuration(status.sessionRemainingMs)}</span>
+        <span className="text-sm text-muted">Verbleibend bis zum Zeitlimit: {formatDuration(status.sessionRemainingMs)}</span>
       ) : null}
     </div>
   );

@@ -17,7 +17,7 @@ import {
 } from "./wallet-policy";
 
 const wallet = (over: Partial<Wallet> = {}): Wallet => ({
-  demoBalanceMinor: 1000,
+  balanceMinor: 1000,
   bonusBalanceMinor: 0,
   freeSpins: 0,
   roundInFlight: false,
@@ -108,42 +108,42 @@ describe("checkFreeSpinAvailable", () => {
 
 describe("checkFundsAvailable", () => {
   it("lehnt einen Einsatz über dem verfügbaren Guthaben ab", () => {
-    const w = wallet({ demoBalanceMinor: 100, bonusBalanceMinor: 0 });
+    const w = wallet({ balanceMinor: 100, bonusBalanceMinor: 0 });
     expect(checkFundsAvailable(w, 101)).toEqual({ ok: false, code: "INSUFFICIENT_FUNDS" });
   });
 
   it("erlaubt einen Einsatz exakt in Höhe des verfügbaren Guthabens", () => {
-    const w = wallet({ demoBalanceMinor: 100, bonusBalanceMinor: 0 });
+    const w = wallet({ balanceMinor: 100, bonusBalanceMinor: 0 });
     expect(checkFundsAvailable(w, 100)).toEqual({ ok: true, value: undefined });
   });
 
   it("berücksichtigt Bonusguthaben als Teil des verfügbaren Guthabens", () => {
-    const w = wallet({ demoBalanceMinor: 50, bonusBalanceMinor: 50 });
+    const w = wallet({ balanceMinor: 50, bonusBalanceMinor: 50 });
     expect(checkFundsAvailable(w, 100)).toEqual({ ok: true, value: undefined });
     expect(checkFundsAvailable(w, 101)).toEqual({ ok: false, code: "INSUFFICIENT_FUNDS" });
   });
 });
 
 describe("availableMinor", () => {
-  it("summiert Demo- und Bonusguthaben ohne Bedingungen", () => {
-    expect(availableMinor(wallet({ demoBalanceMinor: 300, bonusBalanceMinor: 50 }))).toBe(350);
+  it("summiert Guthaben und Bonusguthaben ohne Bedingungen", () => {
+    expect(availableMinor(wallet({ balanceMinor: 300, bonusBalanceMinor: 50 }))).toBe(350);
   });
 });
 
 describe("splitStakeAcrossBalances", () => {
   it("deckt den gesamten Einsatz aus dem Bonusguthaben, wenn genug vorhanden ist", () => {
-    const w = wallet({ demoBalanceMinor: 1000, bonusBalanceMinor: 500 });
-    expect(splitStakeAcrossBalances(w, 200)).toEqual({ fromBonus: 200, fromDemo: 0 });
+    const w = wallet({ balanceMinor: 1000, bonusBalanceMinor: 500 });
+    expect(splitStakeAcrossBalances(w, 200)).toEqual({ fromBonus: 200, fromBalance: 0 });
   });
 
-  it("deckt den Einsatz teilweise aus dem Bonusguthaben, den Rest aus dem Demoguthaben", () => {
-    const w = wallet({ demoBalanceMinor: 1000, bonusBalanceMinor: 50 });
-    expect(splitStakeAcrossBalances(w, 200)).toEqual({ fromBonus: 50, fromDemo: 150 });
+  it("deckt den Einsatz teilweise aus dem Bonusguthaben, den Rest aus dem übrigen Guthaben", () => {
+    const w = wallet({ balanceMinor: 1000, bonusBalanceMinor: 50 });
+    expect(splitStakeAcrossBalances(w, 200)).toEqual({ fromBonus: 50, fromBalance: 150 });
   });
 
-  it("nutzt ausschließlich das Demoguthaben, wenn kein Bonus vorhanden ist", () => {
-    const w = wallet({ demoBalanceMinor: 1000, bonusBalanceMinor: 0 });
-    expect(splitStakeAcrossBalances(w, 200)).toEqual({ fromBonus: 0, fromDemo: 200 });
+  it("nutzt ausschließlich das übrige Guthaben, wenn kein Bonus vorhanden ist", () => {
+    const w = wallet({ balanceMinor: 1000, bonusBalanceMinor: 0 });
+    expect(splitStakeAcrossBalances(w, 200)).toEqual({ fromBonus: 0, fromBalance: 200 });
   });
 });
 

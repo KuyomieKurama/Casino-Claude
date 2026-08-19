@@ -41,7 +41,7 @@ function ServerInteractiveHarness() {
   return (
     <div>
       <span data-testid="status">{round.status}</span>
-      <span data-testid="balance">{round.wallet.demoBalanceMinor}</span>
+      <span data-testid="balance">{round.wallet.balanceMinor}</span>
       <span data-testid="net">{round.last ? round.last.netMinor : "—"}</span>
       <span data-testid="error">{round.inlineError?.code ?? ""}</span>
       <span data-testid="state">{JSON.stringify(round.interactiveState)}</span>
@@ -95,7 +95,7 @@ describe("useRound — interaktive Server-Runden (Phase 3b)", () => {
           usedFreeSpin: false,
           nextSeq: 1,
           state: { mines: 3, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 22 },
-          wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
         },
       }),
     );
@@ -140,7 +140,7 @@ describe("useRound — interaktive Server-Runden (Phase 3b)", () => {
             usedFreeSpin: false,
             nextSeq: 1,
             state: { mines: 3, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 22 },
-            wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
       )
@@ -153,7 +153,7 @@ describe("useRound — interaktive Server-Runden (Phase 3b)", () => {
             nextSeq: 2,
             stakeMinor: 100,
             state: { mines: 3, status: "open", revealedCells: [3], revealedCount: 1, multiplier: 1.1, cellsRemaining: 21 },
-            wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
       );
@@ -189,7 +189,7 @@ describe("useRound — interaktive Server-Runden (Phase 3b)", () => {
             usedFreeSpin: false,
             nextSeq: 1,
             state: { mines: 3, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 22 },
-            wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
       )
@@ -207,7 +207,7 @@ describe("useRound — interaktive Server-Runden (Phase 3b)", () => {
             outcomeLabel: "Mine getroffen nach 0 Feldern",
             seed: 42,
             state: { mines: 3, status: "hit", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 22, positions: [1, 2, 3], hitCell: 3 },
-            wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
       );
@@ -240,7 +240,7 @@ describe("useRound — interaktive Server-Runden (Phase 3b)", () => {
             usedFreeSpin: false,
             nextSeq: 1,
             state: { mines: 3, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 22 },
-            wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
           },
         }),
       )
@@ -271,7 +271,7 @@ describe("useRound — interaktive Server-Runden (Phase 3b)", () => {
           usedFreeSpin: false,
           nextSeq: 1,
           state: { mines: 3, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 22 },
-          wallet: { demoBalanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: 99_900, bonusBalanceMinor: 0, freeSpins: 0 },
         },
       }),
     );

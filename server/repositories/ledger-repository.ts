@@ -17,7 +17,7 @@ export interface LedgerEntryRecord {
   type: LedgerEntryType;
   amountMinor: CreditsMinor;
   balanceAfterMinor: CreditsMinor;
-  fromDemoMinor: CreditsMinor | null;
+  fromBalanceMinor: CreditsMinor | null;
   fromBonusMinor: CreditsMinor | null;
   gameModeId: string | null;
   roundId: string | null;
@@ -31,7 +31,7 @@ export interface InsertLedgerEntryInput {
   type: LedgerEntryType;
   amountMinor: CreditsMinor;
   balanceAfterMinor: CreditsMinor;
-  fromDemoMinor?: CreditsMinor;
+  fromBalanceMinor?: CreditsMinor;
   fromBonusMinor?: CreditsMinor;
   gameModeId?: string;
   roundId?: string;
@@ -45,7 +45,7 @@ function toRecord(row: typeof ledgerEntry.$inferSelect): LedgerEntryRecord {
     type: row.type,
     amountMinor: row.amountMinor,
     balanceAfterMinor: row.balanceAfterMinor,
-    fromDemoMinor: row.fromDemoMinor,
+    fromBalanceMinor: row.fromBalanceMinor,
     fromBonusMinor: row.fromBonusMinor,
     gameModeId: row.gameModeId,
     roundId: row.roundId,
@@ -63,7 +63,7 @@ export async function insertLedgerEntry(db: AppDatabase, input: InsertLedgerEntr
       type: input.type,
       amountMinor: input.amountMinor,
       balanceAfterMinor: input.balanceAfterMinor,
-      ...(input.fromDemoMinor === undefined ? {} : { fromDemoMinor: input.fromDemoMinor }),
+      ...(input.fromBalanceMinor === undefined ? {} : { fromBalanceMinor: input.fromBalanceMinor }),
       ...(input.fromBonusMinor === undefined ? {} : { fromBonusMinor: input.fromBonusMinor }),
       ...(input.gameModeId === undefined ? {} : { gameModeId: input.gameModeId }),
       ...(input.roundId === undefined ? {} : { roundId: input.roundId }),
@@ -163,7 +163,7 @@ export async function listDistinctGameModeIds(db: AppDatabase, userId: string): 
 
 /**
  * Summe aller Ledger-Beträge eines Nutzers — Grundlage des Konsistenztests (Auftrag §8): Diese
- * Summe muss jederzeit dem materialisierten `wallet`-Saldo (Demo- plus Bonusguthaben) entsprechen.
+ * Summe muss jederzeit dem materialisierten `wallet`-Saldo (Guthaben plus Bonusguthaben) entsprechen.
  * `NULL` (keine Zeilen) wird als 0 behandelt, nicht als Rechenfehler weitergereicht.
  */
 export async function sumLedgerAmountForUser(db: AppDatabase, userId: string): Promise<number> {

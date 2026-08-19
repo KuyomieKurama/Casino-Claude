@@ -131,7 +131,7 @@ export const wallet = pgTable(
     userId: text("user_id")
       .primaryKey()
       .references(() => user.id),
-    demoBalanceMinor: bigint("demo_balance_minor", { mode: "number" }).notNull().default(0),
+    balanceMinor: bigint("balance_minor", { mode: "number" }).notNull().default(0),
     bonusBalanceMinor: bigint("bonus_balance_minor", { mode: "number" }).notNull().default(0),
     freeSpins: integer("free_spins").notNull().default(0),
     nextSeq: bigint("next_seq", { mode: "number" }).notNull().default(1),
@@ -140,7 +140,7 @@ export const wallet = pgTable(
   (t) => [
     // Invariante 1 (Auftrag): Guthaben nie negativ, nie über der Obergrenze — auf Datenbankebene
     // erzwungen, nicht nur in der Anwendungslogik. Das bedingte UPDATE beim Einsatz (WHERE
-    // demo_balance_minor >= :fromDemo AND bonus_balance_minor >= :fromBonus) verhindert zwar
+    // balance_minor >= :fromBalance AND bonus_balance_minor >= :fromBonus) verhindert zwar
     // bereits ein Unterschreiten von 0, dieser CHECK ist die zusätzliche, vom Anwendungscode
     // unabhängige Schranke — sie greift auch, falls ein künftiger Codepfad die Bedingung vergisst.
     // sql.raw() statt eines gebundenen Parameters: ein generiertes Migrations-SQL-File wird von
@@ -148,7 +148,7 @@ export const wallet = pgTable(
     // einer CHECK-Klausel wäre dort unauflösbar (siehe check-in.ts für dieselbe Begründung).
     // Unproblematisch: MAX_BALANCE_MINOR ist eine feste Konstante aus lib/constants.ts, nie aus
     // Nutzereingaben.
-    check("wallet_demo_balance_check", sql`${t.demoBalanceMinor} >= 0 AND ${t.demoBalanceMinor} <= ${sql.raw(String(MAX_BALANCE_MINOR))}`),
+    check("wallet_balance_check", sql`${t.balanceMinor} >= 0 AND ${t.balanceMinor} <= ${sql.raw(String(MAX_BALANCE_MINOR))}`),
     check("wallet_bonus_balance_check", sql`${t.bonusBalanceMinor} >= 0 AND ${t.bonusBalanceMinor} <= ${sql.raw(String(MAX_BALANCE_MINOR))}`),
     check("wallet_free_spins_check", sql`${t.freeSpins} >= 0`),
     check("wallet_next_seq_check", sql`${t.nextSeq} >= 1`),
@@ -320,7 +320,7 @@ export const playSession = pgTable(
  * Append-only Ledger (Auftrag §1): jede Guthabenänderung erzeugt genau eine Zeile hier
  * (Invariante 2), niemals ein UPDATE oder DELETE auf einer bestehenden Zeile — kein Codepfad in
  * `server/repositories/ledger-repository.ts` bietet das an. `balanceAfterMinor` ist immer die
- * Summe aus Demo- und Bonusguthaben unmittelbar NACH dieser Buchung (Invariante 3).
+ * Summe aus Guthaben und Bonusguthaben unmittelbar NACH dieser Buchung (Invariante 3).
  */
 export const ledgerEntry = pgTable(
   "ledger_entry",
@@ -335,8 +335,8 @@ export const ledgerEntry = pgTable(
     /** Einsatz negativ, Gutschrift positiv — wie `Transaction.amountMinor` (types/transaction.ts). */
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
     balanceAfterMinor: bigint("balance_after_minor", { mode: "number" }).notNull(),
-    /** Nur bei `type = 'demo_bet'` gefüllt: wie sich der Einsatz auf die beiden Salden verteilt hat. */
-    fromDemoMinor: bigint("from_demo_minor", { mode: "number" }),
+    /** Nur bei `type = 'bet'` gefüllt: wie sich der Einsatz auf die beiden Salden verteilt hat. */
+    fromBalanceMinor: bigint("from_balance_minor", { mode: "number" }),
     fromBonusMinor: bigint("from_bonus_minor", { mode: "number" }),
     gameModeId: text("game_mode_id").references(() => gameMode.id),
     roundId: text("round_id").references(() => gameRound.id),

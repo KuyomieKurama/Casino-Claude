@@ -1,10 +1,10 @@
 import type { CreditsMinor } from "@/types/money";
 
 /** Produktname — genau eine Stelle. Hier ändern, überall wirksam. */
-export const PRODUCT_NAME = "Velora Casino Demo";
+export const PRODUCT_NAME = "Velora Casino";
 
 /** Kurzform für enge Stellen (Header auf Mobil, Bottom-Nav). */
-export const PRODUCT_SHORT_NAME = PRODUCT_NAME.replace(/\s*Casino Demo$/, "");
+export const PRODUCT_SHORT_NAME = PRODUCT_NAME.replace(/\s*Casino$/, "");
 
 export const STORAGE_KEY = "velora.demo.v1";
 /**
@@ -45,7 +45,7 @@ export const SCHEMA_VERSION = 4;
 export const START_BALANCE_MINOR: CreditsMinor = 1_000_000;
 export const TOP_UP_OPTIONS_MINOR: readonly CreditsMinor[] = [10_000, 50_000];
 
-/** Obergrenze für das Demo-Guthaben, damit Anzeige und Formatierung stabil bleiben. */
+/** Obergrenze für das Guthaben, damit Anzeige und Formatierung stabil bleiben. */
 export const MAX_BALANCE_MINOR: CreditsMinor = 99_999_999_99;
 
 export const DEFAULT_REMINDER_INTERVAL_MINUTES = 30;
@@ -64,16 +64,19 @@ export const RG_LIFT_CONFIRM_WINDOW_MS = 10 * 60_000;
 export const SEARCH_DEBOUNCE_MS = 200;
 export const LOBBY_PAGE_SIZE = 12;
 
-/** Simulierte Ladezeit eines Spiels und Dauer einer Runde. */
+/** Künstliche Ladezeit eines Spiels und Dauer einer Runde (Oberflächen-Timing, kein Netzwerkwert). */
 export const GAME_LOAD_MS = 700;
 export const ROUND_DURATION_MS = 1400;
 
-/** Kontexthinweise (Demo-Kennzeichnung Ebene 3, §8.5). */
-export const DEMO_STRIPE_TEXT = "Demo-Prototyp — kein Echtgeldspiel, keine Auszahlungen";
-export const DEMO_ACCOUNT_HINT = "Dies ist ein Demo-Konto. Es werden keine Echtgeld- oder Identitätsdaten benötigt.";
-export const PASSWORD_HINT = "Dieses Passwort wird nicht gespeichert. Bitte trotzdem kein echtes verwenden.";
+/**
+ * Kontexthinweise rund um Konto, Guthaben und Responsible Gaming. Credits sind durchgängig als
+ * Spielwährung ohne Geldwert gekennzeichnet — nicht als auffälliges Banner auf jeder Seite,
+ * sondern an den Stellen, an denen es inhaltlich zählt: Fußzeile, Registrierung, Hilfe/FAQ.
+ */
+export const CURRENCY_NOTICE = "Credits sind eine Spielwährung ohne Geldwert. Sie lassen sich weder einzahlen noch auszahlen.";
+export const ACCOUNT_CURRENCY_HINT = "Für die Anmeldung werden keine Zahlungs- oder Identitätsdaten benötigt. Credits sind eine Spielwährung ohne Geldwert.";
+export const PASSWORD_HINT = "Wird gehasht gespeichert, nie im Klartext.";
 export const RG_NOTICE =
-  "Bitte spiele verantwortungsvoll. Dieser Prototyp verwendet kein Echtgeld. Bei einem realen Glücksspielangebot wären Altersprüfung, Limits, Selbstsperre, KYC und weitere Schutzmaßnahmen erforderlich.";
-export const INSUFFICIENT_BALANCE_TEXT =
-  "Dein Demo-Guthaben reicht für diese Runde nicht aus. Setze es zurück oder füge Demo-Credits hinzu.";
-export const HERO_TEXT = `Spiele kostenlos im Demo-Modus und entdecke die ${PRODUCT_SHORT_NAME} Casino Experience.`;
+  "Bitte spiele verantwortungsvoll. Diese Anwendung verwendet ausschließlich Credits als Spielwährung ohne Geldwert, kein Echtgeld. Bei einem realen Glücksspielangebot wären Altersprüfung, Limits, Selbstsperre, KYC und weitere Schutzmaßnahmen erforderlich.";
+export const INSUFFICIENT_BALANCE_TEXT = "Dein Guthaben reicht für diese Runde nicht aus. Setze es zurück oder füge Credits hinzu.";
+export const HERO_TEXT = `Spiele mit Spielwährung und entdecke die ${PRODUCT_SHORT_NAME} Casino Experience.`;

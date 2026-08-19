@@ -43,7 +43,7 @@ export type WalletState = {
 export type WalletCtx = {
   userId: string;
   now: string;
-  /** true bei aktiver Selbstsperre, Pause oder erreichtem Demo-Limit (aus dem RgContext). */
+  /** true bei aktiver Selbstsperre, Pause oder erreichtem Zeitlimit (aus dem RgContext). */
   rgBlocked: boolean;
 };
 
@@ -82,7 +82,7 @@ export type WalletAction =
 export const MAX_STORED_TRANSACTIONS = 500;
 
 export const initialWallet: Wallet = {
-  demoBalanceMinor: START_BALANCE_MINOR,
+  balanceMinor: START_BALANCE_MINOR,
   bonusBalanceMinor: 0,
   freeSpins: 0,
   roundInFlight: false,
@@ -100,12 +100,12 @@ export function createInitialWalletState(seedTransactions: readonly Transaction[
 }
 
 const messages: Record<WalletRejectionCode, string> = {
-  INSUFFICIENT_FUNDS: "Dein Demo-Guthaben reicht für diese Runde nicht aus. Setze es zurück oder füge Demo-Credits hinzu.",
+  INSUFFICIENT_FUNDS: "Dein Guthaben reicht für diese Runde nicht aus. Setze es zurück oder füge Credits hinzu.",
   ROUND_IN_FLIGHT: "Eine Runde läuft bereits. Warte, bis sie abgeschlossen ist.",
   RG_BLOCKED: "Spielstart ist zurzeit blockiert (Pause, Limit oder Selbstsperre). Details unter Responsible Gaming.",
-  INVALID_STAKE: "Der Einsatz liegt außerhalb des erlaubten Demo-Bereichs für dieses Spiel.",
+  INVALID_STAKE: "Der Einsatz liegt außerhalb des erlaubten Einsatzbereichs für dieses Spiel.",
   NO_PENDING_ROUND: "Es gibt keine offene Runde, die abgeschlossen werden könnte.",
-  MAX_BALANCE: "Das Demo-Guthaben hat die Obergrenze erreicht. Setze es zurück, um weiterzuspielen.",
+  MAX_BALANCE: "Das Guthaben hat die Obergrenze erreicht. Setze es zurück, um weiterzuspielen.",
   NO_FREE_SPINS: "Es sind keine Freirunden mehr übrig.",
   RETURN_OUT_OF_RANGE: "Das Rundenergebnis liegt außerhalb des für diese Runde deklarierten Rahmens.",
   RAISE_NOT_ALLOWED: "Der Einsatz dieser Runde lässt sich nicht erhöhen.",
@@ -150,7 +150,6 @@ function book(state: WalletState, wallet: Wallet, input: BookInput, ctx: WalletC
     ...(input.gameId ? { gameId: input.gameId } : {}),
     ...(input.roundId ? { roundId: input.roundId } : {}),
     createdAt: ctx.now,
-    isDemo: true,
   };
   const transactions = [...state.transactions, tx];
   if (transactions.length > MAX_STORED_TRANSACTIONS) {
@@ -169,9 +168,9 @@ function isNonNegativeInt(v: unknown): v is number {
 
 function parseWallet(v: unknown): Wallet | null {
   if (!isRecord(v)) return null;
-  if (!isNonNegativeInt(v.demoBalanceMinor) || !isNonNegativeInt(v.bonusBalanceMinor) || !isNonNegativeInt(v.freeSpins)) return null;
+  if (!isNonNegativeInt(v.balanceMinor) || !isNonNegativeInt(v.bonusBalanceMinor) || !isNonNegativeInt(v.freeSpins)) return null;
   return {
-    demoBalanceMinor: v.demoBalanceMinor,
+    balanceMinor: v.balanceMinor,
     bonusBalanceMinor: v.bonusBalanceMinor,
     freeSpins: v.freeSpins,
     // roundInFlight wird nie „wahr“ hydriert — es gibt seit Phase 3b keinen lokalen Rundenzustand
@@ -198,7 +197,6 @@ function parseTransactions(v: unknown): Transaction[] | null {
       ...(typeof t.gameId === "string" ? { gameId: t.gameId } : {}),
       ...(typeof t.roundId === "string" ? { roundId: t.roundId } : {}),
       createdAt: t.createdAt,
-      isDemo: true,
     });
   }
   return out;
@@ -257,10 +255,10 @@ export function walletReducer(state: WalletState, action: WalletAction): WalletS
     case "TOP_UP": {
       const { amountMinor, ctx } = action;
       if (!Number.isInteger(amountMinor) || amountMinor <= 0) return reject(state, "INVALID_STAKE", ctx.now);
-      const maxBalanceCheck = checkMaxBalanceAfterCredit(state.wallet.demoBalanceMinor, amountMinor);
+      const maxBalanceCheck = checkMaxBalanceAfterCredit(state.wallet.balanceMinor, amountMinor);
       if (!maxBalanceCheck.ok) return reject(state, maxBalanceCheck.code, ctx.now);
-      const wallet: Wallet = { ...state.wallet, demoBalanceMinor: state.wallet.demoBalanceMinor + amountMinor };
-      return book(state, wallet, { type: "demo_credit", amountMinor }, ctx);
+      const wallet: Wallet = { ...state.wallet, balanceMinor: state.wallet.balanceMinor + amountMinor };
+      return book(state, wallet, { type: "credit", amountMinor }, ctx);
     }
 
     case "RESET": {

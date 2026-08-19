@@ -52,7 +52,7 @@ export function Lobby() {
       <header className="space-y-4 pt-6">
         <div>
           <h1 className="font-display text-2xl text-primary sm:text-3xl">Casino-Lobby</h1>
-          <p className="mt-1 text-sm text-muted">24 Demo-Titel von sechs erfundenen Anbietern. Alles ohne Echtgeld.</p>
+          <p className="mt-1 text-sm text-muted">24 Spieltitel von sechs erfundenen Anbietern. Gespielt wird mit Credits, ohne Echtgeld.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <SearchBar value={criteria.q} onChange={onSearch} className="sm:max-w-md sm:flex-1" />

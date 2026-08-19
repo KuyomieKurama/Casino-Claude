@@ -9,16 +9,15 @@ function tx(over: Partial<Transaction> = {}): Transaction {
     id: "tx1",
     seq: 1,
     userId: "u1",
-    type: "demo_win",
+    type: "win",
     amountMinor: 500,
     balanceAfterMinor: 100_500,
     createdAt: "2026-08-15T10:00:00.000Z",
-    isDemo: true,
     ...over,
   };
 }
 
-/** DemoWallet/TransactionList/useWallet brauchen den Provider-Baum — wie in den bestehenden Engine-Tests. */
+/** WalletCard/TransactionList/useWallet brauchen den Provider-Baum — wie in den bestehenden Engine-Tests. */
 const renderWallet = (recentEntries: Transaction[]) =>
   render(
     <AppProviders>

@@ -78,7 +78,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
           usedFreeSpin: false,
           nextSeq: 1,
           state: { mines, status: "open", revealedCells: [], revealedCount: 0, multiplier: 0, cellsRemaining: 25 - mines },
-          wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+          wallet: { balanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
         });
       }
 
@@ -107,7 +107,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
                 positions,
                 hitCell: cell,
               },
-              wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+              wallet: { balanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
             });
           }
           revealed = [...revealed, cell];
@@ -124,7 +124,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
               multiplier: minesMultiplier(mines, revealed.length),
               cellsRemaining: 25 - mines - revealed.length,
             },
-            wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: startBalanceMinor - stakeMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           });
         }
         if (action === "cashOut") {
@@ -149,7 +149,7 @@ function mockMinesRoutes(seed: number, mines: MinesCount, stakeMinor: number, st
               positions,
               hitCell: null,
             },
-            wallet: { demoBalanceMinor: startBalanceMinor - stakeMinor + returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
+            wallet: { balanceMinor: startBalanceMinor - stakeMinor + returnMinor, bonusBalanceMinor: 0, freeSpins: 0 },
           });
         }
       }

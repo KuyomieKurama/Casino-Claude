@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Transaction } from "@/types/transaction";
-import { DemoWallet } from "./DemoWallet";
+import { WalletCard } from "./WalletCard";
 import { TransactionList } from "./TransactionList";
 
 export type WalletPageProps = {
@@ -19,17 +19,17 @@ export function WalletPage({ recentEntries }: WalletPageProps) {
     <div className="anim-panel-in space-y-6">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Wallet</h1>
-        <p className="mt-1 text-sm text-muted">Demo-Guthaben verwalten. Jede Änderung wird als Transaktion protokolliert.</p>
+        <p className="mt-1 text-sm text-muted">Guthaben verwalten. Jede Änderung wird als Transaktion protokolliert.</p>
       </header>
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         {/*
-          DemoWallet zeigt weiterhin den lokalen Wallet-Zustand (state/WalletContext.tsx) — der
+          WalletCard zeigt weiterhin den lokalen Wallet-Zustand (state/WalletContext.tsx) — der
           ist seit Auftrag Phase 3b beim Laden bereits mit dem Serverstand vorbelegt (siehe
-          state/wallet-reducer.ts::applyServerWallet), zeigt also denselben Betrag. „Demo-Credits
+          state/wallet-reducer.ts::applyServerWallet), zeigt also denselben Betrag. „Credits
           hinzufügen"/„Zurücksetzen" bleiben rein lokale Übergangsaktionen bis Phase 3c (siehe
           Kommentar in state/WalletContext.tsx) — dafür gibt es noch keinen Server-Endpunkt.
         */}
-        <DemoWallet />
+        <WalletCard />
         <section aria-labelledby="recent-title" className="space-y-3">
           <div className="flex items-end justify-between gap-3">
             <h2 id="recent-title" className="text-md font-semibold text-primary">

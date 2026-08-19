@@ -26,29 +26,29 @@ const base = new Date("2026-08-14T18:02:00").getTime();
 const at = (minutes: number) => new Date(base + minutes * 60_000).toISOString();
 const NN = "g-neon-nights";
 
-/** Eigenständiger Beispiel-Startwert für diese Demo-Historie, siehe Dateikommentar oben. */
+/** Eigenständiger Beispiel-Startwert für diese Beispielhistorie, siehe Dateikommentar oben. */
 const SAMPLE_START_BALANCE_MINOR: CreditsMinor = 100_000;
 
 type Row = [seq: number, type: Transaction["type"], amount: CreditsMinor, minute: number, gameId?: string, roundId?: string];
 
 const rows: Row[] = [
-  [1, "demo_credit", SAMPLE_START_BALANCE_MINOR, 0],
-  [2, "demo_bet", -100, 3, NN, "sample_r1"],
-  [3, "demo_win", 200, 3, NN, "sample_r1"],
-  [4, "demo_bet", -100, 4, NN, "sample_r2"],
-  [5, "demo_win", 0, 4, NN, "sample_r2"],
-  [6, "demo_bet", -50, 5, NN, "sample_r3"],
-  [7, "demo_win", 25, 5, NN, "sample_r3"],
-  [8, "demo_bet", -100, 6, NN, "sample_r4"],
-  [9, "demo_win", 500, 6, NN, "sample_r4"],
-  [10, "demo_bet", -100, 7, NN, "sample_r5"],
-  [11, "demo_win", 0, 7, NN, "sample_r5"],
-  [12, "demo_bet", -100, 8, NN, "sample_r6"],
-  [13, "demo_win", 0, 8, NN, "sample_r6"],
-  [14, "demo_bet", -100, 9, NN, "sample_r7"],
-  [15, "demo_win", 0, 9, NN, "sample_r7"],
-  [16, "demo_bet", -75, 11, NN, "sample_r8"],
-  [17, "demo_win", 0, 11, NN, "sample_r8"],
+  [1, "credit", SAMPLE_START_BALANCE_MINOR, 0],
+  [2, "bet", -100, 3, NN, "sample_r1"],
+  [3, "win", 200, 3, NN, "sample_r1"],
+  [4, "bet", -100, 4, NN, "sample_r2"],
+  [5, "win", 0, 4, NN, "sample_r2"],
+  [6, "bet", -50, 5, NN, "sample_r3"],
+  [7, "win", 25, 5, NN, "sample_r3"],
+  [8, "bet", -100, 6, NN, "sample_r4"],
+  [9, "win", 500, 6, NN, "sample_r4"],
+  [10, "bet", -100, 7, NN, "sample_r5"],
+  [11, "win", 0, 7, NN, "sample_r5"],
+  [12, "bet", -100, 8, NN, "sample_r6"],
+  [13, "win", 0, 8, NN, "sample_r6"],
+  [14, "bet", -100, 9, NN, "sample_r7"],
+  [15, "win", 0, 9, NN, "sample_r7"],
+  [16, "bet", -75, 11, NN, "sample_r8"],
+  [17, "win", 0, 11, NN, "sample_r8"],
 ];
 
 let runningBalance = 0;
@@ -64,6 +64,5 @@ export const sampleTransactions: readonly Transaction[] = rows.map(([seq, type, 
     ...(gameId ? { gameId } : {}),
     ...(roundId ? { roundId } : {}),
     createdAt: at(minute),
-    isDemo: true as const,
   };
 });

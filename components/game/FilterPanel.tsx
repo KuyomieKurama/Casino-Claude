@@ -35,7 +35,7 @@ function FilterFields({ draft, onChange, idPrefix }: { draft: Draft; onChange: (
       <Select id={`${idPrefix}-mechanic`} label="Mechanik" options={mechanicOptions} value={draft.mechanic} onChange={(e) => onChange({ mechanic: e.target.value })} />
       <Select
         id={`${idPrefix}-difficulty`}
-        label="Demo-Schwierigkeit"
+        label="Schwierigkeit"
         options={difficultyOptions}
         value={draft.difficulty}
         onChange={(e) => onChange({ difficulty: e.target.value as DemoDifficulty | "" })}
@@ -67,7 +67,7 @@ export function FilterPanel({ criteria, onApply, onReset, mode }: FilterPanelPro
 
   if (mode === "sidebar") {
     return (
-      <aside aria-label="Filter" className="sticky top-[calc(var(--demo-stripe-height)+var(--header-height)+1rem)] space-y-4 rounded-card border border-border-subtle bg-surface p-4">
+      <aside aria-label="Filter" className="sticky top-[calc(var(--header-height)+1rem)] space-y-4 rounded-card border border-border-subtle bg-surface p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">Filter</h2>
           {activeCount > 0 ? (

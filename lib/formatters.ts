@@ -23,7 +23,7 @@ export function formatCreditsSigned(minor: CreditsMinor): string {
   return `±${formatCredits(0)}`;
 }
 
-/** Mit Einheit — für alle Stellen mit Geldbezug (Demo-Kennzeichnung Ebene 2). */
+/** Mit Einheit — für alle Stellen mit Geldbezug. */
 export function formatCreditsWithUnit(minor: CreditsMinor): string {
   return `${formatCredits(minor)} Credits`;
 }
