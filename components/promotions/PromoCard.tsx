@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 
-const statusLabel: Record<Promotion["status"], { label: string; tone: "teal" | "neutral" | "warning" }> = {
-  active: { label: "Aktiv", tone: "teal" },
+const statusLabel: Record<Promotion["status"], { label: string; tone: "accent" | "neutral" | "warning" }> = {
+  active: { label: "Aktiv", tone: "accent" },
   upcoming: { label: "Demnächst (Mock)", tone: "neutral" },
   expired: { label: "Beendet (Mock)", tone: "warning" },
 };

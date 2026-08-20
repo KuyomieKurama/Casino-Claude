@@ -59,7 +59,7 @@ export function AuditLogTable({ entries, total, prevHref, nextHref }: AuditLogTa
           <div className="hidden overflow-x-auto rounded-card border border-border-subtle md:block">
             <table className="w-full min-w-[820px] text-sm">
               <caption className="sr-only">Admin-Audit-Log mit Zeitpunkt, Urheber, Aktion, betroffener Entität sowie Vorher-/Nachher-Zustand</caption>
-              <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
+              <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-subtle">
                 <tr>
                   <th scope="col" className="px-3 py-2 font-medium">Zeitpunkt</th>
                   <th scope="col" className="px-3 py-2 font-medium">Von</th>

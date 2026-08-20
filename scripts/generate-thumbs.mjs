@@ -9,26 +9,27 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, "..", "public", "thumbs");
 mkdirSync(outDir, { recursive: true });
 
+// Synchronisiert mit den Tokenwerten aus app/globals.css (Redesign-Etappe „System-Fundament").
 const PALETTE = {
-  base: "#0B0D10",
-  surface: "#14171C",
-  elevated: "#1C2027",
-  gold: "#D6A756",
-  goldStrong: "#E3BC77",
-  teal: "#4FD1C5",
-  muted: "#9AA3AE",
-  border: "#2A2F38",
+  base: "#07080D",
+  surface: "#0D0F17",
+  elevated: "#131622",
+  gold: "#D6B36A",
+  goldStrong: "#F0D89A",
+  accent: "#A78BFA",
+  muted: "#A6A8B3",
+  border: "#1E2029",
 };
 
 // slug → [Motiv, Akzentfarbe, Nebenfarbe]
 const games = [
   ["classic-fruit", "circles", "#C2694F", PALETTE.gold],
-  ["neon-nights", "skyline", PALETTE.teal, PALETTE.gold],
+  ["neon-nights", "skyline", PALETTE.accent, PALETTE.gold],
   ["kupferschacht", "stack", "#B87333", "#6E4A2A"],
   ["codex-aurelia", "frame", PALETTE.gold, "#3A2E1A"],
   ["salzwind", "compass", "#7FB3D5", "#D8C9A3"],
   ["sandkoenigin", "obelisk", "#C9A063", PALETTE.gold],
-  ["mystic-jungle", "leaves", "#4F9D69", PALETTE.teal],
+  ["mystic-jungle", "leaves", "#4F9D69", PALETTE.accent],
   ["luxury-7s", "sevens", PALETTE.gold, PALETTE.muted],
   ["staubpfad", "windmill", "#C08457", "#8C5A3C"],
   ["zunderschuppe", "scales", "#B5433A", PALETTE.gold],
@@ -38,13 +39,13 @@ const games = [
   ["classic-blackjack", "cards2", "#2E6B4A", PALETTE.gold],
   ["vip-blackjack", "cards2", PALETTE.gold, "#2A2F38"],
   ["baccarat", "cards3", "#5B4A7A", PALETTE.gold],
-  ["plinko-demo", "dots", PALETTE.teal, PALETTE.muted],
-  ["mines-demo", "grid", PALETTE.muted, PALETTE.teal],
+  ["plinko-demo", "dots", PALETTE.accent, PALETTE.muted],
+  ["mines-demo", "grid", PALETTE.muted, PALETTE.accent],
   ["dice-demo", "dice", "#3E5A8A", "#F2F4F7"],
-  ["wheel-demo", "segments", PALETTE.gold, PALETTE.teal],
-  ["live-roulette-demo", "table-wheel", "#8B2E3A", PALETTE.teal],
-  ["live-blackjack-demo", "table-arc", "#2E6B4A", PALETTE.teal],
-  ["live-baccarat-demo", "table-grid", "#5B4A7A", PALETTE.teal],
+  ["wheel-demo", "segments", PALETTE.gold, PALETTE.accent],
+  ["live-roulette-demo", "table-wheel", "#8B2E3A", PALETTE.accent],
+  ["live-blackjack-demo", "table-arc", "#2E6B4A", PALETTE.accent],
+  ["live-baccarat-demo", "table-grid", "#5B4A7A", PALETTE.accent],
 ];
 
 const W = 400;

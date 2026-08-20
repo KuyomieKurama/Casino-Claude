@@ -41,27 +41,27 @@ const faq = [
 
 export default function HelpPage() {
   return (
-    <div className="anim-panel-in mx-auto max-w-3xl space-y-8 pt-6">
+    <div className="anim-panel-in mx-auto max-w-3xl space-y-2xl pt-6">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Hilfe & FAQ</h1>
         <p className="mt-1 text-sm text-muted">Antworten auf die häufigsten Fragen sowie die Nutzungsbedingungen im Überblick.</p>
       </header>
       <dl className="divide-y divide-border-subtle rounded-card border border-border-subtle bg-surface">
         {faq.map((item) => (
-          <div key={item.q} className="p-5">
+          <div key={item.q} className="p-lg sm:p-xl">
             <dt className="text-base font-semibold text-primary">{item.q}</dt>
             <dd className="measure mt-2 text-sm text-muted">{item.a}</dd>
           </div>
         ))}
       </dl>
-      <section className="rounded-card border border-border-subtle bg-surface p-5">
+      <section className="rounded-card border border-border-subtle bg-surface p-lg sm:p-xl">
         <h2 className="text-md font-semibold text-primary">Nutzungsbedingungen</h2>
         <p className="measure mt-2 text-sm text-muted">{CURRENCY_NOTICE}</p>
         <p className="measure mt-2 text-sm text-muted">
           Keine Lizenzangaben, keine Zahlungsanbindung, keine Auszahlungen. Alle Spieltitel, Anbieter und Aktionen sind frei erfunden.
         </p>
       </section>
-      <section className="rounded-card border border-teal/40 bg-surface p-5">
+      <section className="rounded-card border border-accent/40 bg-surface p-lg sm:p-xl">
         <h2 className="text-md font-semibold text-primary">Responsible Gaming</h2>
         <p className="measure mt-2 text-sm text-muted">{RG_NOTICE}</p>
         <Link href="/responsible-gaming" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-gold hover:text-gold-strong">

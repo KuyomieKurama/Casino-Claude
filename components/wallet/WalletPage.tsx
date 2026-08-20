@@ -16,12 +16,12 @@ export type WalletPageProps = {
 /** Wallet (§11): eigene Seite mobil, zweispaltig ab Tablet, Seitenpanel plus Historie auf Desktop. */
 export function WalletPage({ recentEntries }: WalletPageProps) {
   return (
-    <div className="anim-panel-in space-y-6">
+    <div className="anim-panel-in space-y-xl">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Wallet</h1>
         <p className="mt-1 text-sm text-muted">Guthaben verwalten. Jede Änderung wird als Transaktion protokolliert.</p>
       </header>
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <div className="grid gap-xl lg:grid-cols-[360px_1fr]">
         {/*
           WalletCard zeigt weiterhin den lokalen Wallet-Zustand (state/WalletContext.tsx) — der
           ist seit Auftrag Phase 3b beim Laden bereits mit dem Serverstand vorbelegt (siehe
@@ -35,9 +35,10 @@ export function WalletPage({ recentEntries }: WalletPageProps) {
             <h2 id="recent-title" className="text-md font-semibold text-primary">
               Letzte Bewegungen
             </h2>
-            {/* Kontoverwaltung bleibt golden-frei (§4/Auftrag): Teal statt Gold, dieselbe Akzentfarbe
-                wie der aktive Eintrag der Unternavigation (components/layout/UserShell.tsx). */}
-            <Link href="/history" className="inline-flex min-h-11 items-center text-sm font-medium text-teal hover:text-primary">
+            {/* Kontoverwaltung bleibt golden-frei (§4/Auftrag): Akzent (violett) statt Gold,
+                dieselbe Akzentfarbe wie der aktive Eintrag der Unternavigation
+                (components/layout/UserShell.tsx). */}
+            <Link href="/history" className="inline-flex min-h-11 items-center text-sm font-medium text-accent hover:text-primary">
               Gesamte Historie
             </Link>
           </div>

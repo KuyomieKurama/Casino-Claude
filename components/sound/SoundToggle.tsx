@@ -37,16 +37,27 @@ export function SoundToggle({ variant = "icon", className }: SoundToggleProps) {
       className={cn(
         "inline-flex shrink-0 items-center justify-center gap-2 rounded-control transition-state",
         variant === "icon"
-          ? cn("size-11 text-muted hover:bg-surface hover:text-primary", enabled && "text-teal")
+          ? cn("size-11 text-muted hover:bg-surface hover:text-primary", enabled && "text-accent")
           : cn(
               "h-11 min-w-11 border border-border-control px-3 text-sm font-medium text-primary hover:border-gold-strong/70",
-              enabled && "border-teal text-teal",
+              enabled && "border-accent text-accent",
             ),
         className,
       )}
     >
       <Icon className="size-5" aria-hidden="true" />
-      {variant === "labeled" ? <span>{enabled ? "Ton ein" : "Ton aus"}</span> : null}
+      {variant === "labeled" ? (
+        <>
+          <span>{enabled ? "Ton ein" : "Ton aus"}</span>
+          {/* Zusätzlich zu Icon-Wechsel und Text: ein kleiner Statuspunkt, rein dekorativ
+              (aria-hidden) — macht den Schaltzustand auch auf einen Blick von der Seite
+              erkennbar, ohne selbst Bedeutungsträger zu sein (§12: Status nie nur über Farbe). */}
+          <span
+            aria-hidden="true"
+            className={cn("size-2 shrink-0 rounded-pill transition-state", enabled ? "bg-accent" : "border border-border-control bg-transparent")}
+          />
+        </>
+      ) : null}
     </button>
   );
 }

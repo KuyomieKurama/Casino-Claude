@@ -43,14 +43,14 @@ describe("GameCard — Geschwisterhinweis (Auftrag §2)", () => {
   });
 });
 
-describe("GameCard — Druckfeedback und Anheben (Auftrag §1/§3)", () => {
+describe("GameCard — Druckfeedback und 3D-Neigung (Auftrag Etappe 3 §1)", () => {
   it.each(["default", "compact", "featured"] as const)(
-    "Variante %s trägt press-feedback zusätzlich zum vorhandenen Kantenlicht (hover-elevate)",
+    "Variante %s trägt press-feedback zusätzlich zur 3D-Kipp-Utility (tilt-card)",
     (variant) => {
       const { container } = renderCard(<GameCard game={base} variant={variant} />);
       const article = container.querySelector("article");
       expect(article?.className).toMatch(/\bpress-feedback\b/);
-      expect(article?.className).toMatch(/\bhover-elevate\b/);
+      expect(article?.className).toMatch(/\btilt-card\b/);
     },
   );
 
@@ -58,6 +58,23 @@ describe("GameCard — Druckfeedback und Anheben (Auftrag §1/§3)", () => {
     const { container } = renderCard(<GameCard game={base} variant="featured" />);
     const article = container.querySelector("article");
     expect(article?.className).not.toMatch(/\banim-panel-in\b/);
+  });
+});
+
+describe("GameCard — restrainedCta hält den featured-CTA golden-frei (Gold bleibt knapp)", () => {
+  it("ohne restrainedCta bleibt der Primär-CTA der featured-Variante golden (Default, bestehende Verwendungen unverändert)", () => {
+    const { container } = renderCard(<GameCard game={base} variant="featured" />);
+    expect(container.querySelectorAll(".bg-gold").length).toBe(1);
+  });
+
+  it("mit restrainedCta zeigt der featured-CTA keine goldene Fläche mehr", () => {
+    const { container } = renderCard(<GameCard game={base} variant="featured" restrainedCta />);
+    expect(container.querySelectorAll(".bg-gold").length).toBe(0);
+  });
+
+  it("restrainedCta wirkt nicht auf default/compact (dort war der CTA nie golden)", () => {
+    const { container } = renderCard(<GameCard game={base} variant="default" restrainedCta />);
+    expect(container.querySelectorAll(".bg-gold").length).toBe(0);
   });
 });
 

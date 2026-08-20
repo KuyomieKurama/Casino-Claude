@@ -26,10 +26,10 @@ function SectionError({ message }: { message: string }) {
  */
 export function SystemStatusPanel({ snapshot }: SystemStatusPanelProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-xl">
       <Card as="section" aria-labelledby="db-connection-title" className="space-y-3">
         <h2 id="db-connection-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-          <Database className="size-5 text-teal" aria-hidden="true" /> Datenbankverbindung
+          <Database className="size-5 text-accent" aria-hidden="true" /> Datenbankverbindung
         </h2>
         <dl className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -93,7 +93,7 @@ export function SystemStatusPanel({ snapshot }: SystemStatusPanelProps) {
 
       <Card as="section" aria-labelledby="integrity-title" className={snapshot.integrity.ok && snapshot.integrity.data.mismatches.length > 0 ? "border-danger" : undefined}>
         <h2 id="integrity-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-          <ShieldCheck className="size-5 text-teal" aria-hidden="true" /> Integritätsprüfung: Ledger gegen Saldo
+          <ShieldCheck className="size-5 text-accent" aria-hidden="true" /> Integritätsprüfung: Ledger gegen Saldo
         </h2>
         <p className="mt-1 text-sm text-muted">Summe der Ledger-Beträge je Nutzer muss dem materialisierten Wallet-Saldo entsprechen.</p>
         {snapshot.integrity.ok ? (
@@ -109,7 +109,7 @@ export function SystemStatusPanel({ snapshot }: SystemStatusPanelProps) {
               <div className="overflow-x-auto rounded-card border border-danger/40">
                 <table className="w-full min-w-[480px] text-sm">
                   <caption className="sr-only">Nutzer mit abweichendem Saldo</caption>
-                  <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
+                  <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-subtle">
                     <tr>
                       <th scope="col" className="px-3 py-2 font-medium">Nutzer-ID</th>
                       <th scope="col" className="px-3 py-2 text-right font-medium">Wallet-Saldo</th>
@@ -144,7 +144,7 @@ export function SystemStatusPanel({ snapshot }: SystemStatusPanelProps) {
           <div className="overflow-x-auto rounded-card border border-border-subtle">
             <table className="w-full min-w-[420px] text-sm">
               <caption className="sr-only">Anzahl Zeilen je Datenbanktabelle</caption>
-              <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
+              <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-subtle">
                 <tr>
                   <th scope="col" className="px-3 py-2 font-medium">Tabelle</th>
                   <th scope="col" className="px-3 py-2 text-right font-medium">Zeilen</th>

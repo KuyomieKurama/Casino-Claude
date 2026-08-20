@@ -44,8 +44,10 @@ export function Tabs({ items, activeId, onSelect, ariaLabel, className }: TabsPr
       active ? "text-primary" : "text-muted hover:text-primary",
     );
 
+  // Violette Unterkante statt Gold: Gold bleibt der einen CTA-Fläche pro Bildschirm vorbehalten,
+  // der aktive Reiter ist ein Systemzustand, kein Aufruf zur Handlung.
   const underline = (active: boolean) => (
-    <span aria-hidden="true" className={cn("absolute inset-x-2 bottom-0 h-px", active ? "bg-gold" : "bg-transparent")} />
+    <span aria-hidden="true" className={cn("absolute inset-x-2 bottom-0 h-px", active ? "bg-accent-strong" : "bg-transparent")} />
   );
 
   return (

@@ -26,7 +26,11 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 /**
- * Kopfzeile mit Signaturlinie unten, Glas-Hintergrund mit deckendem Fallback.
+ * Kopfzeile mit feiner unterer Trennkante (border-border-subtle) und Glas-Hintergrund mit
+ * deckendem Fallback. Die frühere goldene Signaturlinie entfällt hier bewusst: Gold ist ab
+ * dieser Überarbeitung ausschließlich der einen Primär-Aktion pro Bildschirm vorbehalten, der
+ * globale Header gehört nicht dazu. Der aktive Navigationspunkt markiert sich stattdessen über
+ * eine violette Unterkante (--accent-strong).
  *
  * Breakpoint-Entscheidung: Die volle Textnavigation samt Kontobereich erscheint erst ab `lg`
  * (1024 px) statt wie zuvor ab `md` (768 px) — darunter reicht die Breite nicht für fünf
@@ -48,7 +52,7 @@ export function Header() {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <header className="glass signature-bottom sticky top-0 z-40 h-[var(--header-height)]">
+    <header className="glass sticky top-0 z-40 h-[var(--header-height)] border-b border-border-subtle">
       <div className="mx-auto flex h-full max-w-[1536px] items-center gap-2 px-3 sm:gap-3 sm:px-6">
         <span className="sm:hidden">
           <Logo compact />
@@ -57,7 +61,9 @@ export function Header() {
           <Logo />
         </span>
 
-        <nav aria-label="Hauptnavigation" className="ml-2 hidden items-center gap-0.5 lg:ml-4 lg:flex lg:gap-1">
+        <nav aria-label="Hauptnavigation" className="ml-2 hidden items-center gap-0.5 lg:ml-4 lg:flex">
+          {/* Kompakter als zuvor: geringeres Innenpolster (px-2.5 statt px-3) und keine
+              zusätzliche Spaltenbreite — h-11 hält das Touch-Ziel trotzdem bei 44 px. */}
           {PRIMARY_NAV.map((item) => {
             const active = isActivePath(pathname, item.href);
             return (
@@ -66,12 +72,12 @@ export function Header() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative inline-flex h-11 items-center whitespace-nowrap rounded-control px-3 text-sm font-medium transition-state",
+                  "relative inline-flex h-11 items-center whitespace-nowrap rounded-control px-2.5 text-sm font-medium transition-state",
                   active ? "text-primary" : "text-muted hover:text-primary",
                 )}
               >
                 {item.label}
-                {active ? <span aria-hidden="true" className="absolute inset-x-3 -bottom-[11px] h-px bg-gold" /> : null}
+                {active ? <span aria-hidden="true" className="absolute inset-x-2.5 -bottom-[11px] h-px bg-accent-strong" /> : null}
               </Link>
             );
           })}
@@ -100,9 +106,9 @@ export function Header() {
               <>
                 <Link
                   href="/profile"
-                  className="inline-flex h-11 items-center gap-2 rounded-control border border-border-subtle px-3 text-sm font-medium text-primary transition-state hover:border-gold"
+                  className="inline-flex h-11 items-center gap-2 rounded-control border border-border-subtle px-3 text-sm font-medium text-primary transition-state hover:border-accent"
                 >
-                  <UserRound className="size-4 text-teal" aria-hidden="true" />
+                  <UserRound className="size-4 text-accent" aria-hidden="true" />
                   <span className="max-w-[12ch] truncate">{user.displayName}</span>
                 </Link>
                 <button
@@ -118,7 +124,7 @@ export function Header() {
               <>
                 <Link
                   href="/login"
-                  className="inline-flex h-11 items-center gap-2 rounded-control border border-border-control px-3 text-sm font-medium text-primary transition-state hover:border-gold"
+                  className="inline-flex h-11 items-center gap-2 rounded-control border border-border-control px-3 text-sm font-medium text-primary transition-state hover:border-accent"
                 >
                   <LogIn className="size-4" aria-hidden="true" />
                   Anmelden
@@ -133,7 +139,7 @@ export function Header() {
           <Link
             href="/responsible-gaming"
             aria-label="Responsible Gaming"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-control text-teal transition-state hover:bg-surface lg:hidden"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-control text-accent transition-state hover:bg-surface lg:hidden"
           >
             <ShieldCheck className="size-5" aria-hidden="true" />
           </Link>
@@ -154,7 +160,7 @@ export function Header() {
       </div>
 
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} triggerRef={menuButtonRef} title="Menü" id={menuId}>
-        <div className="space-y-1 border-b border-border-subtle pb-4">
+        <div className="space-y-2 border-b border-border-subtle pb-5">
           {user ? (
             <>
               <p className="px-2 pb-2 text-sm text-muted">
@@ -165,7 +171,7 @@ export function Header() {
                 onClick={() => setMenuOpen(false)}
                 className="flex h-11 items-center gap-2 rounded-control px-2 text-sm font-medium text-primary transition-state hover:bg-surface"
               >
-                <UserRound className="size-4 text-teal" aria-hidden="true" />
+                <UserRound className="size-4 text-accent" aria-hidden="true" />
                 Nutzerbereich
               </Link>
               <button
@@ -202,7 +208,7 @@ export function Header() {
           )}
         </div>
 
-        <nav aria-label="Menü" className="space-y-1 py-3">
+        <nav aria-label="Menü" className="space-y-2 py-4">
           {PRIMARY_NAV.map((item) => {
             const active = isActivePath(pathname, item.href);
             return (
@@ -216,8 +222,8 @@ export function Header() {
                   active ? "bg-surface text-primary" : "text-muted hover:bg-surface hover:text-primary",
                 )}
               >
-                {active ? <span aria-hidden="true" className="absolute inset-y-2 left-0 w-px bg-gold" /> : null}
-                {item.label === "Responsible Gaming" ? <ShieldCheck className="size-4 text-teal" aria-hidden="true" /> : null}
+                {active ? <span aria-hidden="true" className="absolute inset-y-2 left-0 w-px bg-accent-strong" /> : null}
+                {item.label === "Responsible Gaming" ? <ShieldCheck className="size-4 text-accent" aria-hidden="true" /> : null}
                 {item.label}
               </Link>
             );
@@ -225,7 +231,7 @@ export function Header() {
         </nav>
 
         {isAdmin ? (
-          <div className="border-t border-border-subtle pt-3">
+          <div className="border-t border-border-subtle pt-4">
             <Link
               href="/admin"
               onClick={() => setMenuOpen(false)}

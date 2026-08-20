@@ -108,6 +108,39 @@ describe("Design-Tokens: zugesagte WCAG-Kontraste (app/globals.css)", () => {
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 
+  // Nachtrag (Premium-Fundament): text-subtle ist bewusst schwächer als text-muted (nachrangige
+  // Beschriftungen wie Meta-Angaben, Zeitstempel), muss aber weiterhin mindestens AA erreichen —
+  // sonst wäre es für jeden Fließtext-Einsatz ungeeignet, egal wie nachrangig.
+  it("text-subtle auf bg-elevated erreicht mindestens AA (>= 4,5:1)", () => {
+    const ratio = contrastRatio(readColorToken("text-subtle"), readColorToken("bg-elevated"));
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // Nachtrag (Premium-Fundament): accent ist der neue violette Primärakzent für Text/Icons
+  // (löst den früheren Sekundärakzent in dieser Rolle ab) — muss wie jeder Text-/Icon-Ton
+  // mindestens AA erreichen.
+  it("accent auf bg-surface erreicht mindestens AA (>= 4,5:1)", () => {
+    const ratio = contrastRatio(readColorToken("accent"), readColorToken("bg-surface"));
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("on-accent auf accent-strong erreicht mindestens AA (>= 4,5:1)", () => {
+    const ratio = contrastRatio(readColorToken("on-accent"), readColorToken("accent-strong"));
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // accent-strong ist NUR für Flächen/Umrisse vorgesehen, nie für Fließtext (siehe Kommentar in
+  // globals.css) — deshalb genügt hier die UI-Komponenten-Schwelle (3:1, WCAG 1.4.11), nicht die
+  // Textschwelle (4,5:1).
+  it("accent-strong auf bg-elevated erreicht mindestens 3:1 (Flächen-/Umriss-Schwelle, nie Fließtext)", () => {
+    const ratio = contrastRatio(readColorToken("accent-strong"), readColorToken("bg-elevated"));
+    expect(ratio).toBeGreaterThanOrEqual(3);
+    // Kleingeschrieben statt toUpperCase(): vermeidet Sonderfälle der Groß-/Kleinschreibung bei
+    // Umlauten/ß (z. B. "ß" → "SS" bei toUpperCase()) und bleibt dadurch ein einfacher, robuster
+    // Teilstring-Vergleich.
+    expect(readTokenLine("accent-strong").toLowerCase()).toContain("nie fließtext");
+  });
+
   // Nachtrag (§7): bg-elevated (Modal, Drawer, Popover) trug bisher keine eigene
   // Kontrastprüfung, obwohl genau diese Flächen Text darstellen — bg-elevated ist heller als
   // bg-surface, der Kontrast zu Text also tendenziell (leicht) niedriger, nie automatisch durch
@@ -122,7 +155,7 @@ describe("Design-Tokens: zugesagte WCAG-Kontraste (app/globals.css)", () => {
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 
-  it.each(["gold", "teal", "success", "warning", "danger"])(
+  it.each(["gold", "accent", "success", "warning", "danger"])(
     "%s auf bg-surface erreicht mindestens AA (>= 4,5:1)",
     (tokenName) => {
       const ratio = contrastRatio(readColorToken(tokenName), readColorToken("bg-surface"));
@@ -165,8 +198,13 @@ describe("Design-Tokens: neue Effekt-Tokens sind dekorativ dokumentiert", () => 
     "edge-light",
     "ambient-glow",
     "glow-gold",
-    "glow-teal",
+    "glow-accent",
     "metal-sheen",
+    "glass-bg",
+    "glass-bg-strong",
+    "glass-border",
+    "glass-border-strong",
+    "depth-perspective",
   ];
 
   it.each(decorativeTokenNames)("--%s ist im Kommentar als REIN DEKORATIV markiert", (tokenName) => {
@@ -184,10 +222,13 @@ describe("Design-Tokens: jedes solide Hex-Farbtoken ist geprüft oder dekorativ 
     "bg-elevated",
     "text-primary",
     "text-muted",
+    "text-subtle",
+    "accent",
+    "accent-strong",
+    "on-accent",
     "gold",
     "gold-strong",
     "on-gold",
-    "teal",
     "success",
     "warning",
     "danger",

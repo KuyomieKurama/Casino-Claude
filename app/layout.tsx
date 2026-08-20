@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0B0D10",
+  themeColor: "#07080D", // entspricht --bg-base aus app/globals.css
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

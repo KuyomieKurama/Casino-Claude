@@ -48,8 +48,8 @@ export function Lobby() {
   const favoritesEmpty = criteria.cat === "favorites" && favorites.length === 0;
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-4 pt-6">
+    <div className="space-y-xl">
+      <header className="space-y-4 pt-6 sm:pt-8">
         <div>
           <h1 className="font-display text-2xl text-primary sm:text-3xl">Casino-Lobby</h1>
           <p className="mt-1 text-sm text-muted">24 Spieltitel von sechs erfundenen Anbietern. Gespielt wird mit Credits, ohne Echtgeld.</p>
@@ -78,7 +78,7 @@ export function Lobby() {
         <CategoryTabs criteria={criteria} counts={counts} />
       </header>
 
-      <div className="grid gap-lg lg:grid-cols-[260px_1fr]">
+      <div className="grid gap-lg lg:grid-cols-[280px_1fr] lg:gap-2xl">
         <div className="hidden lg:block">
           <FilterPanel mode="sidebar" criteria={criteria} onApply={(patch) => update(patch)} onReset={reset} />
         </div>
@@ -105,7 +105,7 @@ export function Lobby() {
                   )
                 }
               >
-                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <ul className="depth-scene grid grid-cols-1 gap-4 sm:grid-cols-3">
                   {suggestions.map((g) => (
                     <li key={g.id}>
                       <GameCard game={g} />

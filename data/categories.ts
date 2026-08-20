@@ -2,16 +2,19 @@ import type { GameCategory, DemoDifficulty } from "@/types/game";
 
 export type CategoryMeta = { id: GameCategory; label: string; color: string };
 
-/** Kategoriefarben für die Initialen-Fallback-Kachel — nur dekorativ, Status nie allein über Farbe. */
+/** Kategoriefarben für die Initialen-Fallback-Kachel — nur dekorativ, Status nie allein über Farbe.
+ *  Dunkle, entsättigte Violett-/Blau-/Bronze-Töne (Redesign-Etappe „System-Fundament"), statt der
+ *  vorigen bunten Tischfarben — passend zum violetten Primärakzent, alle mit >= 8,8:1 Kontrast zu
+ *  --text-primary (auf der Initialen-Kachel, siehe components/game/GameArt.tsx) nachgerechnet. */
 export const categoryMeta: readonly CategoryMeta[] = [
-  { id: "slots", label: "Slots", color: "#8B6B2E" },
-  { id: "roulette", label: "Roulette", color: "#5A2E3A" },
-  { id: "blackjack", label: "Blackjack", color: "#2E4A5A" },
-  { id: "baccarat", label: "Baccarat", color: "#3E2E5A" },
-  { id: "poker", label: "Poker", color: "#2E5A45" },
-  { id: "arcade", label: "Arcade", color: "#2E5A5A" },
-  { id: "gameshow", label: "Game Shows", color: "#5A4A2E" },
-  { id: "live", label: "Live", color: "#2E3A5A" },
+  { id: "slots", label: "Slots", color: "#4F3D22" },
+  { id: "roulette", label: "Roulette", color: "#3C2A4D" },
+  { id: "blackjack", label: "Blackjack", color: "#223247" },
+  { id: "baccarat", label: "Baccarat", color: "#33254F" },
+  { id: "poker", label: "Poker", color: "#1F2E3D" },
+  { id: "arcade", label: "Arcade", color: "#4A3521" },
+  { id: "gameshow", label: "Game Shows", color: "#55431F" },
+  { id: "live", label: "Live", color: "#1C2740" },
 ];
 
 export function categoryLabel(id: GameCategory): string {
@@ -19,7 +22,9 @@ export function categoryLabel(id: GameCategory): string {
 }
 
 export function categoryColor(id: GameCategory): string {
-  return categoryMeta.find((c) => c.id === id)?.color ?? "#3A3F48";
+  // Fallback (unerreichbar bei gültigem GameCategory, defensiv für den Fall neuer Kategorien ohne
+  // gepflegten Eintrag) — neutraler, dunkler Ton aus derselben entsättigten Familie wie oben.
+  return categoryMeta.find((c) => c.id === id)?.color ?? "#2E2C3A";
 }
 
 /** Lobby-Kategorien inklusive virtueller Reiter (§8.2). */

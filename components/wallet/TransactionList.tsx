@@ -25,7 +25,7 @@ const gameName = (id?: string) => (id ? (games.find((g) => g.id === id)?.name ??
 /** Vorzeichen und Farbe: Rückgabe unter Einsatz wird nie als Gewinn gefeiert — nur netto positive Werte sind grün. */
 function amountClass(tx: Transaction): string {
   if (tx.amountMinor > 0 && tx.type === "win") return "text-success";
-  if (tx.amountMinor > 0) return "text-teal";
+  if (tx.amountMinor > 0) return "text-accent";
   return "text-primary";
 }
 
@@ -105,7 +105,7 @@ export function TransactionList({ transactions, hydrated, limit, className, empt
       <div className="hidden overflow-x-auto rounded-card border border-border-subtle md:block">
         <table className="w-full min-w-[640px] text-sm">
           <caption className="sr-only">Transaktionen mit Betrag und Kontostand danach, neueste zuerst</caption>
-          <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
+          <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-subtle">
             <tr>
               <th scope="col" className="px-4 py-3 font-medium">Zeitpunkt</th>
               <th scope="col" className="px-4 py-3 font-medium">Vorgang</th>

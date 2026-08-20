@@ -14,7 +14,7 @@ export function BonusesPage() {
   const { hydrated, wallet, transactions } = useWallet();
   const grants = transactions.filter((t) => t.type === "bonus_grant").sort((a, b) => b.seq - a.seq);
   return (
-    <div className="anim-panel-in space-y-6">
+    <div className="anim-panel-in space-y-xl">
       <header className="space-y-2">
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Boni</h1>
         <p className="text-sm text-muted">Bonus-Credits und Freirunden sind additiv und ohne Umsatzbedingungen. Es gibt nichts freizuspielen.</p>

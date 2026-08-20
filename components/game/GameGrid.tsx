@@ -30,9 +30,13 @@ export function GameGrid({
   return (
     <>
     {heading ? <h2 className={headingHidden ? "sr-only" : "mb-3 text-md font-semibold text-primary"}>{heading}</h2> : null}
+    {/* depth-scene (Auftrag Etappe 3 §3): gemeinsame Fluchtpunkt-Perspektive für die
+        tilt-card-Kacheln darin — ohne sie wirkt die Kipp-Bewegung jeder Karte isoliert flach
+        statt räumlich zueinander konsistent. Größere Rasterabstände (gap-lg/xl) lassen zusätzlich
+        Raum für die leichte Anhebung im Hover, ohne benachbarte Karten zu berühren. */}
     <ul
       className={cn(
-        "stagger-list grid grid-cols-2 gap-sm sm:gap-md",
+        "stagger-list depth-scene grid grid-cols-2 gap-lg md:gap-xl",
         dense ? "md:grid-cols-3 xl:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5",
         className,
       )}
@@ -49,11 +53,11 @@ export function GameGrid({
 
 export function GameGridSkeleton({ count = 8, className }: { count?: number; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-sm sm:gap-md md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5", className)} aria-hidden="true">
+    <div className={cn("grid grid-cols-2 gap-lg md:gap-xl md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5", className)} aria-hidden="true">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="overflow-hidden rounded-card border border-border-subtle bg-surface">
+        <div key={i} className="surface-raised overflow-hidden rounded-card border border-border-subtle bg-surface">
           <Skeleton className="aspect-[4/3] w-full rounded-none" />
-          <div className="space-y-2 p-3 sm:p-4">
+          <div className="space-y-2 p-lg">
             <Skeleton className="h-5 w-3/4" />
             <Skeleton className="h-3 w-1/2" />
             <Skeleton className="h-9 w-full" />

@@ -16,8 +16,8 @@ export function FavoritesPage() {
   const list = useMemo(() => games.filter((g) => favorites.includes(g.id)), [games, favorites]);
   const suggestions = useMemo(() => suggestGames(games, list, 3), [games, list]);
   return (
-    <div className="anim-panel-in space-y-6">
-      <header>
+    <div className="anim-panel-in space-y-xl">
+      <header className="pt-6 sm:pt-8">
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Favoriten</h1>
         <p className="mt-1 text-sm text-muted">Deine markierten Spiele — auf diesem Gerät gespeichert.</p>
       </header>
@@ -31,7 +31,7 @@ export function FavoritesPage() {
             // dieser Leerzustand zum Spielbereich verlinkt, wo Gold vorbehalten bleibt.
             action={<LinkButton href="/casino" variant="outline">Spiele entdecken</LinkButton>}
           >
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <ul className="depth-scene grid grid-cols-1 gap-4 sm:grid-cols-3">
               {suggestions.map((g) => (
                 <li key={g.id}>
                   <GameCard game={g} />

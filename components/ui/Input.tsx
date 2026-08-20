@@ -39,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            "h-11 w-full rounded-control border bg-surface px-3 text-base text-primary transition-state",
+            "h-11 w-full rounded-control border bg-surface px-3 text-base text-primary transition-state focus-glow",
             "border-border-control hover:border-gold-strong/70",
             error && "border-danger",
             suffix ? "pr-20" : null,

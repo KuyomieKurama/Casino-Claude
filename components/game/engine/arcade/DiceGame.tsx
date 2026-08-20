@@ -98,7 +98,7 @@ export function DiceGame({ game, simulateLoadError = false, onStatusChange }: Ga
                   variant="outline"
                   fullWidth
                   aria-pressed={direction === d}
-                  className={cn(direction === d && "border-teal text-teal")}
+                  className={cn(direction === d && "border-accent text-accent")}
                   onClick={() => setDirection(d)}
                 >
                   {d === "under" ? "Unter" : "Über"}
@@ -116,7 +116,7 @@ export function DiceGame({ game, simulateLoadError = false, onStatusChange }: Ga
                   key={c}
                   variant="outline"
                   size="md"
-                  className={cn("px-1", chancePercent === c && "border-teal text-teal")}
+                  className={cn("px-1", chancePercent === c && "border-accent text-accent")}
                   aria-pressed={chancePercent === c}
                   onClick={() => setChancePercent(c)}
                 >
@@ -133,16 +133,16 @@ export function DiceGame({ game, simulateLoadError = false, onStatusChange }: Ga
           Ein Wurf von {DICE_MIN_ROLL} bis {DICE_MAX_ROLL}
         </h3>
 
-        <div className="rounded-card border border-border-control bg-base p-3">
+        <div className="edge-light rounded-card border border-border-control bg-base p-3">
           <p className="text-sm text-primary">
             Gewählt: {bet.label} · Treffer bei {winFrom} bis {winTo} · Trefferchance{" "}
             {Math.round(bet.winChance * 100)} % · Auszahlung {bet.multiplier.toLocaleString("de-DE")}×
           </p>
 
           {/* Skala. Rein illustrativ (aria-hidden); die Zahlen stehen darüber und darunter. */}
-          <div aria-hidden="true" className="relative mt-3 h-6 rounded-control border border-border-subtle bg-surface">
+          <div aria-hidden="true" className="edge-light relative mt-3 h-6 rounded-control border border-border-subtle bg-surface">
             <span
-              className="absolute inset-y-0 rounded-[4px] bg-teal/25"
+              className="absolute inset-y-0 rounded-xs bg-accent-strong/25"
               style={{ left: `${winStartPercent}%`, width: `${winWidthPercent}%` }}
             />
             {detail ? (

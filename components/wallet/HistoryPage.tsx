@@ -31,7 +31,7 @@ export function HistoryPage({ range, gameId, entries, gameOptions, total, pageNu
   const statusText = total === 0 ? "Keine Buchungen." : `${total} ${total === 1 ? "Buchung" : "Buchungen"} insgesamt, Seite ${pageNumber}.`;
 
   return (
-    <div className="anim-panel-in space-y-6">
+    <div className="anim-panel-in space-y-xl">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Spielhistorie</h1>
         <p className="mt-1 text-sm text-muted">Jede Bewegung mit Kontostand danach. Einsatz und Ergebnis derselben Runde teilen eine Runden-ID.</p>

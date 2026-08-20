@@ -113,7 +113,7 @@ export function UsersTable({ items, currentAdminId, page, pageCount, total }: Us
       <div className="hidden overflow-x-auto rounded-card border border-border-subtle md:block">
         <table className="w-full min-w-[860px] text-sm">
           <caption className="sr-only">Nutzerliste mit Rolle, Status, Gastkennzeichen, Erstellungsdatum, Rundenzahl und RG-Kurzstatus</caption>
-          <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
+          <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-subtle">
             <tr>
               <th scope="col" className="px-3 py-2 font-medium">Nutzer</th>
               <th scope="col" className="px-3 py-2 font-medium">Rolle</th>

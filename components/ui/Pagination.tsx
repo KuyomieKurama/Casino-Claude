@@ -21,9 +21,9 @@ export type PaginationProps = {
  */
 export function Pagination({ prevHref, nextHref, summary, className }: PaginationProps) {
   return (
-    <nav aria-label="Seitennavigation" className={cn("flex flex-wrap items-center justify-between gap-3", className)}>
+    <nav aria-label="Seitennavigation" className={cn("flex flex-wrap items-center justify-between gap-sm", className)}>
       <p className="text-sm text-muted">{summary}</p>
-      <div className="flex gap-2">
+      <div className="flex gap-xs">
         {prevHref ? (
           <LinkButton href={prevHref} variant="outline" size="md" iconLeft={<ChevronLeft className="size-4" aria-hidden="true" />}>
             Vorherige Seite

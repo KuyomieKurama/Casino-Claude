@@ -5,29 +5,42 @@
    Tailwind referenziert ausschließlich diese Variablen (siehe @theme inline).
    ────────────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg-base: #0b0d10; /* Seitenhintergrund */
-  --bg-surface: #14171c; /* Karten, Panels */
-  --bg-elevated: #1c2027; /* Modal, Drawer, Popover */
-  --text-primary: #f2f4f7; /* 17,66:1 auf base — AAA */
-  --text-muted: #9aa3ae; /*  7,03:1 auf surface — AAA */
-  --gold: #d6a756; /*  8,14:1 auf surface — AAA */
-  --gold-strong: #e3bc77; /* 10,86:1 auf base — Hover + Fokusring */
-  --on-gold: #0b0d10; /*  8,82:1 auf gold — Text auf goldener Fläche */
-  --teal: #4fd1c5; /*  9,63:1 — Sekundärakzent, Info, Demo-Badge */
-  --success: #6ee7b7; /* 11,78:1 */
-  --warning: #fbbf24; /* 10,76:1 */
-  --danger: #fca5a5; /*  9,46:1 — bewusst hell; #EF4444 fällt unter 4,5:1 */
-  --border-subtle: #2a2f38; /*  1,34:1 auf surface — REIN DEKORATIV, nie alleinige Markierung.
-                               Das Konzept nannte 1,45:1; im Browser nachgemessen sind es 1,34:1.
-                               Ohne Folgen, weil dieser Ton nie die einzige Markierung trägt. */
-  --border-control: #646c7a; /*  3,39:1 — Eingabefelder, Umriss-Buttons (WCAG 1.4.11) */
+  /* ─── Premium-Fundament (Redesign-Etappe „System-Fundament") ────────────────
+     Dunkel, violetter Primärakzent, Gold bleibt knapp. Alle Kontrastwerte unten
+     nach WCAG 2.1 (sRGB, gerundet) berechnet und in app/design-tokens.test.ts
+     maschinell gegen den tatsächlichen Tokenwert geprüft — der Kommentar allein
+     schützt nicht vor Regressionen, der Test tut es. */
+  --bg-base: #07080d; /* Seitenhintergrund */
+  --bg-surface: #0d0f17; /* Karten, Panels */
+  --bg-elevated: #131622; /* Modal, Drawer, Popover */
+  --text-primary: #f7f7f8; /* 18,69:1 auf base — AAA */
+  --text-muted: #a6a8b3; /*  8,08:1 auf surface — AAA */
+  --text-subtle: #8a8d99; /*  5,78:1 auf surface — AA, für nachrangige Beschriftungen (z. B.
+                              Meta-Angaben, Zeitstempel) — bewusst unter --text-muted, aber
+                              weiterhin AA-fähig, nie für Fließtext mit Bedeutungsträger */
+  --accent: #a78bfa; /*  7,03:1 auf surface — AAA, Text-/Icon-Akzent (violetter Primärakzent) */
+  --accent-strong: #8b5cf6; /*  ≥3:1 auf allen Flächen — NUR Flächen/Umrisse, nie Fließtext
+                                (4,52:1 auf surface, 4,25:1 auf elevated — für Text zulässig,
+                                aber bewusst den Flächen vorbehalten, damit --accent als der
+                                eine Text-/Icon-Ton erkennbar bleibt) */
+  --on-accent: #07080d; /*  4,73:1 auf accent-strong — Text auf violetter Fläche */
+  --gold: #d6b36a; /*  9,58:1 auf surface — AAA */
+  --gold-strong: #f0d89a; /* 13,66:1 auf surface — Hover + Fokusring */
+  --on-gold: #07080d; /* 10,02:1 auf gold — Text auf goldener Fläche */
+  --success: #6ee7b7; /* 12,55:1 */
+  --warning: #fbbf24; /* 11,46:1 */
+  --danger: #fca5a5; /* 10,08:1 — bewusst hell; #EF4444 fällt unter 4,5:1 */
+  --border-subtle: #1e2029; /*  1,18:1 auf surface — REIN DEKORATIV, nie alleinige Markierung.
+                               Trägt nie allein einen Bedienelement-Umriss, siehe --border-control
+                               dafür. */
+  --border-control: #6b7080; /*  3,88:1 auf surface — Eingabefelder, Umriss-Buttons (WCAG 1.4.11) */
   --overlay-scrim: #000000; /* REIN DEKORATIV, nie alleinige Markierung — Abdunkelung hinter
                                MobileMenu/Modal, immer mit reduzierter Deckkraft über den
                                Tailwind-Opacity-Modifier (z. B. bg-overlay/60) verwendet, nie
                                deckend. Kein Informationsträger, deshalb keine WCAG-Kontrastprüfung
                                nötig (siehe app/design-tokens.test.ts). */
 
-  /* ─── Tiefe, Licht, Interaktion (Ergänzung) ────────────────────────────────
+  /* ─── Tiefe, Licht, Interaktion ─────────────────────────────────────────────
      Leitidee "Der Tisch als Lichtquelle": eine ruhige, weit gestreute
      Lichtquelle liegt über der Seite. Erhabene Flächen fangen dieses Licht an
      ihrer Oberkante als feine Haarlinie ein — Tiefe entsteht über Licht und
@@ -39,63 +52,100 @@
   /* Kanten-Licht: die Haarlinie, die das Umgebungslicht an der Oberkante
      erhabener Flächen sichtbar macht (Kern der Leitidee). Als inset-Schatten,
      damit er sich mit Elevation-Schatten in einer box-shadow-Liste kombinieren
-     lässt (siehe .hover-elevate). REIN DEKORATIV, extrem geringe Deckkraft. */
+     lässt (siehe .hover-elevate). REIN DEKORATIV, extrem geringe Deckkraft.
+     Mechanik unverändert gegenüber der vorigen Fassung. */
   --edge-light: inset 0 1px 0 0 rgb(255 255 255 / 0.07); /* REIN DEKORATIV, nie alleinige Markierung */
 
-  /* Umgebungslicht: sehr dezenter radialer Verlauf für den Seitenhintergrund.
-     Setzt auf --bg-base auf (siehe .bg-ambient), ersetzt es nie. Die Deckkraft
-     (0,035) liegt weit unterhalb jeder Schwelle, die Textkontrast beeinflusst.
-     REIN DEKORATIV. */
-  --ambient-glow: radial-gradient(ellipse 140% 60% at 50% -12%, rgb(255 255 255 / 0.035), transparent 60%); /* REIN DEKORATIV, nie alleinige Markierung */
+  /* Umgebungslicht: zweilagiger radialer Verlauf für den Seitenhintergrund —
+     violett dominant (obere Bildhälfte), Gold nur als zweite, deutlich
+     schwächere Lage rechts oben ("Gold bleibt knapp" gilt auch für Licht,
+     nicht nur für Flächen). Beide Deckkraftwerte (0,10 / 0,05) liegen weit
+     unterhalb jeder Schwelle, die Textkontrast beeinflusst. REIN DEKORATIV. */
+  --ambient-glow: radial-gradient(ellipse 120% 70% at 50% -15%, rgb(139 92 246 / 0.10), transparent 62%), radial-gradient(ellipse 90% 50% at 82% 6%, rgb(214 179 106 / 0.05), transparent 60%); /* REIN DEKORATIV, nie alleinige Markierung */
 
   /* Glow-Tokens: nur für Fokus-/Hover-Zustände, nie als Dauerzustand. Beide
      nutzen die RGB-Werte bereits kontrastgeprüfter Farbtokens (--gold-strong,
-     --teal) bei reduzierter Deckkraft — sie ersetzen nie den sichtbaren
-     :focus-visible-Outline, sondern ergänzen ihn additiv. REIN DEKORATIV. */
-  --glow-gold: 0 0 0 3px rgb(227 188 119 / 0.28), 0 0 20px rgb(227 188 119 / 0.35); /* aus --gold-strong, REIN DEKORATIV, nie alleinige Markierung */
-  --glow-teal: 0 0 0 3px rgb(79 209 197 / 0.22), 0 0 18px rgb(79 209 197 / 0.28); /* aus --teal, REIN DEKORATIV, nie alleinige Markierung */
+     --accent-strong) bei reduzierter Deckkraft — sie ersetzen nie den
+     sichtbaren :focus-visible-Outline, sondern ergänzen ihn additiv.
+     REIN DEKORATIV. */
+  --glow-gold: 0 0 0 3px rgb(240 216 154 / 0.22), 0 0 24px rgb(240 216 154 / 0.28); /* aus --gold-strong, REIN DEKORATIV, nie alleinige Markierung */
+  --glow-accent: 0 0 0 3px rgb(139 92 246 / 0.28), 0 0 28px rgb(139 92 246 / 0.35); /* aus --accent-strong, REIN DEKORATIV, nie alleinige Markierung */
 
   /* Metall-Akzent: kaum wahrnehmbare Aufhellung zur Oberkante der EINEN
      goldenen Fläche pro Bildschirm (Start-Button) — kein flächiger
      Goldverlauf, die Aufhellung endet bereits bei 45% Höhe. Da nur Richtung
      Weiß aufgehellt wird, steigt der Kontrast zu --on-gold gegenüber reinem
      --gold nur, er sinkt nie (rechnerisch belegt in design-tokens.test.ts).
-     REIN DEKORATIV, "Gold bleibt knapp" bleibt einhaltbar. */
+     REIN DEKORATIV, "Gold bleibt knapp" bleibt einhaltbar. Referenziert
+     weiterhin --gold, Mechanik unverändert. */
   --metal-sheen: linear-gradient(180deg, color-mix(in srgb, var(--gold) 85%, white 15%) 0%, var(--gold) 45%); /* REIN DEKORATIV, nie alleinige Markierung */
 
-  /* Radien 8 / 14 / 20 / 999 */
-  --radius-control: 8px;
-  --radius-card: 14px;
-  --radius-modal: 20px;
+  /* Glas-Tokens (neu): für .glass-panel/.glass-panel-strong, siehe Utilities
+     weiter unten. Sehr geringe Deckkraft, damit die Fläche dahinter (Tisch,
+     Ambient-Glow) durchscheint, statt eine weitere solide Farbschicht
+     hinzuzufügen. REIN DEKORATIV, nie alleinige Markierung — Inhalt auf Glas
+     trägt immer eigene, kontrastgeprüfte Text-/Icon-Farbe. */
+  --glass-bg: rgb(255 255 255 / 0.045); /* REIN DEKORATIV, nie alleinige Markierung */
+  --glass-bg-strong: rgb(255 255 255 / 0.075); /* REIN DEKORATIV, nie alleinige Markierung */
+  --glass-blur: 20px; /* REIN DEKORATIV, nie alleinige Markierung */
+  --glass-border: rgb(255 255 255 / 0.08); /* REIN DEKORATIV, nie alleinige Markierung */
+  --glass-border-strong: rgb(255 255 255 / 0.13); /* REIN DEKORATIV, nie alleinige Markierung */
+
+  /* Tiefen-Perspektive (neu): für .depth-scene, gemeinsam mit .tilt-card. Ein
+     einzelner, projektweiter Perspektivwert hält die 3D-Neigung auf allen
+     Karten gleich stark, statt pro Komponente eigene Werte zu erfinden. REIN
+     DEKORATIV, nie alleinige Markierung. */
+  --depth-perspective: 1200px; /* REIN DEKORATIV, nie alleinige Markierung */
+
+  /* Radien: xs ersetzt die vier bisherigen rounded-[4px]-Stellen (kein
+     Arbitrary-Value mehr, ein einziges Token für kleine Kontrollelemente wie
+     Checkbox/Fortschrittsbalken), die übrigen Stufen sind gegenüber der
+     vorigen Fassung großzügiger (14/20 → 20/28), damit Karten/Modals dem
+     "Premium dark + gold accent"-Charakter entsprechen. */
+  --radius-xs: 6px;
+  --radius-control: 10px;
+  --radius-card: 20px;
+  --radius-modal: 28px;
   --radius-pill: 999px;
 
-  /* Zwei niedrigdeckende Schattenstufen */
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.25);
-  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.35);
+  /* Schattenstufen: mehrlagig und weicher als zuvor (größerer Blur-Radius,
+     geringere Grunddeckkraft) — passend zum Glassmorphism-Fundament, das
+     harte, kleinräumige Schatten weniger passend wirken lässt als große,
+     diffuse. */
+  --shadow-1: 0 4px 20px rgb(0 0 0 / 0.20);
+  --shadow-2: 0 12px 40px rgb(0 0 0 / 0.30);
 
-  /* Elevation-Stufen (Ergänzung): --shadow-1/--shadow-2 bleiben unverändert
-     und reichen für einen einzelnen Zustandswechsel; für Ruhe-, Hover- und
-     Anheben-Zustände von Karten/Panels ergänzen diese drei Stufen sie. */
+  /* Elevation-Stufen (Ergänzung): --shadow-1/--shadow-2 bleiben die
+     Basisstufen; für Ruhe-, Hover- und Anheben-Zustände von Karten/Panels
+     ergänzen diese drei Stufen sie. */
   --shadow-rest: var(--shadow-1); /* Ruhe: identisch zu --shadow-1, neuer Name für die Stufenfolge. REIN DEKORATIV. */
-  --shadow-hover: 0 3px 8px rgb(0 0 0 / 0.38), 0 10px 24px rgb(0 0 0 / 0.3); /* Hover: Zwischenstufe zwischen --shadow-1 und --shadow-2. REIN DEKORATIV. */
-  --shadow-raised: 0 10px 24px rgb(0 0 0 / 0.45), 0 24px 56px rgb(0 0 0 / 0.4); /* Angehoben: stärker als --shadow-2, für aktiv gezogene/geöffnete Flächen. REIN DEKORATIV. */
+  --shadow-hover: 0 10px 32px rgb(0 0 0 / 0.34); /* Hover: Zwischenstufe zwischen --shadow-1 und --shadow-2. REIN DEKORATIV. */
+  --shadow-raised: 0 24px 80px rgb(0 0 0 / 0.45); /* Angehoben: stärker als --shadow-2, für aktiv gezogene/geöffnete Flächen. REIN DEKORATIV. */
 
-  /* Bewegung: 120 ms Zustandswechsel, 200 ms Ein-/Ausblenden, 320 ms Drawer/Modal, ease-out */
-  --dur-state: 120ms;
-  --dur-fade: 200ms;
-  --dur-sheet: 320ms;
+  /* Bewegung: 200 ms Zustandswechsel, 320 ms Ein-/Ausblenden, 480 ms Drawer/Modal, ease-out.
+     Gegenüber der vorigen Fassung bewusst langsamer — ein hochwertiges, ruhiges
+     Bewegungssystem wirkt bedächtiger als ein reagierendes UI-Kit, ohne träge zu werden. */
+  --dur-state: 200ms;
+  --dur-fade: 320ms;
+  --dur-sheet: 480ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* ─── Bewegungssystem, Etappe 1 (Ergänzung) ────────────────────────────────
+  /* ─── Bewegungssystem ────────────────────────────────────────────────────
      Fundament für Startseite und Lobby: Bewegung zeigt Ursache und Wirkung
      (laden, filtern, drücken) — nie Dekoration. Alle Werte hier bewegen nur
      transform/opacity (siehe Utilities unten), nie width/height/top/left, damit
      kein Layout verspringt. */
 
-  /* Ausgangsdauer: kürzer als --dur-fade (Eingang), rund 70% davon — ein Element
+  /* Ausgangsdauer: kürzer als --dur-fade (Eingang), rund 62,5% davon — ein Element
      soll spürbar schneller verschwinden, als es erschienen ist, statt symmetrisch
      ein- und auszublenden. */
-  --dur-exit: 140ms;
+  --dur-exit: 200ms;
+
+  /* Sitzdauer für schwebende Hero-Objekte (neu): sehr langsam und unaufdringlich,
+     nur für .anim-float — ein Element, das sich über Sekunden hinweg minimal hebt
+     und senkt, wirkt lebendig statt unruhig, solange es weit unterhalb der
+     Wahrnehmungsschwelle für "hektisch" bleibt. */
+  --dur-float: 9s;
 
   /* Federnde Kurve mit leichtem Überschwingen: für kurze, kleine Bewegungen
      (Druckfeedback, neu erscheinende Zustandsmarkierungen wie ein Auswahl-
@@ -109,38 +159,50 @@
      dann Fahrt auf, statt gleichmäßig-linear zu weichen. */
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
 
+  /* Luxus-Kurve (neu): für große, raumgreifende Bewegungen (Kartenneigung in
+     .tilt-card, schwebende Hero-Objekte) — beschleunigt sanfter als --ease-out
+     und kommt weicher zur Ruhe, ohne das Überschwingen von --ease-spring, das
+     bei großen Wegen unruhig wirken würde. */
+  --ease-lux: cubic-bezier(0.22, 0.61, 0.36, 1);
+
   /* Staffelungsversatz je Listen-/Rasterelement (30–50 ms-Korridor): Karten
      einer Reihe oder eines Rasters erscheinen nacheinander, nicht alle
      gleichzeitig — das Auge folgt einer Reihenfolge statt eines Aufblitzens
      aller Kacheln auf einmal. */
-  --stagger-step: 40ms;
+  --stagger-step: 45ms;
 
   /* Skalierung für Druckfeedback (0,95–1,05-Korridor): sichtbare, aber kleine
      Reaktion auf Zeigerdruck; kehrt beim Loslassen sofort auf 1 zurück (siehe
      .press-feedback). */
-  --scale-press: 0.97;
+  --scale-press: 0.98;
 
-  /* Typografie-Skala (rem) */
+  /* Typografie-Skala (rem). Große Stufen (lg–hero) tragen enger werdende
+     Zeilenhöhen (siehe @theme inline unten) — lockere Zeilenhöhen wirken bei
+     großen Headlines unbeabsichtigt luftig statt souverän. */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-md: 1.125rem;
-  --text-lg: 1.375rem;
-  --text-xl: 1.75rem;
-  --text-2xl: 2.25rem;
-  --text-3xl: 3rem;
+  --text-lg: 1.5rem;
+  --text-xl: 2rem;
+  --text-2xl: 2.75rem;
+  --text-3xl: 4rem;
+  --text-hero: clamp(3.25rem, 7vw, 6rem); /* Startseiten-Headline, fließend zwischen 52px und 96px */
 
-  /* Abstands-Skala (Ergänzung): großzügige, konsistente Abstände für Karten
-     und Panels, gleiches Namensschema wie --text-*. Ergänzt Tailwinds
-     numerische Standard-Skala (p-4, gap-6, …), ersetzt sie nicht — beide
-     bleiben nebeneinander nutzbar. */
+  /* Abstands-Skala: großzügige, konsistente Abstände für Karten und Panels,
+     gleiches Namensschema wie --text-*. Ergänzt Tailwinds numerische
+     Standard-Skala (p-4, gap-6, …), ersetzt sie nicht — beide bleiben
+     nebeneinander nutzbar. 4xl/5xl (neu) für große Sektionsabstände auf der
+     Startseite. */
   --space-xs: 0.5rem;
   --space-sm: 0.75rem;
-  --space-md: 1.25rem;
-  --space-lg: 2rem;
-  --space-xl: 3rem;
-  --space-2xl: 4rem;
-  --space-3xl: 6rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --space-4xl: 6rem;
+  --space-5xl: 8rem;
 
   --measure: 68ch;
   --touch-target: 44px;
@@ -157,10 +219,20 @@
   --color-elevated: var(--bg-elevated);
   --color-primary: var(--text-primary);
   --color-muted: var(--text-muted);
+  /* Bewusst --color-subtle statt --color-text-subtle: Tailwind erzeugt aus --color-<name> immer
+     bg-<name>/text-<name>/border-<name> gemeinsam (siehe --color-muted → text-muted/border-muted
+     oben, bereits bestehendes Muster). --color-subtle würde deshalb zusätzlich zu text-subtle
+     auch border-subtle erzeugen — das kollidiert NICHT technisch mit --border-subtle (dessen
+     Utility heißt border-border-subtle, siehe --color-border-subtle unten), ist aber
+     begrifflich benachbart genug, um zu verwirren. Projektkonvention: dieses Token nur über
+     text-subtle verwenden, bg-subtle/border-subtle bewusst ungenutzt lassen. */
+  --color-subtle: var(--text-subtle);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
   --color-gold: var(--gold);
   --color-gold-strong: var(--gold-strong);
   --color-on-gold: var(--on-gold);
-  --color-teal: var(--teal);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -174,6 +246,7 @@
   --font-body: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --radius-*: initial;
+  --radius-xs: var(--radius-xs);
   --radius-control: var(--radius-control);
   --radius-card: var(--radius-card);
   --radius-modal: var(--radius-modal);
@@ -196,13 +269,16 @@
   --text-md: var(--text-md);
   --text-md--line-height: 1.5;
   --text-lg: var(--text-lg);
-  --text-lg--line-height: 1.25;
+  --text-lg--line-height: 1.12;
   --text-xl: var(--text-xl);
-  --text-xl--line-height: 1.15;
+  --text-xl--line-height: 1.1;
   --text-2xl: var(--text-2xl);
-  --text-2xl--line-height: 1.15;
+  --text-2xl--line-height: 1.08;
   --text-3xl: var(--text-3xl);
-  --text-3xl--line-height: 1.15;
+  --text-3xl--line-height: 1.08;
+  /* Startseiten-Headline: engste Zeilenhöhe der Skala, siehe --text-hero in :root. */
+  --text-hero: var(--text-hero);
+  --text-hero--line-height: 1.04;
 
   --breakpoint-xs: 360px;
   --breakpoint-sm: 640px;
@@ -212,7 +288,8 @@
   --breakpoint-2xl: 1536px;
 
   /* Abstands-Skala als Tailwind-Utilities (p-xs, gap-lg, m-2xl, …), zusätzlich
-     zur weiterhin verfügbaren numerischen Standard-Skala. */
+     zur weiterhin verfügbaren numerischen Standard-Skala. 4xl/5xl neu für große
+     Sektionsabstände (Startseite). */
   --spacing-xs: var(--space-xs);
   --spacing-sm: var(--space-sm);
   --spacing-md: var(--space-md);
@@ -220,13 +297,17 @@
   --spacing-xl: var(--space-xl);
   --spacing-2xl: var(--space-2xl);
   --spacing-3xl: var(--space-3xl);
+  --spacing-4xl: var(--space-4xl);
+  --spacing-5xl: var(--space-5xl);
 
   /* Schutz vor Namenskollision (Produktionsvorfall): Tailwind löst max-w-*, w-* und min-w-*
      in dieser Reihenfolge auf: erst das jeweils passende --max-width-*, --width-* bzw.
      --min-width-*, dann --spacing-*, erst danach --container-*. Die Abstands-Skala oben nennt
-     ihre Stufen xs/sm/md/lg/xl/2xl/3xl
+     ihre Stufen xs/sm/md/lg/xl/2xl/3xl/4xl/5xl
      — exakt dieselben Namen wie Tailwinds Standard-Container-Skala für max-w-md, max-w-lg usw.
-     Ohne diese Zeilen hätte z. B. max-w-md lautlos --spacing-md (1,25rem, Kartenabstand) statt
+     (--container-4xl/--container-5xl existieren in Tailwinds Standardtheme ebenfalls, 56rem/64rem
+     — deshalb auch für die beiden neuen Stufen ein Guard, kein bewusstes Auslassen nötig).
+     Ohne diese Zeilen hätte z. B. max-w-md lautlos --spacing-md (jetzt 1rem, Kartenabstand) statt
      der vorgesehenen Containerbreite (28rem) verwendet — Formulare und Karten kollabierten dadurch
      auf einen schmalen Streifen (u. a. Registrierungsseite, components/ui/Modal.tsx). Verweist
      bewusst auf die unverändert vorhandenen Tailwind-Standardwerte --container-* statt eigene
@@ -238,6 +319,8 @@
   --max-width-xl: var(--container-xl);
   --max-width-2xl: var(--container-2xl);
   --max-width-3xl: var(--container-3xl);
+  --max-width-4xl: var(--container-4xl);
+  --max-width-5xl: var(--container-5xl);
   --width-xs: var(--container-xs);
   --width-sm: var(--container-sm);
   --width-md: var(--container-md);
@@ -245,6 +328,8 @@
   --width-xl: var(--container-xl);
   --width-2xl: var(--container-2xl);
   --width-3xl: var(--container-3xl);
+  --width-4xl: var(--container-4xl);
+  --width-5xl: var(--container-5xl);
   --min-width-xs: var(--container-xs);
   --min-width-sm: var(--container-sm);
   --min-width-md: var(--container-md);
@@ -252,6 +337,8 @@
   --min-width-xl: var(--container-xl);
   --min-width-2xl: var(--container-2xl);
   --min-width-3xl: var(--container-3xl);
+  --min-width-4xl: var(--container-4xl);
+  --min-width-5xl: var(--container-5xl);
 
   --ease-out: var(--ease-out);
 }
@@ -303,22 +390,38 @@ body {
   outline: none;
 }
 :focus-visible {
-  outline: 2px solid var(--gold-strong);
+  /* --accent statt --gold-strong: 7,03:1 auf allen Flächen, deutlich sichtbar,
+     und hält Gold für die eine CTA-Fläche/Screen frei ("Gold bleibt knapp") —
+     der Fokusring ist kein CTA, sondern ein Systemzustand, violett passt
+     dafür als Primärakzent besser. */
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
 }
-/* Auf goldenen Flächen verschwindet Gold auf Gold → auf text-primary umstellen */
+/* Auf goldenen Flächen verschwindet Gold auf Gold nicht mehr (Outline ist jetzt violett),
+   die Sonderregel bleibt trotzdem bestehen: --accent auf --gold ist zwar kontrastreich
+   genug, auf der EINEN goldenen Fläche pro Screen (Start-Button) soll der Fokusring aber
+   weiterhin auf text-primary ausweichen, damit er sich nicht mit dem Metall-Sheen-Verlauf
+   überlagert. */
 .on-gold-surface:focus-visible,
 [data-surface="gold"] :focus-visible {
   outline-color: var(--text-primary);
 }
+/* Auf violetten Flächen (--accent-strong) verschwindet der violette Outline analog zu Gold
+   auf Gold → ebenfalls auf text-primary umstellen. */
+.on-accent-surface:focus-visible,
+[data-surface="accent"] :focus-visible {
+  outline-color: var(--text-primary);
+}
 
-/* Fokusring mit Gold-Glow (Ergänzung): rein additiver Schimmer zum bereits
+/* Fokusring mit Glow (Ergänzung): rein additiver Schimmer zum bereits
    sichtbaren :focus-visible-Outline oben — der Outline bleibt die eigentliche,
    kontrastgeprüfte Fokusmarkierung, .focus-glow fügt nur zusätzliche Tiefe
-   hinzu. Wirkt nur bei Tastaturfokus, kein Dauerzustand. */
+   hinzu. Wirkt nur bei Tastaturfokus, kein Dauerzustand. Nutzt --glow-accent
+   statt --glow-gold, damit der violette Primärakzent (nicht Gold) den
+   Systemzustand "fokussiert" trägt. */
 .focus-glow:focus-visible {
-  box-shadow: var(--glow-gold);
+  box-shadow: var(--glow-accent);
 }
 
 /* ─── Signaturlinie: 1 px Gold an tragenden Flächen ────────────────────────── */
@@ -330,9 +433,16 @@ body {
 }
 
 /* ─── Kanten-Licht: Haarlinie an Oberkanten erhabener Flächen ──────────────── */
-/* Eigenständige Utility für ruhende Flächen (Modal, Panel), die ohne Hover
-   bereits das Umgebungslicht an der Oberkante zeigen sollen. */
-.edge-light {
+/* Als @utility statt gewöhnlicher Klasse (Kaskadenreparatur, siehe Auftrag „TypeScript-/React-
+   Review beheben"): ungelayertes CSS schlägt JEDE Tailwind-Utility für dieselbe CSS-Eigenschaft,
+   unabhängig von Spezifität oder Reihenfolge der Klassen im className — das erzwang bisher
+   `!`-Notlösungen (z. B. Button „outline“, Modal, Toast) und machte box-shadow-Overrides an
+   Aufrufstellen unmöglich. Als @utility landet die Regel stattdessen in Tailwinds
+   Utilities-Kaskadenschicht und folgt normalen Kaskadenregeln: gleiche Spezifität, spätere Regel
+   im kompilierten CSS gewinnt (siehe .surface-raised/.surface-raised-strong unten, die genau
+   deshalb NACH dieser Regel stehen). Eigenständige Utility für ruhende Flächen (Modal, Panel),
+   die ohne Hover bereits das Umgebungslicht an der Oberkante zeigen sollen. */
+@utility edge-light {
   box-shadow: var(--edge-light);
 }
 
@@ -360,6 +470,93 @@ body {
     background-color: color-mix(in srgb, var(--bg-base) 82%, transparent);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
+  }
+}
+
+/* ─── Glaspanel: freistehende Flächen (Karten, Panels), nicht nur Header/Nav ── */
+/* Als @utility statt gewöhnlicher Klasse, aus demselben Grund wie .edge-light oben
+   (Kaskadenreparatur): eine gewöhnliche, ungelayerte Klasse schlug bisher jede Tailwind-Utility
+   für dieselbe Eigenschaft (border-color, box-shadow) unabhängig von Reihenfolge/Spezifität —
+   deshalb der `!`-Modifikator an Button „outline“ (border-border-control!) und an Modal/Toast
+   (shadow-raised!). Als @utility folgt .glass-panel normalen Kaskadenregeln, der `!`-Modifikator
+   entfällt an allen drei Stellen. Nebeneffekt (positiv): .glass-panel funktioniert jetzt auch mit
+   Tailwind-4-Varianten-Präfixen wie `md:` (bei einer gewöhnlichen Klasse nicht möglich, siehe
+   .anim-sheet-side oben) — components/layout/UserShell.tsx bildet die Glasfläche deshalb bisher
+   manuell aus Einzeltokens nach; dieser Umbau ändert UserShell.tsx bewusst nicht (außerhalb des
+   Auftragsumfangs), der Pfad zur Vereinfachung steht aber offen.
+   Der @supports-Fallback steht bewusst VERSCHACHTELT innerhalb des @utility-Blocks (statt als
+   eigene, nachgestellte Regel wie zuvor) — nur so bleibt er ebenfalls in der Utilities-Schicht und
+   kann seinerseits nicht erneut zur ungelayerten Falle werden. Anders als .glass (deckender
+   Fallback auf --bg-base, für Flächen, die immer eine Grundfarbe brauchen) fällt .glass-panel ohne
+   backdrop-filter-Unterstützung auf --bg-surface zurück — eine freistehende Karte ohne jeden
+   Blur-Effekt soll trotzdem wie eine Fläche wirken, nicht transparent bleiben. */
+@utility glass-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-1);
+  @supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+    background-color: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+}
+
+/* Stärkere Variante: hervorgehobene Flächen (aktiver Filter, ausgewählte Karte, Modal/Drawer,
+   Toast). Gleiche Begründung wie .glass-panel oben. */
+@utility glass-panel-strong {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--shadow-1);
+  @supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+    background-color: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+}
+
+/* ─── Erhabene Fläche + Kantenlicht: kombinierte Utility für box-shadow ─────── */
+/* Wurzelursache des zweiten Befunds derselben Kaskadenreparatur: box-shadow kennt pro Element nur
+   EINEN Gewinner, mehrere Klassen mit je eigenem box-shadow addieren sich nicht (anders als z. B.
+   mehrere Klassen für verschiedene Eigenschaften). ".glass-panel shadow-rest edge-light" auf
+   demselben Element setzte deshalb faktisch nur EINE der drei Deklarationen durch — welche, hing
+   von der (durch die vorige ungelayerte .glass-panel-Regel erzwungenen) Kaskade ab, nicht von der
+   fachlichen Absicht "Ruheschatten UND Kantenlicht gemeinsam". Diese beiden Utilities schreiben
+   die Kombination deshalb als EINE box-shadow-Deklaration mit mehreren Schatten-Lagen (komma-
+   getrennt, wie schon in .tilt-card:hover/.hover-elevate vorgemacht) — es gibt nichts mehr zu
+   überschreiben. Bewusst NACH .edge-light/.glass-panel/.glass-panel-strong notiert: bei gleicher
+   Spezifität gewinnt in Tailwinds Utilities-Schicht die im Quelltext spätere Regel (siehe
+   test/theme-namespace-guard.test.ts für den Compiler-Beleg dieses Mechanismus) — so gewinnt die
+   hier festgelegte, vollständige box-shadow-Kombination zuverlässig gegen jede der drei
+   einzelnen Quellen, unabhängig von der Reihenfolge der Klassen im className. REIN DEKORATIV. */
+@utility surface-raised {
+  box-shadow: var(--shadow-rest), var(--edge-light);
+}
+/* Zweite Stufe: für die am stärksten angehobenen Flächen (Modal/Drawer, Toast) — --shadow-raised
+   statt --shadow-rest, sonst identischer Aufbau/dieselbe Begründung. */
+@utility surface-raised-strong {
+  box-shadow: var(--shadow-raised), var(--edge-light);
+}
+
+/* ─── Tiefe: 3D-Kontext für geneigte Karten ─────────────────────────────────── */
+/* Auf einem umschließenden Raster/Container — gibt .tilt-card-Kindern eine
+   gemeinsame Fluchtpunkt-Perspektive, statt dass jede Karte isoliert kippt. */
+.depth-scene {
+  perspective: var(--depth-perspective);
+  transform-style: preserve-3d;
+}
+
+/* Karte mit leichter 3D-Neigung im Hover — nur mit echtem Zeigegerät (@media (hover: hover)),
+   damit Touch-Geräte keinen unerreichbaren Hover-Zustand simulieren. Ruhezustand bleibt
+   translateZ(0), damit die Karte bereits im eigenen 3D-Kontext liegt und der Übergang beim
+   Hover nicht springt. */
+.tilt-card {
+  transform: translateZ(0);
+  transition: transform var(--dur-state) var(--ease-lux), box-shadow var(--dur-state) var(--ease-lux);
+}
+@media (hover: hover) {
+  .tilt-card:hover {
+    transform: translateY(-6px) rotateX(2deg) rotateY(-2deg) scale(1.02);
+    box-shadow: var(--shadow-hover), var(--edge-light);
   }
 }
 
@@ -421,6 +618,12 @@ body {
   from { opacity: 0; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1); }
 }
+/* Schweben (neu): minimale, sehr langsame Auf-Ab-Bewegung für Hero-Objekte (siehe --dur-float) —
+   `alternate` in .anim-float pendelt zwischen from/to, statt bei jedem Zyklus zurückzuspringen. */
+@keyframes float {
+  from { transform: translateY(0); }
+  to { transform: translateY(-10px); }
+}
 
 .anim-fade-in { animation: fade-in var(--dur-fade) var(--ease-out) both; }
 .anim-rise-in { animation: rise-in var(--dur-fade) var(--ease-out) both; }
@@ -439,6 +642,8 @@ body {
 .anim-reel { animation: reel-spin 0.35s linear infinite; }
 .anim-panel-in { animation: panel-in var(--dur-fade) var(--ease-out) both; }
 .anim-state-pop { animation: state-pop var(--dur-state) var(--ease-spring) both; }
+/* Nur für dekorative Hero-Objekte, nie für Bedienelemente oder Statusmarkierungen. */
+.anim-float { animation: float var(--dur-float) var(--ease-lux) infinite alternate; }
 
 /* ─── Gestaffelter Eintritt: Rasterelemente folgen einander, nicht alle gleichzeitig ───────── */
 /* .stagger-list auf dem Container (z. B. <ul> eines Rasters oder die Reihenfolge der
@@ -505,6 +710,12 @@ body {
   }
   .press-feedback:active {
     transform: none;
+  }
+  .tilt-card:hover {
+    transform: none;
+  }
+  .anim-float {
+    animation: none;
   }
 }
 
@@ -649,4 +860,20 @@ input[type="number"] {
 .skip-link:focus-visible {
   top: 8px;
   outline-color: var(--text-primary);
+}
+
+/* ─── Hero-Objekt: Ruhepose des 3D-Chips (Startseite) ──────────────────────── */
+/* Statische Neigung, kein @keyframes, keine eigene prefers-reduced-motion-Behandlung nötig —
+   eine feste Perspektive ist keine Bewegung über die Zeit. Ergänzt .tilt-card (dessen
+   Hover-Neigung dank höherer Selektor-Spezifität diese Ruhepose beim Zeigergerät-Hover
+   vorübergehend ersetzt) statt eine eigene Transform-Kette zu erfinden, siehe
+   components/home/HeroObject.tsx. */
+.hero-chip-tilt {
+  transform: rotateX(8deg) rotateY(-16deg) translateZ(0);
+}
+/* Der rechteckige Kartenschatten aus .tilt-card:hover passt nicht zur runden Chip-Form — der
+   SVG-eigene drop-shadow-Filter (HeroObject.tsx) übernimmt den Schatten stattdessen,
+   unverändert bei Hover. Nur eine gezielte Ergänzung, keine Umstrukturierung von .tilt-card. */
+.hero-chip-tilt.tilt-card:hover {
+  box-shadow: none;
 }

@@ -139,12 +139,12 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
                 Zurzeit nicht verfügbar
               </Badge>
             ) : playable ? (
-              <Badge tone="teal">Spielbar</Badge>
+              <Badge tone="accent">Spielbar</Badge>
             ) : (
               <Badge tone="neutral">Bald verfügbar</Badge>
             )}
-            {game.isLiveDemo ? <Badge tone="teal">Live · Simulation</Badge> : null}
-            {game.isNew ? <Badge tone="teal">Neu</Badge> : null}
+            {game.isLiveDemo ? <Badge tone="accent">Live · Simulation</Badge> : null}
+            {game.isNew ? <Badge tone="accent">Neu</Badge> : null}
           </div>
           <h1 id="game-title" className="font-display text-2xl text-primary sm:text-3xl">
             {game.name}
@@ -242,11 +242,14 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
 
       {/* Metadaten — immer gekennzeichnet */}
       <section aria-labelledby="facts-title" className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <Card>
-          <h2 id="facts-title" className="text-md font-semibold text-primary">
+        {/* glass-panel statt Card (Auftrag Etappe 3 §6): eine ruhige, freistehende Fläche für die
+            Kennzahlen — Kartenrahmen und -fläche kommen bereits aus .glass-panel, keine zweite
+            Komponente nötig. */}
+        <div className="glass-panel rounded-card p-lg">
+          <h2 id="facts-title" className="font-display text-lg text-primary">
             Spieldaten
           </h2>
-          <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+          <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             <Fact label="RTP">{rtpFact.full}</Fact>
             <Fact label="Volatilität">{game.volatility ? volatilityLabel[game.volatility] : "–"}</Fact>
             <Fact label="Minimaler Einsatz">{formatCredits(game.minDemoBetMinor)} Credits</Fact>
@@ -258,10 +261,10 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
                 Titel; steht jetzt zusätzlich hier, ohne den Fließtext zu entfernen. */}
             <Fact label="Anbieter">{providerName(game.providerId)}</Fact>
           </dl>
-        </Card>
-        <Card className="flex flex-col gap-3 border-teal/40">
+        </div>
+        <Card className="flex flex-col gap-3 border-accent/40">
           <h2 className="flex items-center gap-2 text-md font-semibold text-primary">
-            <ShieldCheck className="size-5 text-teal" aria-hidden="true" />
+            <ShieldCheck className="size-5 text-accent" aria-hidden="true" />
             Responsible Gaming
           </h2>
           <p className="text-sm text-muted">Spielzeit, Pause, Zeitlimit und Selbstsperre gelten auch hier. Die aktuelle Sitzung siehst du jederzeit im Bereich Responsible Gaming.</p>
@@ -282,31 +285,31 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
             <>
               {/* Übersicht zuerst: Bei vielen Wettarten wären zehn volle Tabellen untereinander
                   unlesbar. Die Einzeltabellen bleiben vollständig einsehbar, nur eingeklappt. */}
-              <div className="overflow-x-auto rounded-card border border-border-subtle">
+              <div className="edge-light overflow-x-auto rounded-card border border-border-subtle">
                 <table className="w-full min-w-[360px] text-sm">
                   <caption className="px-4 py-3 text-left text-sm text-muted">
                     RTP je Wette. Der Wert ist der Erwartungswert der jeweiligen Tabelle.
                   </caption>
                   <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
                     <tr>
-                      <th scope="col" className="px-4 py-2 font-medium">Wette</th>
-                      <th scope="col" className="px-4 py-2 text-right font-medium">RTP</th>
-                      <th scope="col" className="px-4 py-2 text-right font-medium">Ergebnisklassen</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Wette</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">RTP</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Ergebnisklassen</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tables.map((t) => (
-                      <tr key={t.gameId} className="border-t border-border-subtle">
-                        <td className="px-4 py-2 text-primary">{t.label ?? betIdOf(t.gameId) ?? "Standard"}</td>
-                        <td className="tabular px-4 py-2 text-right text-primary">{formatPercent(rtpOf(t))}</td>
-                        <td className="tabular px-4 py-2 text-right text-muted">{t.entries.length}</td>
+                      <tr key={t.gameId} className="border-t border-border-subtle even:bg-elevated/40">
+                        <td className="px-4 py-3 text-primary">{t.label ?? betIdOf(t.gameId) ?? "Standard"}</td>
+                        <td className="tabular px-4 py-3 text-right text-primary">{formatPercent(rtpOf(t))}</td>
+                        <td className="tabular px-4 py-3 text-right text-muted">{t.entries.length}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               {tables.map((t) => (
-                <details key={t.gameId} className="rounded-card border border-border-subtle bg-surface">
+                <details key={t.gameId} className="edge-light rounded-card border border-border-subtle bg-surface">
                   <summary className="flex min-h-11 cursor-pointer items-center px-4 py-2 text-sm font-medium text-primary">
                     Tabelle: {t.label ?? betIdOf(t.gameId) ?? "Standard"} · RTP {formatPercent(rtpOf(t))}
                   </summary>
@@ -339,8 +342,10 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
         <h2 id="similar-title" className="font-display text-lg text-primary sm:text-xl">
           Ähnliche Spiele
         </h2>
-        {/* .stagger-list (Auftrag Etappe 2 §1: "Ähnliche Spiele treten gestaffelt ein"). */}
-        <ul className="stagger-list grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {/* .stagger-list (Auftrag Etappe 2 §1: "Ähnliche Spiele treten gestaffelt ein").
+            depth-scene (Auftrag Etappe 3 §3) gibt den tilt-card-Kacheln dieselbe Fluchtpunkt-
+            Perspektive wie im großen Raster. */}
+        <ul className="stagger-list depth-scene grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
           {similar.map((g) => (
             <li key={g.id}>
               <GameCard game={g} />
@@ -355,8 +360,10 @@ export function GameDetail({ game: baseGame, siblingModes, titleLabel }: GameDet
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-3 border-b border-border-subtle py-1.5 sm:block sm:border-0 sm:py-0">
-      <dt className="text-muted">{label}</dt>
-      <dd className="text-right font-medium text-primary sm:text-left">{children}</dd>
+      <dt className="text-subtle">{label}</dt>
+      {/* tabular (Auftrag Etappe 3 §6): für Zahlen gedacht, bei Fließtext (z. B. Mechanik-Liste)
+          wirkungslos, deshalb hier durchgängig statt fallabhängig gesetzt. */}
+      <dd className="tabular text-right font-medium text-primary sm:text-left">{children}</dd>
     </div>
   );
 }

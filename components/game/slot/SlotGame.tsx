@@ -88,7 +88,10 @@ export function SlotGame({ game, simulateLoadError = false, onStatusChange }: Ga
           role="group"
           aria-label={`${theme.reels} Walzen, gewertet wird die mittlere Zeile`}
           className={cn(
-            "grid gap-1.5 rounded-card border border-border-control bg-base p-2 sm:gap-2 sm:p-3",
+            // edge-light statt zusätzlicher Schatten: das Walzenbrett bekommt eine Haarlinie am
+            // oberen Rand statt einer flachen einfarbigen Fläche (Anforderung 6, kein weiterer
+            // box-shadow-Träger auf diesem Element, daher unproblematisch kombinierbar).
+            "edge-light grid gap-1.5 rounded-card border border-border-control bg-base p-2 sm:gap-2 sm:p-3",
             compact ? "grid-cols-5" : "grid-cols-3",
           )}
         >
@@ -117,12 +120,12 @@ function Reel({
   compact: boolean;
 }) {
   const strip = useMemo(() => reelStrip(gameId), [gameId]);
-  const size = compact ? "[&_svg]:size-6 sm:[&_svg]:size-8" : undefined;
+  const size = compact ? "[&_svg]:size-7 sm:[&_svg]:size-9" : undefined;
   const cell = compact ? "h-10 sm:h-14" : "h-14 sm:h-[68px]";
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-control border border-border-subtle bg-surface",
+        "edge-light relative overflow-hidden rounded-control border border-border-subtle bg-surface",
         compact ? "h-[120px] sm:h-[168px]" : "h-[168px] sm:h-[204px]",
       )}
     >

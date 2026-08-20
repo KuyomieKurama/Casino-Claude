@@ -215,7 +215,7 @@ export function RouletteGame({ game, simulateLoadError = false, onStatusChange }
         />
       ) : null}
 
-      <div className="rounded-control border border-border-control bg-base p-3 text-xs text-muted">
+      <div className="edge-light rounded-control border border-border-control bg-base p-3 text-xs text-muted">
         <p className="text-sm font-medium text-primary">{BET_LABEL[kind]}</p>
         <p className="mt-1">
           Auszahlung {payout}:1 — bei Treffer beträgt die Rückgabe das {payout + 1}-Fache des Einsatzes
@@ -274,7 +274,7 @@ export function RouletteGame({ game, simulateLoadError = false, onStatusChange }
       <div className="mx-auto max-w-md space-y-3">
         {game.isLiveDemo ? <DealerArea /> : null}
 
-        <section className="rounded-card border border-border-control bg-base p-4">
+        <section className="edge-light rounded-card border border-border-control bg-base p-4">
           <h3 className="text-sm font-medium text-primary">Kessel</h3>
           <p className="text-xs text-muted">
             {variant === "american" ? "Amerikanischer Kessel: 38 Fächer mit Null und Doppelnull." : "Europäischer Kessel: 37 Fächer mit einer Null."}
@@ -282,11 +282,11 @@ export function RouletteGame({ game, simulateLoadError = false, onStatusChange }
 
           <div className="mt-3 flex flex-col items-center gap-2">
             {status === "playing" ? (
-              <p className="anim-fade-in flex h-24 items-center text-sm text-muted">Die Kugel läuft …</p>
+              <p className="anim-fade-in flex h-28 items-center text-sm text-muted">Die Kugel läuft …</p>
             ) : pocket === null || color === null ? (
-              <p className="flex h-24 items-center text-sm text-muted">Noch kein Wurf in dieser Sitzung.</p>
+              <p className="flex h-28 items-center text-sm text-muted">Noch kein Wurf in dieser Sitzung.</p>
             ) : (
-              <div className={cn("anim-fade-in flex h-24 w-24 flex-col items-center justify-center rounded-full border-2", POCKET_RING[color])}>
+              <div className={cn("edge-light anim-fade-in flex h-28 w-28 flex-col items-center justify-center rounded-full border-2", POCKET_RING[color])}>
                 <span className="tabular text-2xl font-semibold text-primary">{formatPocket(pocket)}</span>
                 <span className={cn("text-xs font-medium", POCKET_TEXT[color])}>{COLOR_LABEL[color]}</span>
               </div>
@@ -294,7 +294,7 @@ export function RouletteGame({ game, simulateLoadError = false, onStatusChange }
           </div>
         </section>
 
-        <section className="rounded-card border border-border-subtle bg-base p-3">
+        <section className="edge-light rounded-card border border-border-subtle bg-base p-3">
           <h3 className="text-sm font-medium text-primary">Letzte Ergebnisse</h3>
           {history.length === 0 ? (
             <p className="mt-1 text-xs text-muted">Noch keine Runde gespielt.</p>
@@ -326,9 +326,9 @@ function DealerArea() {
     <section className="rounded-card border border-border-subtle bg-surface p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-primary">Tischbereich</h3>
-        <Badge tone="teal">Illustration</Badge>
+        <Badge tone="accent">Illustration</Badge>
       </div>
-      <div aria-hidden="true" className="mt-2 flex h-16 items-end gap-1.5 rounded-control border border-border-subtle bg-base px-3 pb-3 pt-2">
+      <div aria-hidden="true" className="edge-light mt-2 flex h-16 items-end gap-1.5 rounded-control border border-border-subtle bg-base px-3 pb-3 pt-2">
         <span className="h-3 flex-1 rounded-pill bg-elevated" />
         <span className="h-6 flex-1 rounded-pill bg-elevated" />
         <span className="h-10 flex-1 rounded-pill bg-elevated" />

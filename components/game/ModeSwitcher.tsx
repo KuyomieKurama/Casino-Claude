@@ -57,7 +57,7 @@ export function ModeSwitcher({ modes, activeModeId, titleLabel, roundInProgress,
       <h2 id="mode-switcher-heading" className="text-sm font-medium text-muted">
         {titleLabel}: Modus wählen
       </h2>
-      <div role="group" aria-labelledby="mode-switcher-heading" className="flex flex-wrap gap-2">
+      <div role="group" aria-labelledby="mode-switcher-heading" className="flex flex-wrap gap-2.5">
         {modes.map((mode) => {
           const isActive = mode.id === activeModeId;
           const isAvailable = mode.status === "active";
@@ -87,7 +87,7 @@ export function ModeSwitcher({ modes, activeModeId, titleLabel, roundInProgress,
               className={cn(
                 buttonClasses({ variant: "outline", size: "md" }),
                 "focus-glow",
-                isActive && "border-teal text-primary",
+                isActive && "border-accent text-primary",
               )}
               onClick={(event) => {
                 if (isActive) {
@@ -104,7 +104,7 @@ export function ModeSwitcher({ modes, activeModeId, titleLabel, roundInProgress,
                 setBlockedMessage(null);
               }}
             >
-              {isActive ? <Check className="anim-state-pop size-3.5 text-teal" aria-hidden="true" /> : null}
+              {isActive ? <Check className="anim-state-pop size-3.5 text-accent" aria-hidden="true" /> : null}
               {mode.label}
               {isActive ? <span className="sr-only"> (aktiver Modus)</span> : null}
             </Link>

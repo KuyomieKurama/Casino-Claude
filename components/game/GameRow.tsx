@@ -59,7 +59,9 @@ export function GameRow({ title, games, href, hrefLabel = "Alle ansehen", id, cl
           </button>
         </div>
       </div>
-      <ul ref={ref} className="carousel carousel-mask -mx-4 sm:mx-0 sm:px-0" aria-label={title}>
+      {/* depth-scene (Auftrag Etappe 3 §3): dieselbe Fluchtpunkt-Perspektive wie im großen Raster,
+          damit die tilt-card-Kacheln der Reihe im Hover konsistent räumlich wirken. */}
+      <ul ref={ref} className="carousel carousel-mask depth-scene -mx-4 sm:mx-0 sm:px-0" aria-label={title}>
         {games.map((g) => (
           <li key={g.id}>
             <GameCard game={g} variant="compact" />

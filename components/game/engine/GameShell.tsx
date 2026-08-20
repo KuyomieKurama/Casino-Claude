@@ -83,8 +83,10 @@ export function GameShell(props: GameShellProps) {
   const { play } = useSound();
 
   if (status === "loading" || status === "idle" || !hydrated) {
+    // Dieselbe Rahmenoptik wie der geladene Zustand unten (rounded-card, glass-panel,
+    // surface-raised, p-lg/sm:p-xl) — der Skeleton-Rahmen springt beim Laden nicht sichtbar um.
     return (
-      <div aria-busy="true" aria-live="polite" className="rounded-card border border-border-subtle bg-surface p-4 sm:p-6">
+      <div aria-busy="true" aria-live="polite" className="rounded-card glass-panel surface-raised p-lg sm:p-xl">
         <span className="sr-only">Spiel wird geladen …</span>
         <Skeleton className="mx-auto h-[220px] w-full max-w-md rounded-card" />
         <div className="mx-auto mt-4 grid max-w-md grid-cols-3 gap-2">
@@ -97,13 +99,18 @@ export function GameShell(props: GameShellProps) {
   }
 
   if (status === "error") {
+    // Dieselbe Rahmenoptik wie Lade- und Spielzustand (rounded-card, glass-panel, surface-raised,
+    // p-lg/sm:p-xl) — sonst fiele gerade der Fehlerzustand hinter die übrigen Zustände dieser
+    // Shell zurück. ErrorState selbst bleibt unverändert (role="alert", Warnfarbe, Icon, Text).
     return (
-      <ErrorState
-        title="Das Spiel konnte nicht geladen werden."
-        text="Der Spieldienst hat nicht geantwortet. Es wurde kein Guthaben bewegt. Du kannst es erneut versuchen."
-        onRetry={onRetryLoad}
-        extra={<LinkButton href="/casino" variant="ghost">Zur Lobby</LinkButton>}
-      />
+      <div className="rounded-card glass-panel surface-raised p-lg sm:p-xl">
+        <ErrorState
+          title="Das Spiel konnte nicht geladen werden."
+          text="Der Spieldienst hat nicht geantwortet. Es wurde kein Guthaben bewegt. Du kannst es erneut versuchen."
+          onRetry={onRetryLoad}
+          extra={<LinkButton href="/casino" variant="ghost">Zur Lobby</LinkButton>}
+        />
+      </div>
     );
   }
 
@@ -118,17 +125,23 @@ export function GameShell(props: GameShellProps) {
   };
 
   return (
-    // Etappe 2 (Gestaltung/Bewegung, s. Auftrag): space-y-lg statt space-y-4 und p-md/sm:p-lg statt
-    // p-4/sm:p-6 — großzügige Abstände AUS DER SKALA (--space-*) zwischen den drei Zonen Kopfzeile/
-    // Spielfläche+Ergebnis/Einsatzbereich, siehe die border-t-Trenner unten. Rundenchoreografie,
-    // Wallet-Anbindung, RoundStatus-Werte und Klang-Auslöser bleiben unverändert — nur Klassen.
-    <div className="min-w-0 space-y-lg overflow-x-clip rounded-card border border-border-subtle bg-surface p-md sm:p-lg" data-status={status}>
+    // Etappe 3 (Rahmen-Redesign, s. Auftrag): glass-panel + surface-raised statt flacher
+    // border/bg-surface, p-lg/sm:p-xl statt p-md/sm:p-lg — großzügigere, tiefere Fläche für die drei
+    // Zonen Kopfzeile/Spielfläche+Ergebnis/Einsatzbereich, weiterhin über space-y-lg und die
+    // border-t/border-b-Trenner (feine border-border-subtle-Linien, kein kräftiger Rahmen)
+    // voneinander abgesetzt. surface-raised kombiniert Ruheschatten (--shadow-rest) und Kantenlicht
+    // (--edge-light) in EINER box-shadow-Deklaration (Kaskadenreparatur, siehe app/globals.css) —
+    // glass-panel bringt weiterhin Fläche und Rand, seine eigene, schwächere box-shadow wird von
+    // surface-raised zuverlässig ersetzt, weil surface-raised in app/globals.css bewusst danach
+    // notiert ist. Rundenchoreografie, Wallet-Anbindung, RoundStatus-Werte und Klang-Auslöser
+    // bleiben unverändert — nur Klassen.
+    <div className="min-w-0 space-y-lg overflow-x-clip rounded-card glass-panel surface-raised p-lg sm:p-xl" data-status={status}>
       {/* Kopfzeile: eigene Zone mit Trennlinie darunter statt reiner Abstandsvererbung — macht die
           drei geforderten Zonen (Kopf/Spielfläche+Ergebnis/Einsatzbereich) sichtbar, nicht nur
           per Whitespace erahnbar. */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-md">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-lg">
         <div className="flex items-center gap-2">
-          <h2 className="font-display text-lg text-primary">{game.name}</h2>
+          <h2 className="font-display text-lg text-primary sm:text-xl">{game.name}</h2>
         </div>
         <Button
           variant="ghost"
@@ -148,7 +161,7 @@ export function GameShell(props: GameShellProps) {
         <div className={cn("relative", status === "paused" && "opacity-40")}>{children}</div>
 
         {status === "paused" ? (
-          <div className="rounded-control border border-border-control bg-elevated px-4 py-3 text-center">
+          <div className="edge-light rounded-control border border-border-control bg-elevated px-4 py-3 text-center">
             <p className="text-sm font-medium text-primary">Pause</p>
             <p className="text-xs text-muted">Das Guthaben bleibt unverändert.</p>
           </div>
@@ -164,7 +177,11 @@ export function GameShell(props: GameShellProps) {
           {status === "playing" ? (
             <p className="text-sm text-muted">Runde läuft …</p>
           ) : last ? (
-            <div key={last.roundId} className="anim-state-pop rounded-control border border-border-subtle bg-base px-3 py-2">
+            // glass-panel + surface-raised statt border/bg-base: dieselbe Zurückhaltung (kein
+            // Jubel, keine Sonderfarbe für Gewinn), aber ruhiger und wertiger als eine flache
+            // Fläche — surface-raised liefert hier das Kantenlicht zuverlässig mit (statt gegen
+            // glass-panels eigene box-shadow zu konkurrieren, siehe app/globals.css).
+            <div key={last.roundId} className="anim-state-pop glass-panel surface-raised rounded-control px-4 py-3">
               <p className="text-sm text-muted">
                 {last.outcomeLabel}
                 {last.usedFreeSpin ? " (Freirunde)" : ""} · Rückgabe {formatCreditsWithUnit(last.returnMinor)}
@@ -179,7 +196,7 @@ export function GameShell(props: GameShellProps) {
         </div>
 
         {reason ? (
-          <div role="alert" className="mx-auto flex max-w-md items-start gap-3 rounded-control border border-warning/60 bg-base p-3 text-sm">
+          <div role="alert" className="edge-light mx-auto flex max-w-md items-start gap-3 rounded-control border border-warning bg-base p-4 text-sm">
             <ShieldAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
             <div>
               <p className="font-medium text-primary">{reason.title}</p>
@@ -206,7 +223,7 @@ export function GameShell(props: GameShellProps) {
           <Button variant="outline" onClick={() => changeStake(-1)} disabled={busy || stakeLocked || index <= 0} aria-label="Einsatz verringern" iconLeft={<Minus className="size-4" aria-hidden="true" />} />
           <output
             className={cn(
-              "tabular flex h-11 flex-1 items-center justify-center rounded-control border bg-base text-base font-semibold text-primary",
+              "tabular edge-light flex h-11 flex-1 items-center justify-center rounded-control border bg-elevated text-base font-semibold text-primary",
               inlineErrorMessage || insufficient ? "border-danger" : "border-border-control",
             )}
             aria-describedby={inlineErrorMessage || insufficient ? "stake-error" : undefined}
@@ -243,15 +260,18 @@ export function GameShell(props: GameShellProps) {
         </p>
 
         {primaryAction ?? (
-          // .press-feedback (Auftrag: "Der Startknopf zeigt Druckfeedback"): nur am Default-Button,
-          // den Engines mit eigenem primaryAction (Blackjack, Mines, Video Poker) nicht verwenden —
-          // ihre Buttons bleiben unangetastet. Der Sperrzustand während der Runde kommt unverändert
-          // aus useRound (disabled={!canStart}, loading-Spinner, Text "Runde läuft").
+          // Kein eigenes className mehr nötig (anders als zuvor): `press-feedback` steckt bereits
+          // im Basisstil jedes `Button` (components/ui/Button.tsx, `base`-Konstante) und
+          // `metal-sheen` bereits in dessen `primary`-Variante — beide galten deshalb längst für
+          // JEDEN Button, auch für die eigenen primaryAction-Buttons von Blackjack/Mines/Video
+          // Poker, nicht nur für diesen Default-Button hier. `shadow-1` war zusätzlich redundant:
+          // die `primary`-Variante liefert über `hover-elevate` bereits denselben Ruheschatten
+          // (--shadow-rest, wertgleich zu --shadow-1). Der Sperrzustand während der Runde kommt
+          // unverändert aus useRound (disabled={!canStart}, loading-Spinner, Text "Runde läuft").
           <Button
             variant="primary"
             size="lg"
             fullWidth
-            className="press-feedback"
             onClick={onPlay}
             disabled={!canStart}
             loading={status === "playing"}

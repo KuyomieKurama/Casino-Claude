@@ -8,7 +8,16 @@ import { GameRow } from "@/components/game/GameRow";
 import { GameCard } from "@/components/game/GameCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-/** Startseiten-Reihen (§8.1) — dieselbe GameCard wie überall, kompakte Variante. */
+/**
+ * Startseiten-Reihen (§8.1) — dieselbe GameCard wie überall.
+ *
+ * Die hervorgehobene Karte bleibt `variant="featured"` (der große Banner mit Beschreibung),
+ * bekommt aber zusätzlich `restrainedCta`: Seit die Hero-Sektion (components/home/Hero.tsx)
+ * die eine goldene Fläche des Bildschirms trägt, darf diese Karte keinen zweiten goldenen
+ * Button mehr zeigen. `restrainedCta` (components/game/GameCard.tsx) erzwingt dafür die
+ * zurückhaltende Umriss-Darstellung des „Spielen“-Buttons statt der goldenen Fläche, ohne die
+ * übrige, reichhaltigere featured-Darstellung (Bild, Beschreibung) aufzugeben.
+ */
 export function HomeRows() {
   const { games, hydrated } = useCatalog();
   const active = useMemo(() => games.filter((g) => g.status === "active"), [games]);
@@ -24,8 +33,8 @@ export function HomeRows() {
 
   if (!hydrated) {
     return (
-      <div className="space-y-lg" aria-busy="true">
-        <Skeleton className="h-[280px] w-full rounded-card" />
+      <div className="space-y-xl" aria-busy="true">
+        <Skeleton className="h-[300px] w-full rounded-card" />
         {[0, 1, 2].map((i) => (
           <div key={i} className="space-y-3">
             <Skeleton className="h-7 w-48" />
@@ -49,13 +58,13 @@ export function HomeRows() {
     // Die anim-panel-in-Klasse muss am direkten Kind von .stagger-list sitzen (hier: <section>),
     // nicht an der GameCard selbst (verschachtelt darin), sonst greift die :not(.anim-panel-in)-
     // Ausnahme nicht und beide Bewegungen würden sich addieren.
-    <div className="stagger-list space-y-xl sm:space-y-2xl">
+    <div className="stagger-list space-y-2xl sm:space-y-3xl">
       {featured ? (
         <section aria-labelledby="featured-title" className="anim-panel-in">
-          <h2 id="featured-title" className="sr-only">
+          <h2 id="featured-title" className="font-display mb-3 text-lg text-primary sm:text-xl">
             Hervorgehobenes Spiel
           </h2>
-          <GameCard game={featured} variant="featured" priority />
+          <GameCard game={featured} variant="featured" priority restrainedCta />
         </section>
       ) : null}
       <GameRow id="popular" title="Beliebte Spiele" games={popular} href="/casino?cat=popular" />

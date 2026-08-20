@@ -6,15 +6,24 @@ import { usePathname } from "next/navigation";
 import { Gift, Heart, History, Settings, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-const userNav = [
-  { href: "/profile", label: "Übersicht", icon: UserRound },
-  { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/history", label: "Historie", icon: History },
-  { href: "/favorites", label: "Favoriten", icon: Heart },
-  { href: "/bonuses", label: "Boni", icon: Gift },
-  { href: "/security", label: "Sicherheit", icon: ShieldCheck },
-  { href: "/settings", label: "Einstellungen", icon: Settings },
-];
+// Drei fachliche Gruppen (Konto, Aktivität, Sicherheit) statt einer einzigen langen Liste —
+// die Gruppierung selbst ist rein visuell (mehr Abstand zwischen den Gruppen ab md), Routen,
+// Reihenfolge und Beschriftungen bleiben gegenüber der vorigen flachen Liste unverändert.
+const userNavGroups = [
+  [
+    { href: "/profile", label: "Übersicht", icon: UserRound },
+    { href: "/wallet", label: "Wallet", icon: Wallet },
+  ],
+  [
+    { href: "/history", label: "Historie", icon: History },
+    { href: "/favorites", label: "Favoriten", icon: Heart },
+    { href: "/bonuses", label: "Boni", icon: Gift },
+  ],
+  [
+    { href: "/security", label: "Sicherheit", icon: ShieldCheck },
+    { href: "/settings", label: "Einstellungen", icon: Settings },
+  ],
+] as const;
 
 /**
  * Navigationshülle für den Nutzerbereich. Die Zugriffsprüfung selbst läuft davor, serverseitig
@@ -28,30 +37,42 @@ export function UserShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="grid gap-6 pt-6 md:grid-cols-[220px_1fr]">
-      <nav aria-label="Nutzerbereich" className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <ul className="flex gap-1 md:flex-col">
-          {userNav.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            return (
-              <li key={href} className="shrink-0">
-                <Link
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative flex h-11 items-center gap-2 rounded-control px-3 text-sm font-medium transition-state",
-                    active ? "bg-surface text-primary" : "text-muted hover:bg-surface hover:text-primary",
-                  )}
-                >
-                  {/* Kontoverwaltung bleibt bewusst golden: Gold ist dem Spiel vorbehalten (§4).
-                      Der aktive Zustand markiert sich über Fläche, Text und diese Teal-Kante. */}
-                  {active ? <span aria-hidden="true" className="absolute inset-x-3 bottom-0 h-px bg-teal md:inset-x-auto md:inset-y-2 md:left-0 md:h-auto md:w-px" /> : null}
-                  <Icon className={cn("size-4", active && "text-teal")} aria-hidden="true" />
-                  {label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Sidebar ab md als Glas-Fläche: .glass-panel ist inzwischen eine Tailwind-@utility (siehe
+          app/globals.css) und kann deshalb wie jede andere Utility ein Varianten-Präfix tragen —
+          die frühere Nachbildung aus Einzeltokens entfällt. Bewusst nur ab md, mobil bleibt die
+          Reihe randlos scrollbar. */}
+      <nav
+        aria-label="Nutzerbereich"
+        className="-mx-4 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:glass-panel md:rounded-card md:p-3"
+      >
+        <div className="flex gap-1 md:flex-col md:gap-6">
+          {userNavGroups.map((group) => (
+            <ul key={group[0].href} className="flex shrink-0 gap-1 md:flex-col">
+              {group.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href || pathname.startsWith(`${href}/`);
+                return (
+                  <li key={href} className="shrink-0">
+                    <Link
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "relative flex h-11 items-center gap-2 rounded-control px-3 text-sm font-medium transition-state",
+                        active ? "bg-surface text-primary" : "text-muted hover:bg-surface hover:text-primary",
+                      )}
+                    >
+                      {/* Kontoverwaltung bleibt bewusst golden-frei: Gold ist dem Spiel
+                          vorbehalten (§4). Der aktive Zustand markiert sich über Fläche, Text
+                          und diese violette Kante (--accent-strong). */}
+                      {active ? <span aria-hidden="true" className="absolute inset-x-3 bottom-0 h-px bg-accent-strong md:inset-x-auto md:inset-y-2 md:left-0 md:h-auto md:w-px" /> : null}
+                      <Icon className={cn("size-4", active && "text-accent")} aria-hidden="true" />
+                      {label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ))}
+        </div>
       </nav>
       <div className="min-w-0">{children}</div>
     </div>

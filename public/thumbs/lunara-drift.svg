@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-hidden="true">
-<rect width="400" height="300" fill="#14171C"/>
-<rect x="0" y="0" width="400" height="1" fill="#D6A756"/>
-<circle cx="60" cy="150" r="26" fill="#8FA6C9"/><circle cx="36" cy="150" r="26" fill="#14171C"/><circle cx="130" cy="150" r="26" fill="#8FA6C9"/><circle cx="118" cy="150" r="26" fill="#14171C"/><circle cx="200" cy="150" r="26" fill="#8FA6C9"/><circle cx="200" cy="150" r="26" fill="transparent"/><circle cx="270" cy="150" r="26" fill="#8FA6C9"/><circle cx="282" cy="150" r="26" fill="#14171C"/><circle cx="340" cy="150" r="26" fill="#8FA6C9"/><circle cx="364" cy="150" r="26" fill="#14171C"/>
+<rect width="400" height="300" fill="#0D0F17"/>
+<rect x="0" y="0" width="400" height="1" fill="#D6B36A"/>
+<circle cx="60" cy="150" r="26" fill="#8FA6C9"/><circle cx="36" cy="150" r="26" fill="#0D0F17"/><circle cx="130" cy="150" r="26" fill="#8FA6C9"/><circle cx="118" cy="150" r="26" fill="#0D0F17"/><circle cx="200" cy="150" r="26" fill="#8FA6C9"/><circle cx="200" cy="150" r="26" fill="transparent"/><circle cx="270" cy="150" r="26" fill="#8FA6C9"/><circle cx="282" cy="150" r="26" fill="#0D0F17"/><circle cx="340" cy="150" r="26" fill="#8FA6C9"/><circle cx="364" cy="150" r="26" fill="#0D0F17"/>
 </svg>

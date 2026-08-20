@@ -32,7 +32,7 @@ export function SettingsPage() {
   const [confirmClear, setConfirmClear] = useState(false);
 
   return (
-    <div className="anim-panel-in space-y-6">
+    <div className="anim-panel-in space-y-xl">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Einstellungen</h1>
       </header>

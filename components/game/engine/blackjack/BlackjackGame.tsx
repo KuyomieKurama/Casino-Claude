@@ -114,22 +114,22 @@ function handLabel(cards: readonly Card[]): string {
 function CardTile({ card, faceDown = false }: { card?: Card; faceDown?: boolean }) {
   if (faceDown || !card) {
     return (
-      <div className="flex h-20 w-14 flex-col items-center justify-center rounded-control border border-border-control bg-elevated text-center">
-        <span aria-hidden="true" className="text-lg text-muted">
+      <div className="edge-light flex h-24 w-16 flex-col items-center justify-center rounded-control border border-border-control bg-elevated text-center">
+        <span aria-hidden="true" className="text-xl text-muted">
           ✱
         </span>
-        <span className="text-[0.625rem] leading-tight text-muted">verdeckt</span>
+        <span className="text-xs leading-tight text-muted">verdeckt</span>
       </div>
     );
   }
   const red = card.suit === "hearts" || card.suit === "diamonds";
   return (
-    <div className="flex h-20 w-14 flex-col items-center justify-center rounded-control border border-border-control bg-base text-center">
-      <span className="text-lg font-semibold leading-none text-primary">{card.rank}</span>
-      <span aria-hidden="true" className={cn("text-lg leading-none", red ? "text-danger" : "text-primary")}>
+    <div className="edge-light flex h-24 w-16 flex-col items-center justify-center rounded-control border border-border-control bg-base text-center">
+      <span className="text-xl font-semibold leading-none text-primary">{card.rank}</span>
+      <span aria-hidden="true" className={cn("text-xl leading-none", red ? "text-danger" : "text-primary")}>
         {SUIT_SYMBOL[card.suit]}
       </span>
-      <span className="text-[0.625rem] leading-tight text-muted">{SUIT_NAME[card.suit]}</span>
+      <span className="text-xs leading-tight text-muted">{SUIT_NAME[card.suit]}</span>
       <span className="sr-only">
         {card.rank} {SUIT_NAME[card.suit]}
       </span>
@@ -263,7 +263,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
         <h3 className="sr-only">Spieltisch</h3>
 
         {state ? (
-          <div className="space-y-4 rounded-card border border-border-subtle bg-base p-3 sm:p-4">
+          <div className="edge-light space-y-4 rounded-card border border-border-subtle bg-base p-3 sm:p-4">
             {/* Dealer */}
             <section aria-label="Hand des Dealers" className="space-y-2">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -304,7 +304,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
             ) : null}
           </div>
         ) : (
-          <div className="rounded-card border border-border-subtle bg-base p-6 text-center">
+          <div className="edge-light rounded-card border border-border-subtle bg-base p-6 text-center">
             <Layers className="mx-auto size-6 text-muted" aria-hidden="true" />
             <p className="mt-2 text-sm text-muted">
               Noch keine Karten. Einsatz wählen und „Karten geben“ auswählen — du erhältst zwei Karten, der Dealer eine
@@ -314,7 +314,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
         )}
 
         {/* Einsatzführung transparent ausweisen — Kennzeichnung Ebene 3 vor geldbewegenden Aktionen */}
-        <p className="rounded-control border border-border-control bg-base p-3 text-xs text-muted">
+        <p className="edge-light rounded-control border border-border-control bg-base p-3 text-xs text-muted">
           <strong className="font-medium text-primary">Zum Einsatz:</strong> Verdoppeln und Teilen erhöhen den Einsatz
           dieser Runde. Der Zusatzeinsatz wird sofort vom Guthaben abgebucht und erscheint als eigene Buchung mit
           derselben Runden-ID in deiner Historie. Reicht das Guthaben dafür nicht, bleibt die Aktion aus und der Tisch
@@ -332,7 +332,7 @@ export function BlackjackGame({ game, simulateLoadError, onStatusChange }: GameE
             {rulesOpen ? "Regeln ausblenden" : "Regeln einblenden"}
           </Button>
           {rulesOpen ? (
-            <div id="blackjack-rules" className="mt-2 space-y-2 rounded-control border border-border-subtle bg-base p-3 text-sm text-muted anim-fade-in">
+            <div id="blackjack-rules" className="edge-light mt-2 space-y-2 rounded-control border border-border-subtle bg-base p-3 text-sm text-muted anim-fade-in">
               <h4 className="text-sm font-medium text-primary">Regeln</h4>
               <ul className="list-disc space-y-1 pl-5">
                 <li>Ziel ist eine Hand, die näher an 21 liegt als die des Dealers, ohne 21 zu überschreiten.</li>
@@ -373,7 +373,7 @@ function PlayerHandView({
   return (
     <div
       className={cn(
-        "rounded-control border p-2",
+        "edge-light rounded-control border bg-surface p-2",
         // Der aktive Zustand steht als Text daneben, nicht nur als Rahmenfarbe.
         active ? "border-border-control" : "border-border-subtle",
       )}
@@ -381,7 +381,7 @@ function PlayerHandView({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="text-sm font-medium text-primary">
           {count > 1 ? `Deine Hand ${index + 1}` : "Deine Hand"}
-          {active ? <span className="ml-2 text-xs font-normal text-teal">— am Zug</span> : null}
+          {active ? <span className="ml-2 text-xs font-normal text-accent">— am Zug</span> : null}
         </h4>
         <p className="tabular text-sm text-muted">
           Wert: {handLabel(hand.cards)}
@@ -403,7 +403,7 @@ function PlayerHandView({
  */
 function LiveTableIllustration() {
   return (
-    <section aria-label="Illustration des Live-Tisches" className="rounded-card border border-border-subtle bg-base p-3">
+    <section aria-label="Illustration des Live-Tisches" className="edge-light rounded-card border border-border-subtle bg-base p-3">
       <div aria-hidden="true" className="flex items-end justify-center gap-1">
         <span className="h-6 w-10 rounded-t-full border border-border-control bg-elevated" />
         <span className="h-10 w-24 rounded-t-full border border-border-control bg-elevated" />

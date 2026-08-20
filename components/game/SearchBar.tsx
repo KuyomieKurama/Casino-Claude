@@ -71,7 +71,7 @@ export function SearchBar({ value, onChange, placeholder = "Spiel, Anbieter oder
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-control border border-border-control bg-surface pl-9 pr-11 text-base text-primary transition-state hover:border-gold-strong/70 [&::-webkit-search-cancel-button]:hidden"
+        className="h-11 w-full rounded-control border border-border-control bg-surface pl-9 pr-11 text-base text-primary transition-state hover:border-accent/70 [&::-webkit-search-cancel-button]:hidden"
       />
       <span role="status" className="sr-only">
         {pending ? "Suche wird aktualisiert." : ""}
@@ -81,7 +81,7 @@ export function SearchBar({ value, onChange, placeholder = "Spiel, Anbieter oder
           motion bereits über .anim-skeleton abgedeckt (siehe app/globals.css). */}
       <span
         aria-hidden="true"
-        className={cn("anim-skeleton absolute right-11 top-1/2 size-1.5 -translate-y-1/2 rounded-pill bg-teal", pending ? "opacity-100" : "opacity-0")}
+        className={cn("anim-skeleton absolute right-11 top-1/2 size-1.5 -translate-y-1/2 rounded-pill bg-accent-strong", pending ? "opacity-100" : "opacity-0")}
       />
       {/* Immer im DOM (statt bedingt gemountet): absolut positioniert, daher ohne Layoutfolgen,
           und nur so lässt sich das Verschwinden mit einer kürzeren Ausgangskurve animieren

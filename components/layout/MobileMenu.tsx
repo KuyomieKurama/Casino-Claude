@@ -27,6 +27,16 @@ function focusableElements(root: HTMLElement | null): HTMLElement[] {
  * showModal()` aber nicht vollständig (siehe test/dialog-polyfill.ts — kein echter Fokus-Trap,
  * kein Escape-„cancel“-Event ohne echten Browser). Deshalb wird das native Verhalten hier
  * explizit nachgebaut statt sich auf den Browser zu verlassen.
+ *
+ * Fläche: Glas (glass-panel-strong) statt deckendem bg-elevated, gerundet nur an der linken
+ * Kante (rounded-l-modal) — die einzige Kante, an der Panel und Hintergrund sichtbar
+ * nebeneinanderliegen, oben/unten/rechts liegt die Fläche ohnehin am Bildschirmrand an.
+ *
+ * Schatten: surface-raised-strong statt separatem shadow-raised — glass-panel-strong setzt
+ * bereits eine eigene, schwächere box-shadow; box-shadow kennt pro Element nur einen Gewinner,
+ * ein zusätzliches shadow-raised würde also nie zum Zug kommen. surface-raised-strong bündelt
+ * --shadow-raised und --edge-light in einer Deklaration und steht in app/globals.css bewusst
+ * nach glass-panel-strong, damit die Schublade zuverlässig die stärkste Elevation-Stufe bekommt.
  */
 export function MobileMenu({ open, onClose, triggerRef, title, id, children }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -83,7 +93,7 @@ export function MobileMenu({ open, onClose, triggerRef, title, id, children }: M
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="anim-sheet-side signature-top absolute inset-y-0 right-0 flex h-full w-[min(320px,85vw)] flex-col bg-elevated shadow-2"
+        className="anim-sheet-side glass-panel-strong surface-raised-strong absolute inset-y-0 right-0 flex h-full w-[min(320px,85vw)] flex-col rounded-l-modal"
       >
         <div className="flex items-center justify-between gap-4 border-b border-border-subtle px-5 py-4">
           <p className="font-display text-lg text-primary">{title}</p>

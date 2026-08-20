@@ -158,7 +158,7 @@ function ModesList({ modes, onRequestStatusChange }: { modes: AdminGameModeItem[
     <div className="mt-3 overflow-x-auto rounded-card border border-border-subtle">
       <table className="w-full min-w-[520px] text-sm">
         <caption className="sr-only">Modi dieses Titels mit Status, Engine und Paytable-Schlüssel</caption>
-        <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-muted">
+        <thead className="bg-elevated text-left text-xs uppercase tracking-wider text-subtle">
           <tr>
             <th scope="col" className="px-3 py-2 font-medium">Modus</th>
             <th scope="col" className="px-3 py-2 font-medium">Engine</th>

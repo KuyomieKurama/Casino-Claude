@@ -27,10 +27,16 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
             type="checkbox"
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
-            className="peer absolute inset-0 size-5 cursor-pointer appearance-none rounded-[4px] border border-border-control bg-surface transition-state checked:border-gold checked:bg-gold"
+            // Angehakter Zustand violett statt golden: eine Checkbox ist ein Formular-
+            // Systemzustand, kein Primär-CTA — Gold bleibt der einen CTA-Fläche pro
+            // Bildschirm vorbehalten (z. B. dem Absende-Button direkt darunter auf der
+            // Registrierungsseite). Kontrast des Häkchens auf der violetten Fläche:
+            // --on-accent auf --accent-strong = 4,73:1 (siehe app/globals.css), über der
+            // AA-Textschwelle von 4,5:1 und über der 3:1-Schwelle für UI-Komponenten.
+            className="peer absolute inset-0 size-5 cursor-pointer appearance-none rounded-xs border border-border-control bg-surface transition-state focus-glow checked:border-accent-strong checked:bg-accent-strong"
             {...rest}
           />
-          <Check className="pointer-events-none relative size-3.5 text-on-gold opacity-0 transition-state peer-checked:opacity-100" strokeWidth={3} aria-hidden="true" />
+          <Check className="pointer-events-none relative size-3.5 text-on-accent opacity-0 transition-state peer-checked:opacity-100" strokeWidth={3} aria-hidden="true" />
         </span>
         <span>{label}</span>
       </label>

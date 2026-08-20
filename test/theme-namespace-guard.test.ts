@@ -169,8 +169,8 @@ const WIDTH_UTILITIES: ReadonlyArray<{ utilityPrefix: string; themePrefix: strin
 ];
 
 describe("Regressionstest: max-w-*/w-*/min-w-* gegen Namenskollision mit --spacing-*", () => {
-  it("die projekteigene --spacing-*-Skala definiert weiterhin xs/sm/md/lg/xl/2xl/3xl — sonst prüft dieser Test die falsche Annahme", () => {
-    expect([...spacingNames].sort()).toEqual(["2xl", "3xl", "lg", "md", "sm", "xl", "xs"]);
+  it("die projekteigene --spacing-*-Skala definiert weiterhin xs/sm/md/lg/xl/2xl/3xl/4xl/5xl — sonst prüft dieser Test die falsche Annahme", () => {
+    expect([...spacingNames].sort()).toEqual(["2xl", "3xl", "4xl", "5xl", "lg", "md", "sm", "xl", "xs"]);
   });
 
   it.each(WIDTH_UTILITIES)(

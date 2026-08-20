@@ -70,16 +70,21 @@ export function FilterPanel({ criteria, onApply, onReset, mode }: FilterPanelPro
   // einer umrissenen Badge (Form + Ziffer, nicht nur eine Farbe) neben "Filter"/im Auslöser-
   // Button, zusätzlich verschwindet/erscheint der ganze "Zurücksetzen"-Button — zwei von Farbe
   // unabhängige Signale. `anim-state-pop` markiert das Erscheinen als spürbare Reaktion auf die
-  // gerade getroffene Auswahl, nicht als beiläufige Änderung.
+  // gerade getroffene Auswahl, nicht als beiläufige Änderung. Ton `accent` (violett) statt `gold`
+  // (Auftrag Etappe 3 §5): aktive Zustände in Filter/Suche/Kategorien gehören dem Primärakzent,
+  // Gold bleibt der einen Spielaktion pro Bildschirm vorbehalten.
   const activeBadge = activeCount > 0 ? (
-    <Badge tone="gold" className="anim-state-pop" aria-label={`${activeCount} ${activeCount === 1 ? "aktiver Filter" : "aktive Filter"}`}>
+    <Badge tone="accent" className="anim-state-pop" aria-label={`${activeCount} ${activeCount === 1 ? "aktiver Filter" : "aktive Filter"}`}>
       {activeCount}
     </Badge>
   ) : null;
 
   if (mode === "sidebar") {
+    // glass-panel (Auftrag Etappe 3 §4): die feste Filterspalte ab lg als freistehende Glasfläche
+    // statt einer einfachen Fläche mit Rahmen — ersetzt border+bg-surface, da .glass-panel beides
+    // bereits mitbringt (siehe app/globals.css).
     return (
-      <aside aria-label="Filter" className="sticky top-[calc(var(--header-height)+1rem)] space-y-4 rounded-card border border-border-subtle bg-surface p-4">
+      <aside aria-label="Filter" className="glass-panel sticky top-[calc(var(--header-height)+1rem)] space-y-4 rounded-card p-lg">
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-base font-semibold text-primary">
             Filter

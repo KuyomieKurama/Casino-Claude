@@ -29,14 +29,14 @@ export function RgPanel() {
   const reason = status.blocked && status.reason ? rgReasonText[status.reason] : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2xl">
       {/* Status: bewusst OHNE Card signature (goldene Haarlinie) — Responsible Gaming ist eine
           Schutzfunktion und bleibt frei von der Verkaufsästhetik des Spiels (Auftrag). */}
       <Card as="section" aria-labelledby="rg-status-title" className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="rg-status-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-              {status.blocked ? <ShieldAlert className="size-5 text-warning" aria-hidden="true" /> : <ShieldCheck className="size-5 text-teal" aria-hidden="true" />}
+              {status.blocked ? <ShieldAlert className="size-5 text-warning" aria-hidden="true" /> : <ShieldCheck className="size-5 text-accent" aria-hidden="true" />}
               Aktueller Status
             </h2>
             {hydrated ? (
@@ -46,7 +46,7 @@ export function RgPanel() {
             )}
           </div>
           {hydrated ? (
-            <Badge tone={status.blocked ? "warning" : "teal"} size="md">
+            <Badge tone={status.blocked ? "warning" : "accent"} size="md">
               {reason ? reason.title : "Spielen möglich"}
             </Badge>
           ) : (
@@ -66,11 +66,11 @@ export function RgPanel() {
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-xl lg:grid-cols-2">
         {/* Pause */}
         <Card as="section" aria-labelledby="pause-title" className="space-y-3">
           <h2 id="pause-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-            <Pause className="size-5 text-teal" aria-hidden="true" /> Session-Pause
+            <Pause className="size-5 text-accent" aria-hidden="true" /> Session-Pause
           </h2>
           <p className="text-sm text-muted">Während einer Pause sind alle Spielstarts blockiert. Sie endet automatisch zur gewählten Zeit oder wenn du sie hier ausdrücklich beendest.</p>
           {status.reason === "paused" ? (
@@ -97,7 +97,7 @@ export function RgPanel() {
         {/* Limit */}
         <Card as="section" aria-labelledby="limit-title" className="space-y-3">
           <h2 id="limit-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-            <Clock className="size-5 text-teal" aria-hidden="true" /> Zeitlimit pro Sitzung
+            <Clock className="size-5 text-accent" aria-hidden="true" /> Zeitlimit pro Sitzung
           </h2>
           <p className="text-sm text-muted">Nach Ablauf sind Spielstarts blockiert, bis du hier bewusst eine neue Sitzung beginnst. Gerechnet wird aus Zeitstempeln, auch über Reloads hinweg.</p>
           <div className="flex flex-wrap items-end gap-2">
@@ -124,7 +124,7 @@ export function RgPanel() {
         {/* Erinnerung */}
         <Card as="section" aria-labelledby="reminder-title" className="space-y-3">
           <h2 id="reminder-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-            <BellRing className="size-5 text-teal" aria-hidden="true" /> Erinnerung nach längerer Nutzung
+            <BellRing className="size-5 text-accent" aria-hidden="true" /> Erinnerung nach längerer Nutzung
           </h2>
           <p className="text-sm text-muted">Ein kurzer Hinweis mit der bisherigen Spielzeit — ohne Druck, ohne Countdown.</p>
           <Select
@@ -156,9 +156,9 @@ export function RgPanel() {
       </div>
 
       {/* Hilfe */}
-      <Card as="section" aria-labelledby="help-title" className="space-y-3 border-teal/40">
+      <Card as="section" aria-labelledby="help-title" className="space-y-3 border-accent/40">
         <h2 id="help-title" className="flex items-center gap-2 text-md font-semibold text-primary">
-          <LifeBuoy className="size-5 text-teal" aria-hidden="true" /> Hilfe
+          <LifeBuoy className="size-5 text-accent" aria-hidden="true" /> Hilfe
         </h2>
         <p className="measure text-sm text-muted">{RG_NOTICE}</p>
         <p className="measure text-sm text-muted">

@@ -82,7 +82,7 @@ const icons: Record<SlotSymbolId, LucideIcon> = {
  */
 const goldStrong = new Set<SlotSymbolId>(["crown", "coins", "sun", "eye", "moonstar", "anchor", "bell", "zap", "flame"]);
 const gold = new Set<SlotSymbolId>(["star", "lamp", "cherry", "pyramid", "book", "gem", "key"]);
-const teal = new Set<SlotSymbolId>([
+const accent = new Set<SlotSymbolId>([
   "diamond", "droplet", "waves", "fish", "shell", "buoy", "compass", "sailboat", "leaf", "flower", "trees",
   "orbit", "eclipse", "telescope", "sparkles", "clover", "citrus", "grape", "bird", "paw",
 ]);
@@ -94,7 +94,7 @@ const bright = new Set<SlotSymbolId>([
 function colorFor(id: SlotSymbolId): string {
   if (goldStrong.has(id)) return "text-gold-strong";
   if (gold.has(id)) return "text-gold";
-  if (teal.has(id)) return "text-teal";
+  if (accent.has(id)) return "text-accent";
   if (bright.has(id)) return "text-primary/80";
   return "text-muted";
 }
@@ -103,7 +103,7 @@ export function SlotSymbol({ id, className, highlight }: { id: SlotSymbolId; cla
   const Icon = icons[id];
   return (
     <span className={cn("inline-flex items-center justify-center", colorFor(id), className)} role="img" aria-label={SYMBOL_LABEL[id]}>
-      <Icon className={cn("size-8 sm:size-10", highlight && "fill-current/20")} strokeWidth={1.75} aria-hidden="true" />
+      <Icon className={cn("size-9 sm:size-11", highlight && "fill-current/20")} strokeWidth={1.75} aria-hidden="true" />
     </span>
   );
 }

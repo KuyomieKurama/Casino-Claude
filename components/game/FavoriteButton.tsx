@@ -12,7 +12,13 @@ export type FavoriteButtonProps = {
   size?: "sm" | "md";
 };
 
-/** Favoriten-Herz mit 44×44-px-Ziel, aria-pressed und Skeleton vor der Hydration. */
+/**
+ * Favoriten-Herz mit 44×44-px-Ziel, aria-pressed und Skeleton vor der Hydration. Zustand nie
+ * allein über Farbe: gefülltes vs. umrissenes Herz-Icon plus aria-pressed sind die beiden von
+ * Farbe unabhängigen Signale, die Farbe kommt nur ergänzend hinzu. `press-feedback` (Auftrag
+ * Etappe 3) ergänzt eine kurze, spürbare Reaktion auf den Tastendruck, wie auf den umgebenden
+ * Spielkarten.
+ */
 export function FavoriteButton({ gameId, gameName, className, size = "sm" }: FavoriteButtonProps) {
   const { hydrated, isFavorite, toggleFavorite } = useCatalog();
   const active = hydrated && isFavorite(gameId);
@@ -28,7 +34,7 @@ export function FavoriteButton({ gameId, gameName, className, size = "sm" }: Fav
         toggleFavorite(gameId);
       }}
       className={cn(
-        "inline-flex size-11 items-center justify-center rounded-pill border transition-state",
+        "press-feedback inline-flex size-11 items-center justify-center rounded-pill border transition-state",
         active ? "border-gold bg-base/80 text-gold" : "border-border-control bg-base/70 text-muted hover:border-gold hover:text-gold-strong",
         className,
       )}

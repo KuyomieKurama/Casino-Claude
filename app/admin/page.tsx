@@ -53,7 +53,7 @@ export default async function AdminPage() {
   return (
     <div className="anim-panel-in">
       <AdminHeader />
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-xl px-4 py-6 sm:px-6">
         <header>
           <h1 className="font-display text-2xl text-primary sm:text-3xl">Admin-Dashboard</h1>
           <p className="mt-1 text-sm text-muted">Systemstatus und Datenbankdiagnose — reine Anzeige, kein Umschalten der Datenbank.</p>

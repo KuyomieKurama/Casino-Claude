@@ -194,7 +194,7 @@ export function VideoPokerGame({ game, simulateLoadError, onStatusChange }: Game
       }
     >
       <div className="space-y-4">
-        <section aria-labelledby="vp-hand-heading" className="rounded-card border border-border-control bg-base p-3 sm:p-4">
+        <section aria-labelledby="vp-hand-heading" className="edge-light rounded-card border border-border-control bg-base p-3 sm:p-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 id="vp-hand-heading" className="text-sm font-medium text-primary">
               Deine fünf Karten
@@ -273,10 +273,12 @@ const CardSlot = function CardSlotInner({ ref, index, card, held, interactive, o
       aria-label={card ? `${position}: ${rankName} ${suitName}. ${held ? "Gehalten." : "Nicht gehalten."}` : `${position}: noch keine Karte`}
       onClick={onToggle}
       className={cn(
-        "flex min-h-[6.5rem] min-w-11 flex-col items-center justify-center gap-0.5 rounded-control border bg-surface px-1 py-2 transition-state",
+        "edge-light flex min-h-[6.5rem] min-w-11 flex-col items-center justify-center gap-0.5 rounded-control border bg-surface px-1 py-2 transition-state",
         "disabled:cursor-default",
-        held ? "border-gold" : "border-border-control",
-        interactive && !held && "hover:border-gold",
+        // Gehalten-Zustand violett statt golden: Gold bleibt der einen CTA-Fläche
+        // vorbehalten, „gehalten" ist ein Nutzerauswahlzustand, kein Primär-CTA.
+        held ? "border-accent" : "border-border-control",
+        interactive && !held && "hover:border-accent",
       )}
     >
       {card ? (
@@ -288,7 +290,7 @@ const CardSlot = function CardSlotInner({ ref, index, card, held, interactive, o
             {suit}
           </span>
           {/* Textlabel zusätzlich zum Symbol: Farbe ist nie die alleinige Information. */}
-          <span className="text-[0.625rem] leading-tight text-muted" aria-hidden="true">
+          <span className="text-xs leading-tight text-muted" aria-hidden="true">
             {suitName}
           </span>
         </>
@@ -299,7 +301,7 @@ const CardSlot = function CardSlotInner({ ref, index, card, held, interactive, o
       )}
       <span
         aria-hidden="true"
-        className={cn("mt-0.5 rounded-full px-1.5 text-[0.625rem] leading-4", held ? "border border-gold text-gold" : "text-muted")}
+        className={cn("mt-0.5 rounded-full px-1.5 text-xs leading-4", held ? "border border-accent text-accent" : "text-muted")}
       >
         {held ? "Gehalten" : `Nr. ${index + 1}`}
       </span>
@@ -309,7 +311,7 @@ const CardSlot = function CardSlotInner({ ref, index, card, held, interactive, o
 
 function PaytableView({ stakeMinor, achieved }: { stakeMinor: number; achieved: HandCategory | null }) {
   return (
-    <section aria-labelledby="vp-paytable-heading" className="rounded-card border border-border-subtle bg-base p-3">
+    <section aria-labelledby="vp-paytable-heading" className="edge-light rounded-card border border-border-subtle bg-base p-3">
       <h3 id="vp-paytable-heading" className="text-sm font-medium text-primary">
         Gewinntabelle (9/6)
       </h3>
@@ -331,11 +333,13 @@ function PaytableView({ stakeMinor, achieved }: { stakeMinor: number; achieved: 
             {PAYTABLE.map((entry) => {
               const isAchieved = achieved === entry.category;
               return (
-                <tr key={entry.category} className={cn("border-b border-border-subtle/60", isAchieved && "text-gold")}>
+                <tr key={entry.category} className={cn("border-b border-border-subtle/60", isAchieved && "text-accent")}>
                   <th scope="row" className="py-1 pr-3 font-normal">
-                    {entry.label}
-                    {/* Erreichte Kategorie zusätzlich als Text markiert, nicht nur farblich. */}
-                    {isAchieved ? <span className="ml-1 text-[0.625rem]">— diese Runde</span> : null}
+                    {/* Erreichte Kategorie zusätzlich fett und als Text markiert, nicht nur farblich —
+                        Gold bleibt dem Primär-CTA vorbehalten, hier gilt derselbe violette Akzent wie
+                        bei "Gehalten" auf den Karten. */}
+                    <span className={cn(isAchieved && "font-semibold")}>{entry.label}</span>
+                    {isAchieved ? <span className="ml-1 text-xs">— diese Runde</span> : null}
                   </th>
                   <td className="tabular py-1 pr-3 text-right">{formatMultiplier(entry.multiplier)}</td>
                   <td className="tabular py-1 text-right">{formatCredits(stakeMinor * entry.multiplier)}</td>

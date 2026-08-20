@@ -74,7 +74,7 @@ export function PlinkoGame({ game, simulateLoadError = false, onStatusChange }: 
           Nagelbrett — {PLINKO_ROWS} Reihen, {PLINKO_BUCKET_COUNT} Fächer
         </h3>
 
-        <div className="rounded-card border border-border-control bg-base p-2 sm:p-3">
+        <div className="edge-light rounded-card border border-border-control bg-base p-2 sm:p-3">
           {/* Nagelreihen. Reihe r hat r+1 Nägel; die Kugel steht nach r Entscheidungen auf
               Position „Anzahl Rechts-Entscheidungen“. Rein dekorativ, daher aria-hidden —
               der Weg steht darunter im Klartext. */}
@@ -88,7 +88,7 @@ export function PlinkoGame({ game, simulateLoadError = false, onStatusChange }: 
                       key={i}
                       className={cn(
                         "size-1.5 rounded-pill transition-state",
-                        onPath ? "bg-teal ring-2 ring-teal/40" : "bg-border-control",
+                        onPath ? "bg-accent-strong ring-2 ring-accent-strong/40" : "bg-border-control",
                       )}
                     />
                   );
@@ -112,8 +112,8 @@ export function PlinkoGame({ game, simulateLoadError = false, onStatusChange }: 
                   key={k}
                   role="listitem"
                   className={cn(
-                    "tabular flex min-h-8 items-center justify-center overflow-hidden rounded-[4px] border px-0 text-[0.625rem] leading-none sm:text-xs",
-                    hit ? "border-teal bg-elevated font-semibold text-teal" : "border-border-subtle text-muted",
+                    "tabular flex min-h-8 items-center justify-center overflow-hidden rounded-xs border px-0 text-[0.625rem] leading-none sm:text-xs",
+                    hit ? "border-accent bg-elevated font-semibold text-accent" : "border-border-subtle text-muted",
                   )}
                 >
                   <span className="sr-only">

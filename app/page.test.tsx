@@ -24,27 +24,29 @@ describe("HomePage — Startseite", () => {
     expect(h1s).toHaveLength(1);
   });
 
-  test("zeigt Spiele bereits im ersten Abschnitt — kein leerer Marketing-Hero ohne Spielbezug", () => {
+  test("zeigt Spiele bereits im ersten Abschnitt nach dem Hero", () => {
     renderHome();
-    // Das hervorgehobene Spiel (HomeRows) steht als zweites Element direkt nach dem schmalen
-    // Einstieg, nicht hinter einem eigenständigen, raumgreifenden Hero-Bereich.
+    // Das hervorgehobene Spiel (HomeRows) steht als zweites Element direkt nach dem Hero.
     expect(screen.getByRole("heading", { level: 2, name: "Hervorgehobenes Spiel" })).toBeInTheDocument();
   });
 
-  test("der Einstieg enthält keine eigene goldene Aktionsfläche (Gold bleibt der Spielkarte vorbehalten)", () => {
+  test("der Hero trägt die einzige goldene Aktionsfläche des Bildschirms (primärer CTA)", () => {
     renderHome();
     const heroHeading = screen.getByRole("heading", { level: 1 });
     const heroSection = heroHeading.closest("section");
     expect(heroSection).not.toBeNull();
     // Primäre (goldene) Buttons tragen bg-gold (siehe components/ui/Button.tsx variants.primary).
-    expect(heroSection!.querySelectorAll(".bg-gold").length).toBe(0);
+    // Revidierte Entscheidung (siehe Kommentar in app/page.tsx): der Hero trägt jetzt bewusst
+    // den primären CTA — die featured-Karte in HomeRows verzichtet im Gegenzug auf ihren
+    // goldenen Button (siehe components/home/HomeRows.tsx).
+    expect(heroSection!.querySelectorAll(".bg-gold").length).toBe(1);
   });
 
-  test("höchstens eine goldene Fläche auf der gesamten Startseite", () => {
+  test("genau eine goldene Fläche auf der gesamten Startseite", () => {
     const { container } = renderHome();
     // .bg-gold ist die einzige gefüllte goldene Fläche (Button-Variante `primary`); Textlinks in
     // Gold (z. B. „Alle ansehen“) sind bewusst keine Fläche und zählen laut Auftrag nicht mit.
-    expect(container.querySelectorAll(".bg-gold").length).toBeLessThanOrEqual(1);
+    expect(container.querySelectorAll(".bg-gold").length).toBe(1);
   });
 
   test("Responsible-Gaming-Hinweis und Promotions bleiben inhaltlich erhalten", () => {

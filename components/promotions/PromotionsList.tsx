@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 
-const statusLabel: Record<Promotion["status"], { label: string; tone: "teal" | "neutral" | "warning" }> = {
-  active: { label: "Aktiv", tone: "teal" },
+const statusLabel: Record<Promotion["status"], { label: string; tone: "accent" | "neutral" | "warning" }> = {
+  active: { label: "Aktiv", tone: "accent" },
   upcoming: { label: "Demnächst (Mock)", tone: "neutral" },
   expired: { label: "Beendet (Mock)", tone: "warning" },
 };
@@ -34,7 +34,7 @@ export function PromotionsList() {
 
   return (
     <>
-      <ul className="grid gap-4 md:grid-cols-3">
+      <ul className="grid gap-lg md:grid-cols-3">
         {promotions.map((p) => {
           const s = statusLabel[p.status];
           const claimed = alreadyClaimed(p);

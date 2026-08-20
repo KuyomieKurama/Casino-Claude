@@ -34,20 +34,20 @@ export function Footer() {
   const logout = useLogout();
 
   return (
-    <footer className="mt-16 border-t border-border-subtle bg-surface pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] md:pb-8">
-      <div className="mx-auto grid max-w-[1536px] gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
-        <div className="space-y-3">
+    <footer className="mt-16 border-t border-border-subtle bg-surface pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] md:pb-2xl">
+      <div className="mx-auto grid max-w-[1536px] gap-2xl px-4 py-2xl sm:px-6 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:py-3xl">
+        <div className="space-y-4">
           <p className="font-display text-lg text-primary">{PRODUCT_NAME}</p>
           <p className="measure text-sm text-muted">{RG_NOTICE}</p>
-          <p className="measure text-xs text-muted">{CURRENCY_NOTICE}</p>
-          <p className="text-xs text-muted">
+          <p className="measure text-xs text-subtle">{CURRENCY_NOTICE}</p>
+          <p className="text-xs text-subtle">
             Keine Lizenzangaben, keine Zahlungsanbindung, keine Auszahlungen. Alle Spieltitel, Anbieter und Aktionen sind frei erfunden.
           </p>
         </div>
 
         <nav aria-label={playColumn.title}>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">{playColumn.title}</h2>
-          <ul className="space-y-1">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-subtle">{playColumn.title}</h2>
+          <ul className="space-y-2">
             {playColumn.links.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className={linkClass}>
@@ -59,8 +59,8 @@ export function Footer() {
         </nav>
 
         <nav aria-label={protectionColumn.title}>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">{protectionColumn.title}</h2>
-          <ul className="space-y-1">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-subtle">{protectionColumn.title}</h2>
+          <ul className="space-y-2">
             {protectionColumn.links.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className={linkClass}>
@@ -72,8 +72,8 @@ export function Footer() {
         </nav>
 
         <nav aria-label="Konto">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Konto</h2>
-          <ul className="space-y-1">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-subtle">Konto</h2>
+          <ul className="space-y-2">
             {user ? (
               <>
                 <li>

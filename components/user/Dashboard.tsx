@@ -40,7 +40,7 @@ export function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="anim-panel-in space-y-6">
+    <div className="anim-panel-in space-y-xl">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl text-primary sm:text-3xl">Hallo, {user.displayName}</h1>
@@ -60,37 +60,39 @@ export function Dashboard() {
 
       {/* Klare Hierarchie statt bunter Gleichrangigkeit (Auftrag „ruhig statt bunt"): Guthaben
           steht zuerst und ist die einzige groß gesetzte Kennzahl, alle vier Icons teilen dieselbe
-          Teal-Akzentfarbe statt je einer eigenen Farbe — Gold bleibt dem Spielbereich vorbehalten. */}
+          Akzentfarbe (violett) statt je einer eigenen Farbe — Gold bleibt dem Spielbereich
+          vorbehalten. */}
       <div className="stagger-list grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={<Coins className="size-5 text-teal" aria-hidden="true" />} label="Guthaben" value={hydrated ? `${formatCredits(availableMinor(wallet))} Credits` : "…"} primary />
-        <Stat icon={<Dices className="size-5 text-teal" aria-hidden="true" />} label="Gespielte Runden" value={hydrated ? String(stats.rounds) : "…"} />
-        <Stat icon={<Heart className="size-5 text-teal" aria-hidden="true" />} label="Favoriten" value={String(favorites.length)} />
+        <Stat icon={<Coins className="size-5 text-accent" aria-hidden="true" />} label="Guthaben" value={hydrated ? `${formatCredits(availableMinor(wallet))} Credits` : "…"} primary />
+        <Stat icon={<Dices className="size-5 text-accent" aria-hidden="true" />} label="Gespielte Runden" value={hydrated ? String(stats.rounds) : "…"} />
+        <Stat icon={<Heart className="size-5 text-accent" aria-hidden="true" />} label="Favoriten" value={String(favorites.length)} />
         <Stat
-          icon={<TrendingUp className="size-5 text-teal" aria-hidden="true" />}
+          icon={<TrendingUp className="size-5 text-accent" aria-hidden="true" />}
           label="Netto (Rückgabe − Einsatz)"
           value={hydrated ? `${formatCreditsSigned(stats.net)} Credits` : "…"}
           valueClass={stats.net > 0 ? "text-success" : "text-primary"}
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-xl lg:grid-cols-[1fr_320px]">
         <section aria-labelledby="recent-title" className="space-y-3">
           <div className="flex items-end justify-between">
             <h2 id="recent-title" className="text-md font-semibold text-primary">
               Letzte Bewegungen
             </h2>
-            {/* Kontoverwaltung bleibt golden-frei (§4/Auftrag): Teal statt Gold, dieselbe Akzentfarbe
-                wie der aktive Eintrag der Unternavigation (components/layout/UserShell.tsx). */}
-            <Link href="/history" className="text-sm font-medium text-teal hover:text-primary">
+            {/* Kontoverwaltung bleibt golden-frei (§4/Auftrag): Akzent (violett) statt Gold,
+                dieselbe Akzentfarbe wie der aktive Eintrag der Unternavigation
+                (components/layout/UserShell.tsx). */}
+            <Link href="/history" className="text-sm font-medium text-accent hover:text-primary">
               Gesamte Historie
             </Link>
           </div>
           <TransactionList transactions={transactions} hydrated={hydrated} limit={6} />
         </section>
-        <div className="space-y-6">
-          <Card as="section" aria-labelledby="rg-short" className="space-y-2 border-teal/40">
+        <div className="space-y-xl">
+          <Card as="section" aria-labelledby="rg-short" className="space-y-2 border-accent/40">
             <h2 id="rg-short" className="flex items-center gap-2 text-md font-semibold text-primary">
-              <ShieldCheck className="size-5 text-teal" aria-hidden="true" /> Responsible Gaming
+              <ShieldCheck className="size-5 text-accent" aria-hidden="true" /> Responsible Gaming
             </h2>
             <p className="text-sm text-muted">
               {rg.hydrated

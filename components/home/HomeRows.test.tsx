@@ -13,10 +13,10 @@ function renderHomeRows() {
 }
 
 describe("HomeRows — Startseite zeigt Spiele im Vordergrund", () => {
-  test("rendert das hervorgehobene Spiel mit eigener (visuell versteckter) Überschrift", () => {
+  test("rendert das hervorgehobene Spiel mit eigener, sichtbarer Überschrift", () => {
     renderHomeRows();
-    // sr-only-Überschrift wahrt die Überschriftenhierarchie, ohne optisch eine zweite
-    // Marketingfläche zu erzeugen.
+    // Anders als zuvor (sr-only) ist die Überschrift jetzt sichtbar (Auftrag §6, klare
+    // Sektionshierarchie wie bei den übrigen Reihen).
     expect(screen.getByRole("heading", { level: 2, name: "Hervorgehobenes Spiel" })).toBeInTheDocument();
     // Die featured-Variante von GameCard rendert den Spieltitel als h3.
     expect(screen.getAllByRole("heading", { level: 3 }).length).toBeGreaterThan(0);
@@ -39,7 +39,7 @@ describe("HomeRows — Startseite zeigt Spiele im Vordergrund", () => {
   test("die Startseiten-Reihen liegen großzügig getrennt (Abstands-Skala statt Zufallswerte)", () => {
     const { container } = renderHomeRows();
     const root = container.firstElementChild;
-    expect(root?.className).toMatch(/space-y-xl/);
+    expect(root?.className).toMatch(/space-y-2xl/);
   });
 
   test("Spielreihen treten gestaffelt ein (stagger-list auf dem Wurzelelement)", () => {
@@ -57,8 +57,10 @@ describe("HomeRows — Startseite zeigt Spiele im Vordergrund", () => {
     expect(featuredSection?.parentElement).toBe(container.firstElementChild);
   });
 
-  test("höchstens eine goldene Fläche (das hervorgehobene Spiel bleibt Umriss/Text, keine zweite Fläche)", () => {
+  test("keine goldene Fläche in HomeRows — die eine goldene Fläche der Startseite gehört seit der Hero-Revision dem Hero-CTA", () => {
     const { container } = renderHomeRows();
-    expect(container.querySelectorAll(".bg-gold").length).toBeLessThanOrEqual(1);
+    // Die hervorgehobene Karte trägt restrainedCta (siehe Kommentar in HomeRows.tsx und
+    // components/game/GameCard.tsx) und zeigt deshalb einen Umriss- statt eines goldenen Buttons.
+    expect(container.querySelectorAll(".bg-gold").length).toBe(0);
   });
 });

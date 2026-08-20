@@ -128,7 +128,9 @@ export function BaccaratGame({ game, simulateLoadError, onStatusChange }: GameEn
               className={cn(
                 "min-h-11 rounded-control border px-3 py-2 text-left transition-state",
                 "disabled:cursor-not-allowed disabled:opacity-50",
-                selected ? "border-gold text-gold" : "border-border-control text-primary hover:border-gold",
+                // Ausgewählte Wette violett statt golden: Gold bleibt der einen CTA-Fläche
+                // vorbehalten, der Auswahlzustand einer Wette ist kein Primär-CTA.
+                selected ? "border-accent text-accent" : "border-border-control text-primary hover:border-accent",
               )}
             >
               <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -183,7 +185,7 @@ export function BaccaratGame({ game, simulateLoadError, onStatusChange }: GameEn
       <div className="space-y-4">
         {game.isLiveDemo ? <DealerIllustration /> : null}
 
-        <section aria-labelledby="baccarat-table-heading" className="rounded-card border border-border-control bg-base p-3 sm:p-4">
+        <section aria-labelledby="baccarat-table-heading" className="edge-light rounded-card border border-border-control bg-base p-3 sm:p-4">
           <h3 id="baccarat-table-heading" className="text-sm font-medium text-primary">
             Tisch
           </h3>
@@ -249,7 +251,7 @@ function HandPanel({
   winner?: boolean;
 }) {
   return (
-    <div className="rounded-control border border-border-subtle bg-surface p-3">
+    <div className="edge-light rounded-control border border-border-subtle bg-surface p-3">
       <div className="flex items-baseline justify-between gap-2">
         <h4 className="text-sm font-medium text-primary">{title}</h4>
         <span className="tabular text-sm text-muted">
@@ -277,14 +279,14 @@ function PlayingCard({ card }: { card: BaccaratCard }) {
   const suitName = SUIT_NAME[card.suit] ?? "";
   const points = cardPoints(card.rank);
   return (
-    <span className="anim-fade-in flex h-[4.25rem] w-12 flex-col items-center justify-center rounded-control border border-border-control bg-base">
-      <span className="text-base font-semibold text-primary" aria-hidden="true">
+    <span className="edge-light anim-fade-in flex h-20 w-14 flex-col items-center justify-center rounded-control border border-border-control bg-base">
+      <span className="text-lg font-semibold text-primary" aria-hidden="true">
         {rank}
       </span>
-      <span className="text-sm text-muted" aria-hidden="true">
+      <span className="text-base text-muted" aria-hidden="true">
         {suit}
       </span>
-      <span className="tabular text-[0.6875rem] text-muted" aria-hidden="true">
+      <span className="tabular text-xs text-muted" aria-hidden="true">
         {points} P.
       </span>
       <span className="sr-only">
@@ -297,7 +299,7 @@ function PlayingCard({ card }: { card: BaccaratCard }) {
 /** Statische Illustration des Live-Bereichs: keine Personen, kein Video, kein Stream. */
 function DealerIllustration() {
   return (
-    <section aria-labelledby="baccarat-live-heading" className="rounded-card border border-border-subtle bg-base p-3">
+    <section aria-labelledby="baccarat-live-heading" className="edge-light rounded-card border border-border-subtle bg-base p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="baccarat-live-heading" className="text-sm font-medium text-primary">
           Dealer-Bereich
@@ -332,7 +334,7 @@ function DealerIllustration() {
 /** Sachliche Regelerklärung — keine Strategieempfehlung. */
 function DrawRules() {
   return (
-    <div id="baccarat-rules" className="anim-fade-in mt-2 space-y-3 rounded-control border border-border-subtle bg-base p-3 text-xs text-muted">
+    <div id="baccarat-rules" className="edge-light anim-fade-in mt-2 space-y-3 rounded-control border border-border-subtle bg-base p-3 text-xs text-muted">
       <div>
         <h4 className="text-sm font-medium text-primary">Ablauf</h4>
         <p className="mt-1">
@@ -381,7 +383,7 @@ function DrawRules() {
 
 function ResultHistory({ entries }: { entries: readonly HistoryEntry[] }) {
   return (
-    <section aria-labelledby="baccarat-history-heading" className="rounded-card border border-border-subtle bg-base p-3">
+    <section aria-labelledby="baccarat-history-heading" className="edge-light rounded-card border border-border-subtle bg-base p-3">
       <h3 id="baccarat-history-heading" className="text-sm font-medium text-primary">
         Ergebnisverlauf
       </h3>
@@ -395,9 +397,9 @@ function ResultHistory({ entries }: { entries: readonly HistoryEntry[] }) {
         <ol className="mt-2 flex flex-wrap gap-1.5">
           {entries.map((e) => (
             <li key={e.roundId}>
-              <span className="tabular flex size-9 flex-col items-center justify-center rounded-control border border-border-control text-primary">
+              <span className="edge-light tabular flex size-10 flex-col items-center justify-center rounded-control border border-border-control bg-elevated text-primary">
                 <span aria-hidden="true" className="text-sm font-medium">{RESULT_SHORT[e.result]}</span>
-                <span aria-hidden="true" className="text-[0.625rem] text-muted">{e.playerTotal}:{e.bankerTotal}</span>
+                <span aria-hidden="true" className="text-xs text-muted">{e.playerTotal}:{e.bankerTotal}</span>
                 <span className="sr-only">
                   {RESULT_LONG[e.result]}, Punkte {e.playerTotal} zu {e.bankerTotal}
                 </span>

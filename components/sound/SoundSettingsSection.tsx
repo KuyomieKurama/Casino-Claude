@@ -47,7 +47,7 @@ export function SoundSettingsSection() {
           disabled={!enabled}
           onChange={(event) => setVolume(Number(event.target.value) / 100)}
           aria-valuetext={`${volumePercent} Prozent`}
-          className="h-11 w-full accent-teal disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-11 w-full accent-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
         />
         <p className="text-sm text-muted" aria-hidden="true">
           {volumePercent} %

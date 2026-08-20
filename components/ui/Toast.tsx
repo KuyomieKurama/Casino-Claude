@@ -31,7 +31,7 @@ export function useToast(): ToastApi {
 }
 
 const icons: Record<ToastTone, ReactNode> = {
-  info: <Info className="size-5 text-teal" aria-hidden="true" />,
+  info: <Info className="size-5 text-accent" aria-hidden="true" />,
   success: <CheckCircle2 className="size-5 text-success" aria-hidden="true" />,
   warning: <AlertTriangle className="size-5 text-warning" aria-hidden="true" />,
   danger: <XCircle className="size-5 text-danger" aria-hidden="true" />,
@@ -95,7 +95,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               key={t.id}
               role={tone === "danger" ? "alert" : "status"}
               className={cn(
-                "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-card border border-border-subtle bg-elevated p-3 shadow-2 anim-rise-in",
+                // glass-panel-strong liefert Fläche/Rahmen/Weichzeichnung; surface-raised-strong
+                // kombiniert --shadow-raised UND das Kantenlicht in einer box-shadow-Deklaration
+                // (dieselbe Begründung wie bei Modal/Button „outline“, siehe app/globals.css) —
+                // beide sind @utility-Deklarationen und folgen normalen Kaskadenregeln, kein „!“
+                // mehr nötig.
+                "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-card glass-panel-strong surface-raised-strong p-3 anim-rise-in",
               )}
             >
               <span className="mt-0.5 shrink-0">{icons[tone]}</span>

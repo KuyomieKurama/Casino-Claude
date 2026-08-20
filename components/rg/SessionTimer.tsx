@@ -24,10 +24,10 @@ export function SessionTimer({ variant = "full", className }: SessionTimerProps)
       <Link
         href="/responsible-gaming"
         // Responsible Gaming bleibt ohne Verkaufsästhetik (Auftrag): "kein Gold" gilt hier
-        // strenger/uneingeschränkt als im übrigen Nutzerbereich, deshalb Teal statt Gold beim
-        // Hover — anders als bei components/ui/Button.tsx (dort gesperrt) ist dieser Klassenname
-        // hier vollständig eigen und nicht durch eine geteilte Primitive erzwungen.
-        className={cn("h-11 items-center gap-2 rounded-control border border-border-subtle bg-surface px-2.5 text-sm text-muted transition-state hover:border-teal hover:text-primary", className)}
+        // strenger/uneingeschränkt als im übrigen Nutzerbereich, deshalb Akzent (violett) statt
+        // Gold beim Hover — anders als bei components/ui/Button.tsx (dort gesperrt) ist dieser
+        // Klassenname hier vollständig eigen und nicht durch eine geteilte Primitive erzwungen.
+        className={cn("h-11 items-center gap-2 rounded-control border border-border-subtle bg-surface px-2.5 text-sm text-muted transition-state hover:border-accent hover:text-primary", className)}
         aria-label="Spielzeit dieser Sitzung – zu Responsible Gaming"
       >
         {status.blocked ? (
@@ -37,7 +37,7 @@ export function SessionTimer({ variant = "full", className }: SessionTimerProps)
             <ShieldAlert className="size-4 text-warning" aria-hidden="true" />
           )
         ) : (
-          <Clock className="size-4 text-teal" aria-hidden="true" />
+          <Clock className="size-4 text-accent" aria-hidden="true" />
         )}
         {status.hydrated ? <span className="tabular">{formatDurationClock(status.sessionElapsedMs)}</span> : <Skeleton className="h-4 w-[5ch]" />}
       </Link>

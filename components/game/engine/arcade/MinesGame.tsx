@@ -164,7 +164,7 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
                   variant="outline"
                   fullWidth
                   aria-pressed={active}
-                  className={cn(active && "border-teal text-teal")}
+                  className={cn(active && "border-accent text-accent")}
                   onClick={() => setMineCount(count)}
                 >
                   {count} {count === 1 ? "Mine" : "Minen"}
@@ -223,7 +223,7 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
                 disabled={!open || isRevealed}
                 aria-label={label}
                 className={cn(
-                  "flex aspect-square min-h-11 min-w-11 items-center justify-center rounded-control border text-sm transition-state",
+                  "edge-light flex aspect-square min-h-11 min-w-11 items-center justify-center rounded-control border text-sm transition-state",
                   "disabled:cursor-not-allowed focus-visible:outline-none",
                   isRevealed && "border-success bg-elevated text-success",
                   showMine && "border-danger bg-elevated text-danger",
@@ -251,7 +251,7 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
                 : "Mine getroffen — die Runde ist beendet."}
         </p>
 
-        <details className="rounded-control border border-border-subtle bg-base p-3">
+        <details className="edge-light rounded-control border border-border-subtle bg-base p-3">
           <summary className="min-h-11 cursor-pointer list-none text-sm font-medium text-primary">
             Multiplikator-Staffel bei {mineCount} {mineCount === 1 ? "Mine" : "Minen"}
           </summary>
@@ -264,8 +264,8 @@ export function MinesGame({ game, simulateLoadError = false, onStatusChange }: G
               <li
                 key={index}
                 className={cn(
-                  "tabular rounded-[4px] border px-1 py-1 text-center text-xs",
-                  revealed.length === index + 1 ? "border-teal text-teal" : "border-border-subtle text-muted",
+                  "tabular rounded-xs border px-1 py-1 text-center text-xs",
+                  revealed.length === index + 1 ? "border-accent text-accent" : "border-border-subtle text-muted",
                 )}
               >
                 {index + 1}: {multiplier.toLocaleString("de-DE")}×

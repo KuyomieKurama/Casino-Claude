@@ -75,8 +75,8 @@ export function WheelGame({ game, simulateLoadError = false, onStatusChange }: G
               <li
                 key={segment.index}
                 className={cn(
-                  "flex min-h-11 flex-col items-center justify-center rounded-control border px-1 py-1 text-center transition-state",
-                  hit ? "border-teal bg-elevated text-teal" : "border-border-subtle text-muted",
+                  "edge-light flex min-h-11 flex-col items-center justify-center rounded-control border px-1 py-1 text-center transition-state",
+                  hit ? "border-accent bg-elevated text-accent" : "border-border-subtle bg-base text-muted",
                 )}
               >
                 <span className="tabular text-xs">{segment.index + 1}</span>

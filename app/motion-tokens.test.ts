@@ -70,6 +70,13 @@ describe("Bewegungssystem: neue Tokens sind vorhanden und plausibel", () => {
     // Druckfeedback ist ein Verkleinern (gedrückt wirken), keine Vergrößerung.
     expect(scale).toBeLessThan(1);
   });
+
+  it("--ease-lux ist eine eigenständige cubic-bezier()-Kurve, unterscheidet sich von --ease-out", () => {
+    const easeLux = readToken("ease-lux");
+    const easeOut = readToken("ease-out");
+    expect(easeLux).toMatch(/^cubic-bezier\(/);
+    expect(easeLux).not.toBe(easeOut);
+  });
 });
 
 describe("Bewegungssystem: geforderte Utilities existieren", () => {
@@ -121,5 +128,11 @@ describe("Bewegungssystem: prefers-reduced-motion nutzt den vorhandenen Media-Qu
 
     // Druckfeedback verliert die Skalierung, bleibt aber als Element (nur Transform entfällt).
     expect(block).toMatch(/\.press-feedback:active\s*\{\s*transform:\s*none;\s*\}/);
+
+    // Neu (Premium-Fundament): .tilt-card verliert die 3D-Neigung im Hover, .anim-float
+    // (schwebende Hero-Objekte) entfällt vollständig — beides reine Bewegungs-, keine
+    // Sichtbarkeits-Effekte.
+    expect(block).toMatch(/\.tilt-card:hover\s*\{\s*transform:\s*none;\s*\}/);
+    expect(block).toMatch(/\.anim-float\s*\{\s*animation:\s*none;\s*\}/);
   });
 });

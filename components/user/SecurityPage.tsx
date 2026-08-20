@@ -28,7 +28,7 @@ const mockLogins = [
  */
 export function SecurityPage() {
   return (
-    <div className="anim-panel-in space-y-6">
+    <div className="anim-panel-in space-y-xl">
       <header>
         <h1 className="font-display text-2xl text-primary sm:text-3xl">Sicherheit</h1>
         <p className="mt-1 text-sm text-muted">Passwortänderung und Zwei-Faktor-Authentifizierung sind derzeit nicht umgesetzt. Geräte und Login-Historie unten sind Beispieldaten zur Illustration, keine echten Aufzeichnungen.</p>
@@ -54,8 +54,12 @@ export function SecurityPage() {
         </p>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card as="section" aria-labelledby="devices-title" className="space-y-3">
+      <div className="grid gap-xl lg:grid-cols-2">
+        {/* Nachrangig/illustrativ ("Mock"): Glaspanel statt deckender Fläche, passend zum
+            Auftrag „Panels, die nachrangig sind" — anders als die beiden Hinweiskarten oben
+            (Passwort/2FA), die den eigentlichen, ehrlichen Status tragen und deshalb deckend
+            bleiben. */}
+        <Card as="section" aria-labelledby="devices-title" glass className="space-y-3">
           <h2 id="devices-title" className="text-md font-semibold text-primary">
             Geräte <Badge tone="neutral" className="ml-1">Mock</Badge>
           </h2>
@@ -67,12 +71,12 @@ export function SecurityPage() {
                   <p className="font-medium text-primary">{name}</p>
                   <p className="text-xs text-muted">Zuletzt aktiv: {formatDateTime(lastActive)}</p>
                 </div>
-                {current ? <Badge tone="teal">Aktuell</Badge> : null}
+                {current ? <Badge tone="accent">Aktuell</Badge> : null}
               </li>
             ))}
           </ul>
         </Card>
-        <Card as="section" aria-labelledby="logins-title" className="space-y-3">
+        <Card as="section" aria-labelledby="logins-title" glass className="space-y-3">
           <h2 id="logins-title" className="text-md font-semibold text-primary">
             Login-Historie <Badge tone="neutral" className="ml-1">Mock</Badge>
           </h2>

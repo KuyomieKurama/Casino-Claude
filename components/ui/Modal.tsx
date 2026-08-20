@@ -92,13 +92,26 @@ export function Modal({ open, onClose, title, description, children, footer, dis
           <div
             role="document"
             className={cn(
-              "flex w-full flex-col bg-elevated shadow-2 signature-top",
+              // glass-panel-strong liefert Fläche, Rahmen und Weichzeichnung; surface-raised-strong
+              // kombiniert die stärkste Elevation-Stufe (--shadow-raised) MIT dem Kantenlicht in
+              // einer einzigen box-shadow-Deklaration (siehe app/globals.css) — für die am stärksten
+              // angehobene Fläche der Oberfläche (Modal/Drawer stehen über allem anderen). Beide
+              // Utilities sind @utility-Deklarationen und folgen normalen Kaskadenregeln, der
+              // frühere Tailwind-„!“-Modifikator (nötig, solange glass-panel-strong ungelayertes
+              // CSS war) entfällt.
+              "flex w-full flex-col glass-panel-strong surface-raised-strong",
               isDrawer
                 ? "max-h-[92dvh] rounded-t-modal anim-sheet-up md:max-h-none md:h-full md:rounded-none md:anim-sheet-side"
                 : cn("max-h-[92dvh] rounded-t-modal sm:rounded-modal anim-sheet-up", widths[size]),
               className,
             )}
           >
+            {/* Kein eigenes edge-light mehr am Header (anders als zuvor): surface-raised-strong
+                oben liefert das Kantenlicht jetzt bereits auf der äußeren Karte selbst — optisch an
+                derselben Stelle (der Header liegt ohne eigenen Rand/Abstand bündig an der Oberkante
+                der Karte), aber ohne die frühere Notlösung, das Kantenlicht auf ein Kind-Element
+                auszuweichen, nur um nicht mit der (damals erzwungenen) box-shadow des Elternelements
+                zu kollidieren. */}
             <header className="flex items-start justify-between gap-4 border-b border-border-subtle px-5 py-4">
               <div className="min-w-0">
                 <h2 id={titleId} className="text-lg font-semibold leading-tight">
